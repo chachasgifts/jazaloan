@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>M‑Shwari Loan Calculator - JazaLoan Kenya</title>
+  <meta name="description" content="Use the M‑Shwari Loan Calculator to instantly estimate disbursement, facility fees, excise duty, and repayment due date. Trusted by Kenyan borrowers.">
+  <!-- Open Graph -->
+<meta property="og:title" content="M‑Shwari Loan Calculator Kenya" />
+<meta property="og:description" content="Accurate M‑Shwari loan breakdown for Kenyan borrowers. Calculate fees, disbursed amount, and due date easily." />
+<meta property="og:url" content="https://jazaloan.co.ke/mshwari-loan-calculator" />
+<meta property="og:type" content="website" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="M‑Shwari Loan Calculator Kenya" />
+<meta name="twitter:description" content="Free Kenyan M‑Shwari loan calculator. Instantly view disbursed amount, facility fees, excise duty and due date." />
+
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: #ffffff;
+      padding: 5px 10px;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+    .header-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  padding: 5px 15px;
+}
+
+.logo {
+  height: 90px;
+  max-height: 90px;
+  width: auto;
+  object-fit: contain;
+}
+
+
+    .navbar {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .navbar a {
+      position: relative;
+      color: #2c3e50;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      transition: color 0.3s ease;
+      padding: 6px 10px;
+    }
+    .navbar a:hover {
+      color: #007bff;
+    }
+    .navbar a::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 0%;
+      height: 2px;
+      background-color: #007bff;
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+    .navbar a:hover::after {
+      width: 100%;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #27ae60;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      margin-top: 20px;
+      width: 100%;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #1e8449;
+      transform: scale(1.03);
+    }
+    .results {
+      margin-top: 25px;
+      padding: 15px;
+      background: #e9f8ef;
+      border-left: 5px solid #0b5e2b;
+      border-radius: 8px;
+    }
+    
+    .affiliate, .about {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 25px 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    .about h2, .affiliate h2 {
+      color: #0b5e2b;
+    }
+    footer {
+      background-color: #03457b;
+      padding: 10px 0;
+      font-size: 13px;
+      text-align: center;
+      color: white;
+    }
+    footer a {
+      color: white;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+   @media (max-width: 600px) {
+  .logo {
+    margin: 0 auto;
+    display: block;
+  }
+}
+
+.affiliate details {
+  scroll-margin-top: 100px;
+  transition: all 0.3s ease;
+}
+
+  .dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #ffffff;
+  min-width: 180px;
+  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
+  z-index: 1;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.dropdown-content a {
+  display: block;
+  color: #2c3e50;
+  padding: 10px 15px;
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+  color: #007bff;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+.navbar .dropdown > a {
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-block;
+  line-height: 1.5;
+  color: #2c3e50;
+  text-decoration: none;
+}
+.navbar .dropdown > a:hover {
+  color: #007bff;
+}
+
+
+  details {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fafafa;
+    padding: 10px 15px;
+  }
+  summary {
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 0;
+    color: #03457b;
+  }
+  summary:hover {
+    color: #007bff;
+  }
+  details[open] summary {
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+  }
+ .hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5px;
+  cursor: pointer;
+}
+
+  .hamburger span {
+    height: 3px;
+    width: 25px;
+    background: #03457b;
+    margin: 4px 0;
+    border-radius: 2px;
+  }
+  .navbar.desktop-only {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .navbar.desktop-only {
+    display: none;
+  }
+}
+
+.mobile-nav.show {
+  display: flex;
+}
+
+  @media (max-width: 768px) {
+    .navbar {
+      display: none;
+    }
+    .hamburger {
+      display: flex;
+    }
+    .mobile-nav.show {
+      display: flex;
+    }
+  }
+  @keyframes fadeInAnswer {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.affiliate details[open] > *:not(summary) {
+  animation: fadeInAnswer 0.35s ease-in-out;
+}
+@keyframes fadeInFAQ {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.faq-block {
+  animation: fadeInFAQ 0.7s ease-out;
+  animation-fill-mode: both;
+}
+.faq-block {
+  animation: fadeInFAQ 0.5s ease-out;
+  animation-fill-mode: both;
+  scroll-margin-top: 100px;
+}
+.results-animate {
+  animation: fadeInResult 0.5s ease-in-out;
+}
+
+@keyframes fadeInResult {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+  .dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #ffffff;
+  min-width: 180px;
+  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
+  z-index: 1;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.dropdown-content a {
+  display: block;
+  color: #2c3e50;
+  padding: 10px 15px;
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+  color: #007bff;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+.navbar .dropdown > a {
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-block;
+  line-height: 1.5;
+  color: #2c3e50;
+  text-decoration: none;
+}
+.navbar .dropdown > a:hover {
+  color: #007bff;
+}
+
+
+  details {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fafafa;
+    padding: 10px 15px;
+  }
+  summary {
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 0;
+    color: #03457b;
+  }
+  summary:hover {
+    color: #007bff;
+  }
+  details[open] summary {
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+  }
+  .mobile-submenu {
+  display: none;
+  flex-direction: column;
+  padding-left: 10px;
+}
+.mobile-submenu a {
+  font-size: 14px;
+  padding: 8px 10px;
+}
+.mobile-submenu.show {
+  display: flex;
+}
+ .hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+}
+.hamburger span {
+  height: 3px;
+  width: 25px;
+  background: #03457b;
+  margin: 4px 0;
+  border-radius: 2px;
+}
+.mobile-nav {
+  display: none;
+  flex-direction: column;
+  background: white;
+  padding: 10px;
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* ← this line is missing */
+}
+
+.mobile-nav a {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+.mobile-submenu {
+  display: none;
+  flex-direction: column;
+  padding-left: 10px;
+}
+.mobile-submenu a {
+  font-size: 14px;
+  padding: 8px 10px;
+}
+.mobile-submenu.show {
+  display: flex;
+}
+@media (max-width: 768px) {
+  .navbar {
+    display: none;
+  }
+  .hamburger {
+    display: flex;
+  }
+  .mobile-nav.show {
+    display: flex;
+  }
+}
+@media (max-width: 600px) {
+  .logo {
+    height: 60px;
+  }
+}
+.cta-button {
+  background-color: #0b5e2b;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cta-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(11, 94, 43, 0.2);
+}
+
+body {
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+body.fade-in {
+  opacity: 1;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (min-width: 769px) {
+  .site-header {
+    transition: all 0.3s ease;
+    padding: 10px 20px;
+  }
+
+  .site-header.shrink {
+    padding: 2px 20px;
+  }
+
+  .site-header .logo {
+    height: 90px;
+    transition: height 0.3s ease;
+  }
+
+  .site-header.shrink .logo {
+    height: 60px;
+  }
+}
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 999;
+  display: none;
+}
+.mobile-overlay.show {
+  display: block;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+  </style>
+  <link rel="canonical" href="https://jazaloan.co.ke/mshwari-loan-calculator" />
+</head>
+<body>
+
+<header class="site-header fade-in">
+  <div class="header-content">
+    <a href="index.html" aria-label="JazaLoan homepage">
+      <img src="Images/logo.png" alt="JazaLoan – Kenya's Mobile Loan Guide" class="logo animated-logo" />
+    </a>
+
+    <div class="hamburger" id="hamburger" aria-label="Toggle mobile menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <!-- Desktop Nav -->
+    <nav class="navbar desktop-only" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+      <a href="budgeting-calculator.html">Budgeting Calculator</a>
+      <a href="best-loans-by-salary.html">Loans by Salary</a>
+      <a href="compare-loans.html">Compare Loans</a>
+    </nav>
+  </div>
+
+  <!-- Mobile Nav -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html">Home</a>
+    <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
+    <a href="compare-loans.html">Compare Loans</a>
+  </nav>
+
+  <div id="overlay" class="mobile-overlay"></div>
+</header>
+
+
+  <section id="mshwari" style="padding: 40px 20px; background-color: #f9f9f9;">
+  <h1 style="text-align: center; font-size: 28px; margin-bottom: 20px;">
+  M‑Shwari Loan Calculator Kenya – Know Your Fees & Due Date
+</h1>
+
+  <div class="container">
+    <p style="text-align: center; font-size: 16px; color: #555; margin-bottom: 20px;">
+  Calculate your M‑Shwari loan repayment amount, disbursed value, and total fees in seconds. This free M‑Shwari Loan Calculator is tailored for Kenyan borrowers who want to understand their M‑PESA-based loans before applying.
+</p>
+<h2 style="text-align: center; color: #0b5e2b; margin-bottom: 15px;">Enter Your M‑Shwari Loan Details</h2>
+
+  <div style="display: flex; flex-direction: column; gap: 15px;">
+    <div>
+      <label for="mshwariAmount">Loan Amount (Ksh):</label>
+      <input
+  type="text"
+  id="mshwariAmount"
+  class="input"
+  placeholder="e.g. 5,000"
+  oninput="formatAmountInput(this)"
+/>
+
+    </div>
+    <div>
+      <label for="loanDate">Application Date:</label>
+      <input type="date" id="loanDate" />
+    </div>
+
+      <button onclick="calculateMshwariLoan()" class="btn">Calculate</button>
+
+      <div id="mshwariResults" style="display:none; margin-top: 20px; scroll-margin-top: 100px;">
+  <h3 style="color: #0b5e2b; font-size: 22px; margin-bottom: 15px;">Loan Repayment Breakdown</h3>
+  <p>This breakdown includes your disbursed loan amount, facility fee, excise duty, and exact due date—calculated as per M‑Shwari’s current terms.</p>
+  <p>M-PESA Deposited Amount: <strong>Ksh <span id="mpesaDeposited"></span></strong></p>
+  <p>Facility Fee (7.5%): <strong>Ksh <span id="facilityFee"></span></strong></p>
+  <p>Excise Duty on Fee (15%): <strong>Ksh <span id="exciseDuty"></span></strong></p>
+  <p>Total Repayment Amount: <strong>Ksh <span id="repaymentTotal"></span></strong></p>
+  <p>M-Shwari Due Date (30 Days): <strong><span id="dueDate"></span></strong></p>
+  <div style="text-align: center; margin-top: 20px;">
+  <button onclick="resetMshwariCalculator()" id="resetBtn" style="display: none; background-color: #038531; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
+  Reset & Start Again
+</button>
+<div style="text-align: center; margin-top: 10px;">
+  <button onclick="downloadMshwariResults()" id="downloadBtn" style="display: none; background-color: #03457b; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
+    ⬇️ Download Breakdown
+  </button>
+</div>
+
+</div>
+
+</div>
+
+    </div>
+
+    <div style="margin: 40px auto; max-width: 728px; text-align: center; border: 1px dashed #ccc; padding: 20px;">
+      <em>Ad or affiliate link here (e.g., Tala, Zenka, Branch, M-KOPA)</em>
+    </div>
+
+    <div class="about" style="background: #e5e7eb; color: #1c1e21; border: 1px solid #d0d4d9; border-radius: 10px;">
+<h2 style="color: #0b5e2b;">Estimate Your M‑Shwari Loan Instantly</h2>
+
+<p>The M‑Shwari Loan Calculator gives you full clarity before you borrow. It instantly breaks down your loan disbursement, facility fee (7.5%), and excise duty (15%)—so you know exactly how much you’ll receive and repay.</p>
+
+<p>For example, if you apply for Ksh 5,000, the calculator will show that you’ll receive Ksh 4,550 and repay Ksh 5,000 after 30 days.</p>
+
+<h4>Why use this calculator:</h4>
+<ul>
+  <li>✔ Transparent loan breakdown before you apply</li>
+  <li>✔ Real-time results to help with repayment planning</li>
+  <li>✔ Tailored for Kenyan borrowers using M‑PESA</li>
+</ul>
+<p>Ready to compare with other lenders? <a href="compare-loans.html">See alternative mobile loan options</a>.</p>
+    </div>
+    <div style="text-align: center; margin-top: 30px;">
+  <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
+  <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloan.co.ke" target="_blank" title="Share on WhatsApp">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+  </div>
+</div>
+  </div>
+  </section>
+<section class="seo-section-light" style="background-color: #e8f7ed; padding: 50px 20px;">
+  <div class="container" style="max-width: 1000px; margin: 0 auto;">
+    <h2 style="color: #0b5e2b; font-size: 28px; text-align: center; margin-bottom: 25px; animation: fadeInUp 0.5s ease-in-out;">Everything You Need to Know About M‑Shwari Loans</h2>
+
+    <p style="font-size: 16px; line-height: 1.7; color: #333; animation: fadeInUp 0.6s ease-in-out;">
+      M‑Shwari is a paperless banking service offered through M‑PESA that gives you access to micro-savings and instant mobile loans. The loan calculator above allows you to preview the deductions, fees, and due repayment date before you even apply. It's 100% free and built specifically for Kenyan borrowers seeking fast and affordable financing.
+    </p>
+
+    <div style="margin-top: 30px; animation: fadeInUp 0.7s ease-in-out;">
+      <h3 style="color: #0b5e2b;">Frequently Asked Questions</h3>
+      <details class="faq-block" style="margin-top: 15px;">
+        <summary>How does the M‑Shwari loan calculator work?</summary>
+        <p>The calculator uses the official 7.5% facility fee and 15% excise duty on the fee to show the disbursed amount and repayment total for your loan.</p>
+      </details>
+      <details class="faq-block">
+        <summary>Is the calculator free to use?</summary>
+        <p>Yes! The tool is completely free and works instantly—no login, no signup, no charges.</p>
+      </details>
+      <details class="faq-block">
+        <summary>Do I qualify for an M‑Shwari loan?</summary>
+        <p>You must be an active M‑PESA user and meet Safaricom’s credit criteria. Use this calculator to plan before applying.</p>
+      </details>
+      <details class="faq-block">
+        <summary>How long do I have to repay?</summary>
+        <p>M‑Shwari loans must be repaid within 30 days. Use this calculator to help schedule your repayment timeline.</p>
+      </details>
+    </div>
+
+    <div style="margin-top: 35px; animation: fadeInUp 0.8s ease-in-out;">
+      <h3 style="color: #0b5e2b;">Tired of Paying More Than You Should?</h3>
+<p style="margin-bottom: 20px;">
+  Many borrowers don't realize they're overpaying interest. Use our calculator to uncover the real cost of loans based on reducing or flat interest rates. Make a smarter choice today.
+</p>
+
+<div style="text-align: center;">
+  <a href="index.html" class="cta-button">
+    🔍 Try the Reducing/Flat Rate Calculator Now
+  </a>
+</div>
+    </div>
+  </div>
+</section>
+  <footer>
+    <div class="footer-content">
+      <span><strong>JazaLoan</strong></span>
+      <span>|</span>
+      <span>© 2025 JazaLoan. All rights reserved.</span>
+      <span>|</span>
+      <span>📧 <a href="mailto:mburuthus@gmail.com">support@jazaloan.co.ke</a></span>
+      <span>|</span>
+      <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
+    </div>
+  </footer>
+  <script>
+function formatAmountInput(el) {
+  // Remove all non-digit characters
+  let raw = el.value.replace(/[^\d]/g, '');
+
+  // Format with commas
+  el.value = raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+    function toggleMenu() {
+      document.getElementById("mainNav").classList.toggle("show");
+    }
+
+function calculateMshwariLoan() {
+  const amountStr = document.getElementById("mshwariAmount").value.replace(/,/g, '');
+  const amount = parseFloat(amountStr);
+  const dateStr = document.getElementById("loanDate").value;
+
+  if (!amount || amount <= 0) {
+    alert("Enter a valid loan amount");
+    return;
+  }
+
+  const facilityFee = amount * 0.075;
+  const exciseDuty = facilityFee * 0.15;
+  const netDisbursed = amount - facilityFee - exciseDuty;
+  const totalRepayable = amount;
+
+  const dueDate = new Date(dateStr);
+  dueDate.setDate(dueDate.getDate() + 30);
+
+  document.getElementById("facilityFee").innerText = facilityFee.toFixed(2);
+  document.getElementById("exciseDuty").innerText = exciseDuty.toFixed(2);
+  document.getElementById("mpesaDeposited").innerText = netDisbursed.toFixed(2);
+  document.getElementById("repaymentTotal").innerText = totalRepayable.toFixed(2);
+  document.getElementById("dueDate").innerText = dueDate.toDateString();
+  document.getElementById("dueDate").innerText = dueDate.toDateString();
+
+const resultsBlock = document.getElementById("mshwariResults");
+resultsBlock.style.display = "block";
+document.getElementById("resetBtn").style.display = "inline-block";
+resultsBlock.classList.add("results-animate");
+document.getElementById("downloadBtn").style.display = "inline-block";
+
+
+// Scroll into view
+setTimeout(() => {
+  resultsBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+}, 200);
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const hamburger = document.getElementById("hamburger");
+  const mobileNav = document.getElementById("mobileNav");
+  const overlay = document.getElementById("overlay");
+
+  const toggleMobileMenu = () => {
+    hamburger.classList.toggle("active");
+    mobileNav.classList.toggle("show");
+    overlay.classList.toggle("show");
+  };
+
+  hamburger.addEventListener("click", toggleMobileMenu);
+  overlay.addEventListener("click", toggleMobileMenu);
+
+  // Close menu when any nav link is clicked
+  document.querySelectorAll("#mobileNav a").forEach(link => {
+    link.addEventListener("click", () => {
+      hamburger.classList.remove("active");
+      mobileNav.classList.remove("show");
+      overlay.classList.remove("show");
+    });
+  });
+});
+function resetMshwariCalculator() {
+  document.getElementById("mshwariAmount").value = "";
+  document.getElementById("loanDate").value = "";
+  document.getElementById("mshwariResults").style.display = "none";
+  document.getElementById("resetBtn").style.display = "none";
+  document.getElementById("downloadBtn").style.display = "none";
+  // Scroll back to input section
+  document.getElementById("mshwari").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function downloadMshwariResults() {
+  if (typeof calculateMshwariLoan === "function") {
+  await calculateMshwariLoan();
+                     // <-- ensure values are fresh
+    await new Promise(resolve => setTimeout(resolve, 50)); // <-- wait for DOM update
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const amount = document.getElementById("mshwariAmount").value;
+  const date = document.getElementById("loanDate").value;
+  const fee = document.getElementById("facilityFee").innerText;
+  const duty = document.getElementById("exciseDuty").innerText;
+  const deposited = document.getElementById("mpesaDeposited").innerText;
+  const total = document.getElementById("repaymentTotal").innerText;
+  const due = document.getElementById("dueDate").innerText;
+
+  function formatCurrency(numStr) {
+    let num = parseFloat(numStr.toString().replace(/,/g, ""));
+    return "Ksh " + num.toLocaleString("en-KE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  // Title
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("M‑Shwari Loan Repayment Breakdown", 20, 20);
+
+  // Sub-details
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Loan Applied: ${formatCurrency(amount)}`, 20, 30);
+  doc.text(`Application Date: ${date}`, 20, 36);
+
+  // Table
+  doc.autoTable({
+    startY: 45,
+    head: [["Item", "Amount (Ksh)"]],
+    body: [
+      ["Loan Amount Requested", formatCurrency(amount)],
+      ["Facility Fee (7.5%)", formatCurrency(fee)],
+      ["Excise Duty on Fee (15%)", formatCurrency(duty)],
+      ["Net Disbursed via M‑PESA", formatCurrency(deposited)],
+      ["Total Repayable (After 30 Days)", formatCurrency(total)],
+      ["Due Date", due]
+    ],
+    theme: 'striped',
+    styles: {
+      font: 'helvetica',
+      fontSize: 11,
+      cellPadding: 6,
+      textColor: '#333',
+      halign: 'left'
+    },
+    headStyles: {
+      fillColor: [3, 69, 123],
+      textColor: 255,
+      fontSize: 12,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    columnStyles: {
+      0: { cellWidth: 90 },
+      1: { cellWidth: 90 }
+    }
+  });
+
+  // Footer
+  const pageHeight = doc.internal.pageSize.height;
+  doc.setFontSize(10);
+  doc.text("Generated by JazaLoan.co.ke – Kenya’s Smart Loan Tools", 20, pageHeight - 10);
+
+  doc.save("mshwari-loan-breakdown.pdf");
+}
+</script>
+
+<script>
+document.querySelectorAll("details.faq-block").forEach((detail) => {
+  detail.addEventListener("toggle", function () {
+    if (this.open) {
+      // Close all others
+      document.querySelectorAll("details.faq-block").forEach((el) => {
+        if (el !== this) el.removeAttribute("open");
+      });
+
+      // Scroll this into view
+      setTimeout(() => {
+        this.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+    }
+  });
+});
+</script>
+<script>
+window.addEventListener('scroll', () => {
+  const header = document.querySelector('.site-header');
+  if (window.scrollY > 50 && window.innerWidth > 768) {
+    header.classList.add('shrink');
+  } else {
+    header.classList.remove('shrink');
+  }
+});
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How does the M‑Shwari loan calculator work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The calculator uses the official 7.5% facility fee and 15% excise duty on that fee to show your M‑PESA disbursement and repayment total. It updates in real-time when you enter a loan amount and application date."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the M‑Shwari loan calculator free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The M‑Shwari Loan Calculator is 100% free to use. You don't need to sign up or create an account."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I qualify for an M‑Shwari loan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "To qualify, you must be an active M‑PESA user with a good transaction history. Safaricom uses credit scoring to determine your loan limit."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the facility fee on M‑Shwari loans?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "M‑Shwari charges a 7.5% facility fee on the loan amount. An additional 15% excise duty is charged on the fee. The calculator includes both in your final repayment estimate."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How long do I have to repay a M‑Shwari loan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You must repay the full amount within 30 days from the date of borrowing. The calculator shows your expected due date."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I compare M‑Shwari with other mobile loans?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Visit our Compare Loans section to view mobile loan alternatives like Tala, Zenka, or KCB M-PESA and see their costs side-by-side with M‑Shwari."
+      }
+    }
+  ]
+}
+</script>
+<script>
+  window.addEventListener('load', () => {
+    document.body.classList.add('fade-in');
+  });
+</script>
+</body>
+</html>

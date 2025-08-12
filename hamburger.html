@@ -1,0 +1,116 @@
+<!-- Mobile Nav Component Start -->
+
+<style>
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    order: 1;
+  }
+
+  .hamburger span {
+    height: 3px;
+    width: 25px;
+    background: #03457b;
+    margin: 4px 0;
+    border-radius: 2px;
+  }
+
+  .mobile-nav {
+    display: none;
+    flex-direction: column;
+    background: white;
+    padding: 10px;
+  }
+
+  .mobile-nav a {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .mobile-submenu {
+    display: none;
+    flex-direction: column;
+    padding-left: 10px;
+  }
+
+  .mobile-submenu a {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .mobile-submenu.show {
+    display: flex;
+  }
+
+  @media (max-width: 768px) {
+    .navbar {
+      display: none;
+    }
+
+    .hamburger {
+      display: flex;
+    }
+
+    .mobile-nav.show {
+      display: flex;
+    }
+
+    .header-content {
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      order: 2;
+      margin-left: auto;
+    }
+  }
+</style>
+
+<div class="header-content">
+  <div class="hamburger" id="hamburger">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+  <img src="logo.png" alt="Logo" class="logo animated-logo" />
+</div>
+
+<nav class="mobile-nav" id="mobileNav">
+  <a href="index.html">Home</a>
+  <a href="#" id="mobileDropdownToggle">Loan Calculators ▾</a>
+  <div class="mobile-submenu" id="mobileSubmenu">
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    <a href="kcb-mpesa-calculator.html">KCB Mpesa Calculator</a>
+    <a href="car-loan-calculator.html">Car Loan Calculator</a>
+    <a href="mortgage-calculators.html">Mortgage Calculators</a>
+  </div>
+  <a href="vat-calculator.html">VAT Calculator</a>
+  <a href="compare-loans.html">Compare Loans</a>
+</nav>
+
+<script>
+  // Toggle mobile nav
+  document.getElementById("hamburger").addEventListener("click", function () {
+    document.getElementById("mobileNav").classList.toggle("show");
+  });
+
+  // Toggle mobile submenu
+  document.getElementById("mobileDropdownToggle").addEventListener("click", function (e) {
+    e.preventDefault();
+    document.getElementById("mobileSubmenu").classList.toggle("show");
+  });
+
+  // Auto-close mobile nav when any link is clicked
+  document.querySelectorAll("#mobileNav a").forEach(link => {
+    link.addEventListener("click", () => {
+      document.getElementById("mobileNav").classList.remove("show");
+      document.getElementById("mobileSubmenu").classList.remove("show"); // optional: also hide submenu
+    });
+  });
+</script>
+
+
+<!-- Mobile Nav Component End -->

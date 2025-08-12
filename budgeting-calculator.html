@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Calculator – JazaLoan</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+ html { scroll-behavior: smooth; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  margin: 0;
+  padding: 0;
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #ffffff;
+  padding: 5px 10px;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  padding: 5px 15px;
+}
+.logo {
+  height: 90px;
+  max-height: 90px;
+  object-fit: contain;
+  margin-right: 10px;
+}
+.navbar {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.navbar a {
+  position: relative;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 6px 10px;
+}
+.navbar a:hover { color: #007bff; }
+.navbar a:hover::after {
+  width: 100%;
+}
+.navbar a::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0%;
+  height: 2px;
+  background-color: #007bff;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.dropdown { position: relative; display: inline-block; }
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #ffffff;
+  min-width: 180px;
+  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
+  z-index: 1;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  top: 100%;
+}
+.dropdown-content a {
+  display: block;
+  color: #2c3e50;
+  padding: 10px 15px;
+  text-decoration: none;
+  font-size: 15px;
+}
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+  color: #007bff;
+}
+.dropdown:hover .dropdown-content { display: block; }
+
+/* Updated hamburger styles */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
+}
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger-close {
+  display: none;
+  font-size: 32px;
+  color: #03457b;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mobile-nav {
+  display: none;
+  flex-direction: column;
+  background: white;
+  padding: 10px;
+}
+.mobile-nav a {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+.mobile-submenu {
+  display: none;
+  flex-direction: column;
+  padding-left: 10px;
+}
+.mobile-submenu.show { display: flex; }
+
+@media (max-width: 768px) {
+  .navbar { display: none; }
+  .hamburger { display: flex; }
+  .mobile-nav.show { display: flex; }
+  .hamburger-close.show { display: block; }
+  .hamburger.hide { display: none !important; }
+}
+
+.container {
+  max-width: 600px;
+  margin: 30px auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+}
+h2 {
+  text-align: center;
+  color: #2c3e50;
+}
+label, input {
+  display: block;
+  width: 100%;
+  margin-top: 15px;
+  font-size: 16px;
+}
+input {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+.toggle-group {
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+}
+.toggle-group input {
+  width: auto;
+  margin-right: 10px;
+}
+button {
+  margin-top: 20px;
+  padding: 12px;
+  width: 100%;
+  background: #27ae60;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.results {
+  margin-top: 25px;
+  background: #e9f8ef;
+  padding: 15px;
+  border-left: 5px solid #0b5e2b;
+  border-radius: 8px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid #ccc;
+  text-align: left;
+}
+canvas {
+  margin-top: 20px;
+}
+.share {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 25px;
+}
+.share a img {
+  width: 26px;
+  height: 26px;
+}
+footer {
+  background-color: #03457b;
+  padding: 10px 0;
+  font-size: 13px;
+  text-align: center;
+  color: white;
+}
+footer a {
+  color: white;
+  text-decoration: none;
+  margin: 0 5px;
+}
+footer a:hover { text-decoration: underline; }
+.qa-block {
+  margin-bottom: 30px;
+  padding: 10px 15px;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-left: 5px solid #03457b;
+  border-radius: 6px;
+  animation: fadeInAnswer 0.35s ease-in-out;
+}
+.qa-block h3 {
+  color: #03457b;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.qa-block p, .qa-block ul {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+  </style>
+</head>
+<body>
+
+<header class="site-header fade-in">
+  <div class="header-content">
+    <img src="Images/logo.png" alt="Logo" class="logo animated-logo" />
+
+    <div class="hamburger" id="hamburger">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </div>
+
+    <div class="hamburger-close" id="hamburgerClose">&times;</div>
+
+    <nav class="navbar" id="mainNav">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <a href="#" class="dropdown-toggle" data-target="dropdown1">Loan Calculators ▾</a>
+        <div class="dropdown-content" id="dropdown1">
+          <a href="kcb-mpesa-loan.html">KCB Mpesa</a>
+          <a href="mshwari-calculator.html">Mshwari Calculator</a>
+        </div>
+      </div>
+      <a href="compare-loans.html">Compare Loans</a>
+      <a href="best-loans-by-salary.html">Loans by Salary</a>
+      <a href="blog.html">Blog</a>
+    </nav>
+  </div>
+
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html">Home</a>
+    <a href="kcb-mpesa-loan.html">KCB Mpesa</a>
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    <a href="compare-loans.html">Compare Loans</a>
+    <a href="budget-calculator.html">Budget</a>
+    <a href="blog.html">Blog</a>
+  </nav>
+</header>
+
+
+<div class="container">
+  <h2>Enter Your Net Monthly Salary</h2>
+  <input type="text" id="salary" placeholder="e.g. 50,000" />
+  <label for="customSavings">Custom Savings % (optional)</label>
+<input type="number" id="customSavings" placeholder="e.g. 25" min="0" max="100" value="20" />
+
+  <div class="toggle-group">
+    <input type="checkbox" id="titheToggle" />
+    <label for="titheToggle">Include 10% Tithe</label>
+  </div>
+
+  <button onclick="calculateBudget()">Calculate Budget</button>
+  <p style="margin-top:8px; font-size:0.9rem; color:#000000;">
+  Not sure about your <strong>net salary</strong>? Use our <a href="index.html#paye-section" style="color:#2980b9; text-decoration:underline;">Free PAYE Calculator</a> to find out exactly how much you take home — then budget confidently!
+</p>
+
+
+  <div class="results" id="results" style="display:none;">
+    <h3 id="resultsHeading">Budget Breakdown</h3>
+    <table id="resultTable"></table>
+    <canvas id="budgetChart" height="200"></canvas>
+    <button onclick="downloadPDF()">Download PDF</button>
+    <button id="resetBtn" style="background-color: #03457b;">Reset & Clear</button>
+
+  </div>
+</div>
+
+<div class="share">
+  <a href="https://wa.me/?text=Try%20this%20budget%20calculator%20from%20JazaLoan%3A%20https%3A%2F%2Fjazaloan.co.ke" target="_blank">
+    <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp">
+  </a>
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank">
+    <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook">
+  </a>
+</div>
+<section style="background-color: #e8f7ed; padding: 50px 20px;">
+  <div class="affiliate" id="budget-seo" style="background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05); max-width: 1000px; margin: 0 auto;">
+    <h2 style="color: #0b5e2b; font-size: 28px; text-align: center; margin-bottom: 25px;">Everything You Need to Know About Budgeting in Kenya</h2>
+
+<div class="qa-block">
+  <h3>What Is a Budget Calculator and How Can It Help Me Manage My Money?</h3>
+  <p>A budget calculator helps you plan your monthly expenses by dividing your net salary into key categories like needs, wants, savings, and even tithe if applicable. Using proven financial principles, it guides you to allocate your income efficiently, avoid overspending, and build savings — all based on your actual take-home pay.</p>
+</div>
+
+<div class="qa-block">
+  <h3>What Is the 50/30/20 Budgeting Rule and How Does It Work with Tithe?</h3>
+  <p>The 50/30/20 budgeting rule divides your income as follows:</p>
+  <ul>
+    <li><strong>50%</strong> for Needs — essentials like housing, food, and transport</li>
+    <li><strong>30%</strong> for Wants — entertainment, travel, and leisure</li>
+    <li><strong>20%</strong> for Savings — emergency funds, investments, and debt repayment</li>
+  </ul>
+  <p>When tithe applies, our calculator first deducts 10% for tithe from your gross salary, then divides the remaining net amount based on these percentages. You can also customize your savings percentage, and the calculator adjusts needs and wants accordingly, ensuring your budget always adds up to 100%.</p>
+</div>
+
+<div class="qa-block">
+  <h3>Should I Include Tithe When Planning My Budget?</h3>
+  <p>Yes, if you regularly give tithe, including it in your budget is important. Our calculator offers an option to set aside 10% of your gross income for tithe before calculating your needs, wants, and savings. This helps you maintain financial discipline while respecting your faith-based commitments, making it especially helpful for Kenyan users.</p>
+</div>
+
+<div class="qa-block">
+  <h3>How Accurate Is This Budget Calculator?</h3>
+  <p>Our calculator uses globally accepted budgeting principles combined with local considerations like tithe. It calculates your budget based on your net income (after tithe if selected), and allows you to adjust savings percentages to reflect your personal financial goals. While it offers an excellent foundation for managing money, you can customize the inputs to better suit your unique situation.</p>
+</div>
+
+<div class="qa-block">
+  <h3>Can I Download or Share My Budget Plan?</h3>
+  <p>Absolutely! After calculating your budget, you can download a detailed PDF summary with clear breakdowns by category and percentage. You can also easily share this budgeting tool with friends and family on WhatsApp, Facebook, or other platforms, helping everyone make smarter financial decisions.</p>
+</div>
+
+    <div class="qa-block">
+      <h3>Why Use the JazaLoan Budgeting Tool?</h3>
+      <p>It’s simple, mobile-friendly, and made for the Kenyan market. It includes tithe support, local currency formatting, a pie chart breakdown, and lets you save your budget instantly. No registration required.</p>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <p><strong>Like this tool? Share it with someone:</strong></p>
+      <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <a href="https://wa.me/?text=Try%20this%20budget%20calculator%20by%20JazaLoan%3A%20https%3A%2F%2Fjazaloan.co.ke" target="_blank" title="Share on WhatsApp">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" />
+        </a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" />
+        </a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" />
+        </a>
+        <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20budget%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
+          <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" />
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+ <footer>
+    <div class="footer-content">
+      <span><strong>JazaLoan</strong></span>
+      <span>|</span>
+      <span>© 2025 JazaLoan. All rights reserved.</span>
+      <span>|</span>
+      <span>📧 <a href="mailto:mburuthus@gmail.com">support@jazaloan.co.ke</a></span>
+      <span>|</span>
+      <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
+    </div>
+
+  </footer>
+<script>
+function formatKsh(amount) {
+  return 'Ksh ' + amount.toLocaleString('en-KE');
+}
+function calculateBudget() {
+  const salaryInput = parseFloat(document.getElementById("salary").value.replace(/,/g, ''));
+  const titheChecked = document.getElementById("titheToggle").checked;
+  const customSavingsInput = parseFloat(document.getElementById("customSavings").value);
+
+  if (!salaryInput || salaryInput <= 0) {
+    alert("Please enter a valid salary.");
+    return;
+  }
+
+  // --- Calculate tithe if checked ---
+  const tithe = titheChecked ? salaryInput * 0.1 : 0;
+  const titheR = Math.round(tithe);
+
+  // --- Calculate remainder after tithe ---
+  const net = salaryInput - tithe;
+
+  // --- Determine savings percent ---
+  let savingsPercent = 20; // default
+  if (!isNaN(customSavingsInput) && customSavingsInput >= 0 && customSavingsInput <= 100) {
+    savingsPercent = customSavingsInput;
+  }
+
+  // --- Calculate category amounts based on net (salary after tithe) ---
+  const savings = net * (savingsPercent / 100);
+
+  // Needs and wants share the remainder after savings
+  const needsWantsTotal = net - savings;
+  const needsRatio = 0.5 / (0.5 + 0.3); // 0.625
+  const wantsRatio = 0.3 / (0.5 + 0.3); // 0.375
+
+  const adjustedNeeds = needsWantsTotal * needsRatio;
+  const adjustedWants = needsWantsTotal * wantsRatio;
+
+  // --- Subcategory weights ---
+  const needsWeights = [
+    ["Housing", 0.55],
+    ["Food", 0.20],
+    ["Transport", 0.12],
+    ["Others", 0.13]
+  ];
+
+  const wantsWeights = [
+    ["Entertainment", 0.40],
+    ["Travel", 0.30],
+    ["Dining Out", 0.20],
+    ["Others", 0.10]   // renamed from Hobbies
+  ];
+
+  const savingsWeights = [
+    ["Emergency Fund", 0.35],
+    ["Long-term Investments", 0.40],
+    ["Debt Repayment", 0.25]
+  ];
+
+  // Helper: Round and balance a group's subcategories so sum matches original total closely
+  function roundAndBalance(arr) {
+    const rounded = arr.map(x => ({ label: x.label, value: Math.round(x.value) }));
+    const sumRounded = rounded.reduce((s, x) => s + x.value, 0);
+    const sumOriginal = arr.reduce((s, x) => s + x.value, 0);
+    const diff = Math.round(sumOriginal) - sumRounded;
+
+    if (diff !== 0) {
+      rounded[rounded.length - 1].value += diff;
+      if (rounded[rounded.length - 1].value < 0) rounded[rounded.length - 1].value = 0;
+    }
+    return rounded;
+  }
+
+  // Build raw breakdown arrays (full precision)
+  const needsRaw = needsWeights.map(([label, w]) => ({ label, value: adjustedNeeds * w }));
+  const wantsRaw = wantsWeights.map(([label, w]) => ({ label, value: adjustedWants * w }));
+  const savingsRaw = savingsWeights.map(([label, w]) => ({ label, value: savings * w }));
+
+  // Round and balance each group separately
+  const needsBreakdown = roundAndBalance(needsRaw);
+  const wantsBreakdown = roundAndBalance(wantsRaw);
+  const savingsBreakdown = roundAndBalance(savingsRaw);
+
+  // --- Fix global rounding error ---
+  const sumArray = arr => arr.reduce((sum, x) => sum + x.value, 0);
+  const salaryRounded = Math.round(salaryInput);
+  let totalParts = titheR + sumArray(needsBreakdown) + sumArray(wantsBreakdown) + sumArray(savingsBreakdown);
+  let diff = salaryRounded - totalParts;
+
+  // Adjust last savings subcategory to fix rounding difference
+  if (diff !== 0) {
+    savingsBreakdown[savingsBreakdown.length - 1].value += diff;
+    if (savingsBreakdown[savingsBreakdown.length - 1].value < 0) {
+      savingsBreakdown[savingsBreakdown.length - 1].value = 0;
+    }
+  }
+
+  // --- Render table without % in headings ---
+  let rowsHtml = `
+    <tr><th>Category</th><th>Amount</th><th>%</th></tr>
+    <tr>
+      <td><strong>Tithe</strong></td>
+      <td>${formatKsh(titheR)}</td>
+      <td>${((titheR / salaryRounded) * 100).toFixed(1)}%</td>
+    </tr>
+    <tr><td colspan="3"><strong>Needs</strong></td></tr>
+    ${needsBreakdown.map(n => `
+      <tr>
+        <td>${n.label}</td>
+        <td>${formatKsh(n.value)}</td>
+        <td>${((n.value / salaryRounded) * 100).toFixed(1)}%</td>
+      </tr>
+    `).join('')}
+    <tr><td colspan="3"><strong>Wants</strong></td></tr>
+    ${wantsBreakdown.map(w => `
+      <tr>
+        <td>${w.label}</td>
+        <td>${formatKsh(w.value)}</td>
+        <td>${((w.value / salaryRounded) * 100).toFixed(1)}%</td>
+      </tr>
+    `).join('')}
+    <tr><td colspan="3"><strong>Total Savings (${savingsPercent}%)</strong></td></tr>
+    ${savingsBreakdown.map(s => `
+      <tr>
+        <td>${s.label}</td>
+        <td>${formatKsh(s.value)}</td>
+        <td>${((s.value / salaryRounded) * 100).toFixed(1)}%</td>
+      </tr>
+    `).join('')}
+    <tr>
+      <td><strong>Total</strong></td>
+      <td><strong>${formatKsh(salaryRounded)}</strong></td>
+      <td>100%</td>
+    </tr>
+  `;
+
+  document.getElementById("resultTable").innerHTML = rowsHtml;
+
+  // --- Update chart ---
+  const needsSum = sumArray(needsBreakdown);
+  const wantsSum = sumArray(wantsBreakdown);
+  const savingsSum = sumArray(savingsBreakdown);
+
+  const chartLabels = ["Tithe", "Needs", "Wants", "Savings & Debt"];
+  const chartData = [titheR, needsSum, wantsSum, savingsSum];
+
+  const ctx = document.getElementById('budgetChart').getContext('2d');
+  if (window.pieChart) window.pieChart.destroy();
+  window.pieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        data: chartData,
+        backgroundColor: ['#f39c12', '#3498db', '#2ecc71', '#9b59b6']
+      }]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  document.getElementById("results").style.display = "block";
+
+  setTimeout(() => {
+    const heading = document.getElementById("resultsHeading");
+    const yOffset = -180;
+    const y = heading.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }, 200);
+}
+
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const marginLeft = 10;
+  const marginTop = 10;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const usableWidth = pageWidth - marginLeft * 2;
+  const footerY = pageHeight - 10;
+
+  const tableEl = document.getElementById('resultTable');
+  const chartCanvas = document.getElementById('budgetChart');
+
+  // Extract total salary from table for dynamic title
+  let totalSalary = 0;
+  const totalRow = [...tableEl.querySelectorAll('tr')].find(tr =>
+    tr.innerText.toLowerCase().includes('total')
+  );
+  if (totalRow) {
+    const salaryCell = totalRow.querySelector('td:nth-child(2)');
+    if (salaryCell) {
+      totalSalary = parseFloat(salaryCell.innerText.replace(/[^\d.-]/g, '')) || 0;
+    }
+  }
+
+  // Fallback: if totalSalary is 0, try to get from input field directly
+  if (!totalSalary) {
+    const salaryInput = document.getElementById("salary");
+    if (salaryInput) {
+      totalSalary = parseFloat(salaryInput.value.replace(/,/g, '')) || 0;
+    }
+  }
+
+  function addFooter(pageNum) {
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text("Generated by JazaLoan", pageWidth / 2, footerY, { align: "center" });
+    doc.text(`Page ${pageNum}`, pageWidth - 10, footerY, { align: "right" });
+  }
+
+  html2canvas(tableEl, { scale: 2 }).then(tableCanvas => {
+    const imgFullWidthPx = tableCanvas.width;
+    const imgFullHeightPx = tableCanvas.height;
+    const imgPdfWidth = usableWidth;
+    const pxToMmRatio = imgFullWidthPx / imgPdfWidth;
+    const imgPdfHeight = imgFullHeightPx / pxToMmRatio;
+    const pageAvailableHeight = pageHeight - marginTop - 30;
+
+    // --- Rounded header with dynamic title ---
+    doc.setFillColor(34, 139, 34); // Dark green
+    doc.roundedRect(0, 0, pageWidth, 20, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(`BUDGET BREAKDOWN FOR ${totalSalary.toLocaleString()} Ksh`, pageWidth / 2, 12, { align: "center" });
+
+    // --- Background ---
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(marginLeft - 2, 22, usableWidth + 4, pageHeight - 40, 5, 5, 'F');
+
+    if (imgPdfHeight <= pageAvailableHeight) {
+      doc.addImage(tableCanvas.toDataURL('image/png'), 'PNG', marginLeft, 25, imgPdfWidth, imgPdfHeight);
+      addFooter(1);
+      addChartAndSummary(2, doc, chartCanvas, tableEl, totalSalary);
+    } else {
+      const sliceHeightPx = Math.floor(pageAvailableHeight * pxToMmRatio);
+      let yOffsetPx = 0;
+      let pageNum = 1;
+
+      while (yOffsetPx < imgFullHeightPx) {
+        const hPx = Math.min(sliceHeightPx, imgFullHeightPx - yOffsetPx);
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = imgFullWidthPx;
+        tmpCanvas.height = hPx;
+        tmpCanvas.getContext('2d').drawImage(tableCanvas, 0, yOffsetPx, imgFullWidthPx, hPx, 0, 0, imgFullWidthPx, hPx);
+        doc.addImage(tmpCanvas.toDataURL('image/png'), 'PNG', marginLeft, 25, imgPdfWidth, hPx / pxToMmRatio);
+        addFooter(pageNum);
+
+        yOffsetPx += hPx;
+        pageNum++;
+        if (yOffsetPx < imgFullHeightPx) doc.addPage();
+      }
+      addChartAndSummary(pageNum, doc, chartCanvas, tableEl, totalSalary);
+    }
+  });
+
+  function addChartAndSummary(startPageNum, docRef, chartCanvasEl, tableElForSummary, totalSalaryParam) {
+    docRef.addPage();
+    const thisPageNum = startPageNum;
+
+    const chartDataUrl = chartCanvasEl.toDataURL('image/png', 1.0);
+    const chartPdfW = usableWidth;
+    const chartPdfH = (chartCanvasEl.height * chartPdfW) / chartCanvasEl.width;
+    const summaryReserve = 60;
+    const finalChartHeight = Math.min(chartPdfH, pageHeight - marginTop - summaryReserve - 15);
+
+    docRef.addImage(chartDataUrl, 'PNG', marginLeft, marginTop, chartPdfW, finalChartHeight);
+
+    // --- Extract summary values ---
+    const rows = tableElForSummary.querySelectorAll('tr');
+    let titheAmount = 0, savingsPercent = 0, needsPct = null, wantsPct = null, hasTithe = false;
+
+    rows.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      if (tds.length >= 3) {
+        const cat = tds[0].innerText.trim().toLowerCase();
+        const amt = parseFloat(tds[1].innerText.replace(/[^\d.-]/g, '')) || 0;
+        const pct = parseFloat(tds[2].innerText.replace('%', '')) || 0;
+        if (cat === 'tithe') {
+          titheAmount = amt;
+          hasTithe = amt > 0;
+        }
+        if (cat.includes('needs') && needsPct === null) needsPct = pct;
+        if (cat.includes('wants') && wantsPct === null) wantsPct = pct;
+        if (cat.includes('savings')) savingsPercent = pct;
+      }
+    });
+
+    if (!needsPct) needsPct = 50;
+    if (!wantsPct) wantsPct = 30;
+    if (!savingsPercent) savingsPercent = 20;
+
+    // Fixed tithe percentage 10% if tithe exists
+    const tithePercentDisplay = hasTithe ? 10 : 0;
+
+    const titheSentence = hasTithe
+      ? `A tithe of ${titheAmount.toLocaleString()} Ksh (${tithePercentDisplay}%) was deducted first.`
+      : `No tithe was deducted before allocation.`;
+
+    // --- Centered and indented bullet points ---
+    const summaryLines = [
+      `Your budget allocation was calculated on a salary of ${totalSalaryParam.toLocaleString()} Ksh.`,
+      titheSentence + ` The remaining amount was divided using the 50/30/20 rule:`,
+      `   • ${needsPct}% for Needs (housing, food, transport, others)`,
+      `   • ${wantsPct}% for Wants (entertainment, travel, dining out, hobbies)`,
+      `   • ${savingsPercent}% for Total Savings`,
+      ``,
+      `All amounts have been rounded to the nearest whole shilling, ensuring the total matches your salary.`
+    ];
+
+    const summaryStartY = marginTop + finalChartHeight + 12;
+    docRef.setFont('times', 'bold');
+    docRef.setFontSize(14);
+    docRef.text("Budget Summary", pageWidth / 2, summaryStartY, { align: "center" });
+
+    docRef.setFont('times', 'normal');
+    docRef.setFontSize(11);
+    summaryLines.forEach((line, idx) => {
+      docRef.text(line, pageWidth / 2, summaryStartY + 8 + idx * 6, { align: "center" });
+    });
+
+    addFooter(thisPageNum);
+    docRef.save("budget-summary.pdf");
+  }
+}
+const hamburger = document.getElementById("hamburger");
+const hamburgerClose = document.getElementById("hamburgerClose");
+const mobileNav = document.getElementById("mobileNav");
+
+hamburger.addEventListener("click", () => {
+  mobileNav.classList.add("show");
+  hamburger.classList.add("hide");
+  hamburgerClose.classList.add("show");
+});
+
+hamburgerClose.addEventListener("click", () => {
+  mobileNav.classList.remove("show");
+  hamburger.classList.remove("hide");
+  hamburgerClose.classList.remove("show");
+});
+
+// Restore scroll-based header/logo resize
+window.addEventListener("scroll", function () {
+  const header = document.querySelector(".site-header");
+  const logo = document.querySelector(".logo");
+
+  if (window.scrollY > 10) {
+    header.style.padding = "2px 10px";
+    logo.style.height = "50px";
+  } else {
+    header.style.padding = "5px 10px";
+    logo.style.height = "90px";
+  }
+});
+// Format salary input with commas as you type
+const salaryField = document.getElementById("salary");
+
+salaryField.addEventListener("input", () => {
+  let clean = salaryField.value.replace(/,/g, '').replace(/[^\d]/g, '');
+  if (clean === "") return;
+  salaryField.value = parseInt(clean, 10).toLocaleString('en-KE');
+});
+document.getElementById("resetBtn").addEventListener("click", () => {
+  document.getElementById("salary").value = "";
+  document.getElementById("customSavings").value = "20";
+  document.getElementById("titheToggle").checked = false;
+
+  const results = document.getElementById("results");
+  results.style.display = "none";
+
+  if (window.pieChart) window.pieChart.destroy();
+
+  const topOfForm = document.querySelector(".container").offsetTop;
+  window.scrollTo({ top: topOfForm - 60, behavior: "smooth" });
+});
+
+</script>
+
+</body>
+</html>

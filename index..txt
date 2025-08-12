@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JazaLoan – Free Loan Calculator Kenya | PAYE, NHIF, NSSF 2025</title>
+<meta name="description" content="JazaLoan helps Kenyans calculate loans (reducing balance, flat rate), PAYE, NHIF, and NSSF instantly. Mobile-friendly, free, accurate & downloadable.">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    html {
+  scroll-behavior: smooth;
+}
+/* Header Navigation */
+.desktop-menu a, .mobile-menu a {
+  color: white;
+  text-decoration: none;
+  padding: 10px 0;
+  display: block;
+}
+
+.desktop-menu .nav-item {
+  position: relative;
+}
+
+.desktop-menu .dropdown {
+  display: none;
+  position: absolute;
+  background-color: white;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 100;
+}
+
+.desktop-menu .dropdown a {
+  color: #333;
+  padding: 10px 15px;
+  white-space: nowrap;
+}
+
+.desktop-menu .dropdown a:hover {
+  background-color: #f2f2f2;
+}
+
+.desktop-menu .dropdown-parent:hover .dropdown {
+  display: block;
+}
+
+.mobile-menu {
+  display: none;
+  background-color: #00995e;
+  padding: 10px 20px;
+}
+
+.mobile-menu.show {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .desktop-menu {
+    display: none;
+  }
+  #menuToggle {
+    display: block;
+  }
+}
+
+    /* All of your original styles are preserved */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #27ae60;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      margin-top: 20px;
+      width: 100%;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #1e8449;
+      transform: scale(1.03);
+    }
+    .results, .tutorial, .paye-section {
+      margin-top: 25px;
+      padding: 15px;
+      background: #ecf0f1;
+      border-radius: 8px;
+    }
+    .ad-space {
+      margin: 20px 0;
+      text-align: center;
+      padding: 10px;
+      background: #dcdde1;
+      color: #888;
+      border-radius: 5px;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #bdc3c7;
+    }
+    #download-btn, #payslip-btn {
+      background-color: #2980b9;
+      margin-top: 10px;
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+    #download-btn:hover, #payslip-btn:hover {
+      background-color: #1f6392;
+      transform: scale(1.03);
+    }
+    .fade-in {
+      animation: fadeIn 0.8s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .logo {
+      height: 90px;
+      max-height: 90px;
+      width: auto;
+      object-fit: contain;
+      margin-right: 10px;
+    }
+  
+    #about {
+      background-color: #f9f9f9;
+      border-top: 1px solid #ccc;
+      margin: 40px auto;
+      padding: 25px 20px;
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 800px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    }
+    #about h2 {
+      margin-top: 0;
+      text-align: center;
+      color: #333;
+    }
+    #about ul {
+      padding-left: 20px;
+      line-height: 1.6;
+    }
+    footer {
+      background-color: #03457b;
+      padding: 10px 0;
+      font-size: 13px;
+      text-align: center;
+      color: #fff;
+    }
+    footer a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    #backToTop {
+      position: fixed;
+      bottom: 40px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background-color: #1abc9c;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: bold;
+      line-height: 40px;
+      text-align: center;
+      cursor: pointer;
+      display: none;
+      z-index: 9999;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    #backToTop:hover {
+      background-color: #148f77;
+      transform: scale(1.15);
+    }
+
+    /* Styles for the Reviews Section (already added) */
+    #reviews-section {
+      background-color: #f0f8ff; /* Light blue background */
+      padding: 40px 20px;
+      margin: 40px auto;
+      max-width: 900px; /* Slightly wider than container to differentiate */
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    #reviews-section h2 {
+      color: #044378; /* Darker blue from footer */
+      margin-bottom: 30px;
+      font-size: 2em;
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      justify-content: center;
+    }
+
+    .review-card {
+      background-color: #ffffff;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between; /* Pushes reviewer to bottom */
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .review-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+
+    .review-card .stars {
+      color: #ffc107; /* Gold color for stars */
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+
+    .review-card p {
+      font-size: 1em;
+      line-height: 1.6;
+      color: #555;
+      margin-bottom: 15px; /* Space between text and reviewer */
+      flex-grow: 1; /* Allows text to grow and push reviewer down */
+    }
+
+    .review-card .reviewer {
+      font-size: 0.9em;
+      font-style: italic;
+      color: #777;
+      text-align: right;
+      margin-top: auto; /* Pushes reviewer to the bottom of the card */
+    }
+
+    /* Responsive adjustments for smaller screens */
+    @media (max-width: 768px) {
+      .review-grid {
+        grid-template-columns: 1fr; /* Stack reviews on smaller screens */
+      }
+    }
+
+    /* NEW STYLES FOR BLOG PAGE (blog.html specific) */
+    .blog-container {
+        max-width: 900px; /* Wider container for blog content */
+        margin-top: 20px;
+    }
+
+    .blog-post-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        padding: 20px 0;
+    }
+
+    .blog-post-card {
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+        overflow: hidden; /* Ensures image corners are rounded */
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .blog-post-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+    .blog-post-card img {
+        width: 100%;
+        height: 200px; /* Fixed height for consistency */
+        object-fit: cover; /* Ensures image covers the area */
+        display: block;
+    }
+
+    .blog-post-content {
+        padding: 20px;
+        flex-grow: 1; /* Makes sure content takes up available space */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .blog-post-content h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #2c3e50;
+        font-size: 1.4em;
+    }
+
+    .blog-post-content p {
+        font-size: 0.95em;
+        line-height: 1.5;
+        color: #666;
+        margin-bottom: 15px;
+        flex-grow: 1; /* Pushes button to bottom */
+    }
+
+    .blog-post-meta {
+        font-size: 0.85em;
+        color: #888;
+        margin-bottom: 10px;
+    }
+
+    .blog-post-card .read-more {
+        display: inline-block;
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+        align-self: flex-start; /* Align to the left within flex container */
+    }
+
+    .blog-post-card .read-more:hover {
+        background-color: #0056b3;
+    }
+
+    /* Individual Blog Post Styles (for blog-post-1.html) */
+    .individual-post-container {
+      max-width: 800px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      line-height: 1.7;
+      color: #333;
+    }
+    .individual-post-container h1 {
+      text-align: left; /* Post title usually left-aligned */
+      margin-bottom: 20px;
+      color: #2c3e50;
+      font-size: 2.5em;
+    }
+    .individual-post-container .post-meta {
+      font-size: 0.9em;
+      color: #777;
+      margin-bottom: 25px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    .individual-post-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      display: block; /* Ensure no extra space below image */
+    }
+    .individual-post-container p {
+      margin-bottom: 1em;
+    }
+    .individual-post-container h3 {
+      color: #044378;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 1.8em;
+    }
+    .individual-post-container ul {
+      margin-bottom: 1em;
+      padding-left: 25px;
+    }
+    .individual-post-container li {
+      margin-bottom: 0.5em;
+    }
+    /* Style for the select dropdown */
+    select#repaymentType {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        cursor: pointer;
+    }
+    select#repaymentType:focus {
+        border-color: #27ae60;
+        outline: none;
+    }
+    .faq-section {
+  background: #ffffff;
+  padding: 60px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  color: #222;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.faq-section h2 {
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 40px;
+  color: #2e7d32; /* JazaLoan green */
+  border-bottom: 2px solid #2e7d32;
+  display: inline-block;
+  padding-bottom: 6px;
+}
+
+.faq-item {
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.faq-item:hover {
+  background: #f1f8f4;
+  border-color: #b2dfdb;
+}
+
+.faq-item h3 {
+  font-size: 20px;
+  color: #1a4b2c;
+  margin-bottom: 10px;
+}
+
+.faq-item p {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #444;
+}
+.faq-question {
+  width: 100%;
+  background: none;
+  border: none;
+  font-size: 18px;
+  text-align: left;
+  padding: 16px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #1a4b2c;
+  border-bottom: 1px solid #ddd;
+  transition: background 0.2s;
+}
+
+.faq-question:hover {
+  background-color: #f1f8f4;
+}
+
+.faq-answer {
+  display: none;
+  padding: 0 16px 16px 16px;
+  font-size: 16px;
+  color: #444;
+  line-height: 1.6;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.faq-item.active .faq-answer {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+ /* Logo animation */
+    .animated-logo {
+      opacity: 0;
+      transform: scale(0.9);
+      transition: all 0.6s ease;
+    }
+
+    .animated-logo.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .menu-toggle {
+      display: none;
+      background: none;
+      font-size: 28px;
+      border: none;
+      color: #044378;
+      cursor: pointer;
+    }
+  </style>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is JazaLoan and who is it for?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JazaLoan is a free tool for Kenyans to calculate loans and salary deductions with ease. It’s built for employees, SMEs, and self-employed individuals."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which types of loans does JazaLoan support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JazaLoan supports reducing balance, flat rate, SACCO loans, HELB, and mobile loans in Kenya."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What’s the difference between reducing balance and flat rate loans in Kenya?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Reducing balance loans charge interest on the decreasing principal, while flat rate loans charge interest on the full amount throughout. JazaLoan shows both breakdowns clearly."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I calculate PAYE in Kenya?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JazaLoan calculates PAYE based on KRA income bands, housing levy, and reliefs, using up-to-date 2025 figures."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is NHIF calculated in Kenya (2025)?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "NHIF is calculated as a percentage of gross salary under new 2025 rules. JazaLoan keeps this accurate."
+      }
+    }
+  ]
+}
+</script>
+
+</head>
+<body>
+  <header style="background-color: #00995e; color: white; padding: 10px 0; position: sticky; top: 0; z-index: 1000;">
+  <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: auto; padding: 0 20px;">
+    <h1 style="font-size: 24px; font-weight: bold; animation: fadeIn 2s ease-in-out;">JazaLoan</h1>
+    <div id="menuToggle" onclick="document.getElementById('mobileMenu').classList.toggle('show')" style="display: none; font-size: 24px; cursor: pointer;">☰</div>
+    <nav class="desktop-menu" style="display: flex; gap: 20px;">
+      <div class="nav-item">
+        <a href="#loan">Loan Calculator</a>
+      </div>
+      <div class="nav-item dropdown-parent">
+        <a href="#">Loan Calculators ▾</a>
+        <div class="dropdown">
+          <a href="#reducing">Reducing Balance</a>
+          <a href="#flat">Flat Rate</a>
+          <a href="#mortgage">Mortgage Loan</a>
+          <a href="#carloan">Car Loan</a>
+        </div>
+      </div>
+      <div class="nav-item dropdown-parent">
+        <a href="#">TAX Calculators ▾</a>
+        <div class="dropdown">
+          <a href="#vat">VAT Calculator</a>
+          <a href="#mpesa">M-PESA Till Fees</a>
+          <a href="#import">Import Duty</a>
+        </div>
+      </div>
+      <a href="#paye">PAYE</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+  <nav id="mobileMenu" class="mobile-menu">
+    <a href="#loan">Loan Calculator</a>
+    <a href="#reducing">Reducing Balance</a>
+    <a href="#flat">Flat Rate</a>
+    <a href="#mortgage">Mortgage Loan</a>
+    <a href="#carloan">Car Loan</a>
+    <a href="#vat">VAT Calculator</a>
+    <a href="#mpesa">M-PESA Till Fees</a>
+    <a href="#import">Import Duty</a>
+    <a href="#paye">PAYE</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</header>
+
+  <div class="container">
+    <h1>Kenya Loan Calculator - JazaLoan</h1>
+    <div class="ad-space">[Ad Space - Top]</div>
+    <label for="amount">Loan Amount (Ksh):</label>
+    <input type="text" id="amount" placeholder="e.g. 50,000" oninput="formatNumberInput(this)"/>
+    <label for="rate">Interest Rate (% per year):</label>
+    <input type="text" id="rate" placeholder="e.g. 13" oninput="formatDecimalInput(this)"/>
+    <label for="months">Loan Duration (in months):</label>
+    
+    <input type="text" id="months" placeholder="e.g. 12" oninput="formatNumberInput(this)"/>
+    <label for="repaymentType">Repayment Type:</label>
+<select id="repaymentType">
+  <option value="fixed">Fixed Principal (SACCO style)</option>
+  <option value="emi">Equal Installments (Bank style)</option>
+</select>
+    <button onclick="calculateLoan()">Calculate (Reducing Balance)</button>
+    <button onclick="calculateFlatLoan()">Calculate (Flat Rate)</button>
+    <div class="results" id="results" style="display: none;">
+      <p><strong>Monthly Payment:</strong> Ksh <span id="monthly"></span></p>
+      <p><strong>Total Repayable:</strong> Ksh <span id="total"></span></p>
+      <p><strong>Total Interest:</strong> Ksh <span id="interest"></span></p>
+      <div id="breakdown"></div>
+      <button id="download-btn" onclick="downloadPDF()">Download Breakdown</button>
+      <button onclick="resetLoanInputs()" style="margin-top: 15px;">Reset & Start Again</button>
+    </div>
+    <div class="ad-space">[Ad Space - Bottom]</div>
+    <div class="tutorial">
+      <h3>How to Use This Loan Calculator</h3>
+      <p>1. Enter the total amount you want to borrow in Kenyan Shillings (Ksh).</p>
+      <p>2. Type in the interest rate provided by your lender (e.g. 13%).</p>
+      <p>3. Enter the number of months you’ll repay the loan.</p>
+      <p>4. Click the <strong>Calculate</strong> button.</p>
+      <p>The calculator will show your expected monthly repayment, total amount you’ll repay, and the total interest charged.</p>
+      <p><em>Disclaimer: This tool gives an estimate. Confirm final terms with your lender.</em></p>
+       <div class="best-loans-link">
+      <strong>Not sure what loan suits your salary?</strong><br>
+      <a href="best-loans-by-salary.html">Check recommended loans by salary →</a>
+    </div>
+    </div>
+    
+    <div id="paye-section" class="paye-section">
+      <h2>Kenya PAYE Calculator</h2>
+      <label for="gross">Gross Monthly Salary (Ksh):</label>
+      <input type="text" id="gross" placeholder="e.g. 50,000" oninput="formatGrossInput(this)" />
+      <button onclick="calculatePAYE()">Calculate PAYE</button>
+      <div id="payeResults" style="margin-top: 15px;"></div>
+      <button id="payslip-btn" onclick="downloadPayslip()">Download Payslip (PDF)</button>
+      <button id="paye-reset-btn" onclick="resetPAYEInputs()" style="display: none; margin-top: 15px;">Reset & Start Again</button>
+    </div>
+  </div>
+  <section id="about" style="padding: 20px;">
+    <h2>About Us</h2>
+    <p>
+      Welcome to <strong>JazaLoan</strong> – your trusted free online tool for smart financial decisions.
+      Whether you're calculating your reducing balance loan, flat rate loan, or PAYE taxes in Kenya,
+      JazaLoan provides:
+    </p>
+    <ul>
+      <li>✔ Accurate monthly breakdowns</li>
+      <li>✔ PDF downloads for record keeping</li>
+      <li>✔ Mobile-friendly design for on-the-go access</li>
+      <li>✔ Zero cost – it's completely free to use</li>
+    </ul>
+    <p>Our mission is to empower Kenyans to understand and control their personal and business finances with ease.</p>
+  </section>
+
+  <section id="reviews-section">
+    <h2>What Our Users Say</h2>
+    <div class="review-grid">
+        <div class="review-card">
+            <div class="stars">★★★★★</div>
+            <p>"This calculator is incredibly accurate and easy to use! It helped me plan my loan repayments perfectly. Highly recommended for anyone in Kenya!"</p>
+            <p class="reviewer">- Jane W., Nairobi</p>
+        </div>
+        <div class="review-card">
+            <div class="stars">★★★★★</div>
+            <p>"A fantastic tool! The breakdown for both reducing balance and flat rate loans is super clear. Made my financial decisions so much easier."</p>
+            <p class="reviewer">- David K., Mombasa</p>
+        </div>
+        <div class="review-card">
+            <div class="stars">★★★★★</div>
+            <p>"I love the PAYE calculator feature. It's spot on and helps me understand my deductions. A must-have for every Kenyan."</p>
+            <p class="reviewer">- Sarah N., Kisumu</p>
+        </div>
+        <div class="review-card">
+            <div class="stars">★★★★☆</div>
+            <p>"Very useful website. I appreciate the ability to download PDF breakdowns. Sometimes it feels a little slow to load, but otherwise great."</p>
+            <p class="reviewer">- Paul O., Eldoret</p>
+        </div>
+    </div>
+  </section>
+
+  <script>
+    let lastLoanType = '';
+
+    function formatGross(input) {
+      let value = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
+      if (value) {
+        input.value = parseInt(value).toLocaleString('en-KE');
+      }
+    }
+
+    function resetPAYEInputs() {
+      document.getElementById("gross").value = "";
+      document.getElementById("payeResults").innerHTML = "";
+      document.getElementById("paye-reset-btn").style.display = "none";
+      document.getElementById("paye-section").scrollIntoView({ behavior: "smooth" });
+    }
+
+    function resetLoanInputs() {
+      document.getElementById("amount").value = "";
+      document.getElementById("rate").value = "";
+      document.getElementById("months").value = "";
+      document.getElementById("results").style.display = "none";
+      document.getElementById("monthly").innerText = "";
+      document.getElementById("total").innerText = "";
+      document.getElementById("interest").innerText = "";
+      document.getElementById("breakdown").innerHTML = "";
+      document.querySelector('.container').scrollIntoView({ behavior: "smooth" });
+    }
+
+    function formatNumber(num) {
+      return num.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatNumberInput(input) {
+      let value = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
+      if (value) {
+        input.value = parseInt(value).toLocaleString('en-KE');
+      } else {
+        input.value = '';
+      }
+    }
+
+    function formatDecimalInput(input) {
+      let value = input.value.replace(/[^0-9.]/g, '');
+      const parts = value.split('.');
+      if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+      input.value = value;
+    }
+
+    function calculateLoan() {
+  lastLoanType = 'reducing';
+  const P = parseFloat(document.getElementById("amount").value.replace(/,/g, ''));
+  const annualRate = parseFloat(document.getElementById("rate").value.replace(/,/g, ''));
+  const N = parseInt(document.getElementById("months").value.replace(/,/g, ''));
+  const repaymentType = document.getElementById("repaymentType").value;
+
+  if (isNaN(P) || isNaN(annualRate) || isNaN(N)) {
+    alert("Please fill in all fields correctly.");
+    return;
+  }
+
+  const R = annualRate / 12 / 100;  // Monthly interest rate
+  let totalInterest = 0;
+  let breakdownHTML = `
+  <h4>Reducing Balance Repayment Breakdown (${repaymentType === 'fixed' ? 'Fixed Principal' : 'Equal EMI'})</h4>
+  <table id="breakdown-table">
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>Principal (Ksh)</th>
+        <th>Interest (Ksh)</th>
+        <th>Monthly Installment (Ksh)</th>
+        <th>Balance (Ksh)</th>
+      </tr>
+    </thead>
+    <tbody>
+`;
+
+  let balance = P;
+
+  if (repaymentType === 'fixed') {
+    const monthlyPrincipal = P / N;
+
+    for (let i = 1; i <= N; i++) {
+      const interest = balance * R;
+      const installment = monthlyPrincipal + interest;
+      totalInterest += interest;
+
+      breakdownHTML += `
+        <tr>
+          <td>${i}</td>
+          <td>${formatNumber(monthlyPrincipal)}</td>
+          <td>${formatNumber(interest)}</td>
+          <td><strong>${formatNumber(installment)}</strong></td>
+          <td>${formatNumber(Math.max(balance - monthlyPrincipal, 0))}</td>
+        </tr>
+      `;
+      balance -= monthlyPrincipal;
+    }
+
+    document.getElementById("monthly").innerText = formatNumber(monthlyPrincipal + (P * R)); // Approx first month
+  } else {
+    // Equal Installment (EMI) Method
+    let emi = 0;
+    if (R === 0) {
+      emi = P / N;
+    } else {
+      emi = (P * R * Math.pow(1 + R, N)) / (Math.pow(1 + R, N) - 1);
+    }
+
+    for (let i = 1; i <= N; i++) {
+      const interest = balance * R;
+      const principal = emi - interest;
+      totalInterest += interest;
+
+      breakdownHTML += `
+        <tr>
+          <td>${i}</td>
+          <td>${formatNumber(principal)}</td>
+          <td>${formatNumber(interest)}</td>
+          <td><strong>${formatNumber(emi)}</strong></td>
+          <td>${formatNumber(Math.max(balance - principal, 0))}</td>
+        </tr>
+      `;
+      balance -= principal;
+    }
+
+    document.getElementById("monthly").innerText = formatNumber(emi);
+  }
+
+  const totalRepayable = P + totalInterest;
+
+  document.getElementById("total").innerText = formatNumber(totalRepayable);
+  document.getElementById("interest").innerText = formatNumber(totalInterest);
+  document.getElementById("results").style.display = "block";
+  document.getElementById("results").classList.add("fade-in");
+  document.getElementById("breakdown").innerHTML = breakdownHTML + '</tbody></table>';
+  document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+}
+    function calculateFlatLoan() {
+      lastLoanType = 'flat';
+      const P = parseFloat(document.getElementById("amount").value.replace(/,/g, ''));
+      const annualRate = parseFloat(document.getElementById("rate").value.replace(/,/g, ''));
+      const N = parseInt(document.getElementById("months").value.replace(/,/g, ''));
+
+      if (isNaN(P) || isNaN(annualRate) || isNaN(N)) {
+        alert("Please fill in all fields correctly.");
+        return;
+      }
+
+      const monthlyInterest = (P * annualRate) / (12 * 100);
+      const principalPerMonth = P / N;
+      const EMI = principalPerMonth + monthlyInterest;
+      const total = EMI * N;
+      const totalInterest = monthlyInterest * N;
+      document.getElementById("monthly").innerText = EMI.toLocaleString("en-KE", { minimumFractionDigits: 2 });
+      document.getElementById("total").innerText = total.toLocaleString("en-KE", { minimumFractionDigits: 2 });
+      document.getElementById("interest").innerText = totalInterest.toLocaleString("en-KE", { minimumFractionDigits: 2 });
+      document.getElementById("results").style.display = "block";
+      document.getElementById("results").classList.add("fade-in");
+      document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+      let breakdownHTML = `
+  <h4>Flat Rate Breakdown</h4>
+  <table id="breakdown-table">
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>Interest (Ksh)</th>
+        <th>Monthly Payment (Ksh)</th>
+        <th>Balance Remaining (Ksh)</th>
+      </tr>
+    </thead>
+    <tbody>
+`;
+      for (let i = 1; i <= N; i++) {
+        const balanceRemaining = P - (principalPerMonth * i);
+        breakdownHTML += `
+          <tr>
+            <td>${i}</td>
+            <td>${formatNumber(monthlyInterest)}</td>
+            <td>${formatNumber(EMI)}</td>
+            <td>${formatNumber(Math.max(balanceRemaining, 0))}</td>
+          </tr>
+        `;
+      }
+      breakdownHTML += '</tbody></table>';
+      document.getElementById("breakdown").innerHTML = breakdownHTML;
+    }
+function downloadPDF() {
+  const repaymentType = document.getElementById("repaymentType")?.value || 'fixed';
+  const breakdownTable = document.getElementById("breakdown-table");
+
+  if (!breakdownTable) {
+    alert("No breakdown table found.");
+    return;
+  }
+
+  const doc = new window.jspdf.jsPDF();
+
+  // Loan input values
+  const amount = document.getElementById("amount").value || '0';
+  const rate = document.getElementById("rate").value || '0';
+  const months = document.getElementById("months").value || '0';
+  const monthly = document.getElementById("monthly").innerText;
+  const total = document.getElementById("total").innerText;
+  const interest = document.getElementById("interest").innerText;
+
+  const formattedAmount = parseFloat(amount.replace(/,/g, '') || 0).toLocaleString("en-KE", {
+    minimumFractionDigits: 2
+  });
+
+  // Title
+  let loanTypeLabel = "Loan Breakdown";
+if (lastLoanType === 'reducing') {
+  loanTypeLabel = repaymentType === 'fixed'
+    ? "Reducing Balance Loan Breakdown (Fixed Principal)"
+    : "Reducing Balance Loan Breakdown (Equal EMI)";
+} else if (lastLoanType === 'flat') {
+  loanTypeLabel = "Flat Rate Loan Breakdown";
+}
+
+
+  doc.setFontSize(14);
+  doc.text(`${loanTypeLabel} for Ksh ${formattedAmount}`, 14, 15);
+
+  // Summary section
+  let startY = 25;
+  doc.setFontSize(10);
+  doc.text("Summary:", 14, startY);
+
+  const summary = [
+    `Loan Type: ${lastLoanType === 'flat' ? 'Flat Rate' : 'Reducing Balance'}`,
+    `Loan Amount: Ksh ${formattedAmount}`,
+    `Loan Duration: ${months} months`,
+    `Interest Rate: ${rate}% per annum`,
+    `Monthly Installment: Ksh ${monthly}`,
+    `Total Interest: Ksh ${interest}`,
+    `Total Repayment: Ksh ${total}`
+  ];
+
+  summary.forEach((line, i) => {
+    doc.text(line, 14, startY + 6 + (i * 6));
+  });
+
+  // Header color: green for reducing, orange for flat
+  const headColor = (lastLoanType === 'flat') ? [255, 87, 34] : [46, 125, 50];
+
+  // Draw the table
+  doc.autoTable({
+    html: '#breakdown-table',
+    useCss: false,
+    startY: startY + (summary.length * 6) + 15,
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      lineColor: [100, 100, 100],
+      lineWidth: 0.2,
+      valign: 'middle',
+      halign: 'right'
+    },
+    headStyles: {
+      fillColor: headColor,
+      textColor: 255,
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    columnStyles: {
+      3: { fontStyle: 'bold' } // Bold Monthly Installment column
+    },
+    margin: { left: 14, right: 14 },
+    didDrawPage: function (data) {
+      const pageHeight = doc.internal.pageSize.height;
+      const pageWidth = doc.internal.pageSize.width;
+
+      // Footer: JazaLoan branding
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text("Generated by JazaLoan", 14, pageHeight - 10);
+
+      // Page number (bottom right)
+      const pageNumber = doc.internal.getNumberOfPages();
+      doc.text(`Page ${data.pageNumber}`, pageWidth - 30, pageHeight - 10);
+    }
+  });
+
+  // Filename
+  let filename = "Loan-Breakdown.pdf";
+  if (lastLoanType === 'reducing') {
+    filename = repaymentType === 'fixed'
+      ? "Fixed-Principal-Breakdown.pdf"
+      : "Equal-EMI-Breakdown.pdf";
+  } else if (lastLoanType === 'flat') {
+    filename = "Flat-Rate-Breakdown.pdf";
+  }
+
+  doc.save(filename);
+}
+
+    function calculatePAYE() {
+      const grossInput = document.getElementById("gross").value.replace(/,/g, '');
+      const gross = parseFloat(grossInput);
+      if (!gross || gross <= 0) {
+        alert("Enter valid gross salary");
+        return;
+      }
+      const tier1Limit = 8000;
+      const tier2Limit = 72000;
+      const tier1 = Math.min(gross, tier1Limit) * 0.06;
+      const tier2 = gross > tier1Limit ? Math.min(gross, tier2Limit) - tier1Limit : 0;
+      const nssf = tier1 + (tier2 * 0.06);
+      const shif = Math.max(300, gross * 0.0275);
+      const housing = gross * 0.015;
+      const taxable = gross - nssf - shif - housing;
+      let incomeTax = 0;
+      if (taxable <= 24000) {
+        incomeTax = taxable * 0.10;
+      } else if (taxable <= 32333) {
+        incomeTax = (24000 * 0.10) + ((taxable - 24000) * 0.25);
+      } else if (taxable <= 500000) {
+        incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((taxable - 32333) * 0.30);
+      } else if (taxable <= 800000) {
+        incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((taxable - 500000) * 0.325);
+      } else {
+        incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((800000 - 500000) * 0.325) + ((taxable - 800000) * 0.35);
+      }
+      const relief = 2400;
+      const paye = Math.max(0, incomeTax - relief);
+      const payAfterTax = gross - (nssf + shif + housing + paye);
+
+      document.getElementById("payeResults").innerHTML = `
+        <h4>Results: (Payslip for <strong>Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong>)</h4>
+        <table>
+          <tr><td><strong>BASIC PAY:</strong></td><td>Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>NSSF:</strong></td><td>Ksh ${nssf.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>SHIF:</strong></td><td>Ksh ${shif.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>Housing Levy:</strong></td><td>Ksh ${housing.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>TAXABLE PAY:</strong></td><td>Ksh ${taxable.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>INCOME TAX:</strong></td><td>Ksh ${incomeTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>Personal Relief:</strong></td><td>Ksh ${relief.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>P.A.Y.E:</strong></td><td>Ksh ${paye.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>PAY AFTER TAX:</strong></td><td>Ksh ${payAfterTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+          <tr><td><strong>NET PAY:</strong></td><td><strong>Ksh ${payAfterTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></td></tr>
+        </table>
+      `;
+      document.getElementById("payeResults").scrollIntoView({ behavior: "smooth" });
+      document.getElementById("paye-reset-btn").style.display = "inline-block";
+    }
+
+    function downloadPayslip() {
+      const gross = parseFloat(document.getElementById("gross").value.replace(/,/g, ''));
+      if (!gross || gross <= 0) {
+        alert("Enter salary first");
+        return;
+      }
+      const tier1 = Math.min(gross, 8000) * 0.06;
+      const tier2 = gross > 8000 ? Math.min(gross, 72000) - 8000 : 0;
+      const nssf = tier1 + (tier2 * 0.06);
+      const shif = Math.max(300, gross * 0.0275);
+      const housing = gross * 0.015;
+      const taxable = gross - nssf - shif - housing;
+      let incomeTax = 0;
+      if (taxable <= 24000) {
+        incomeTax = taxable * 0.10;
+      } else if (taxable <= 32333) {
+        incomeTax = (24000 * 0.10) + ((taxable - 24000) * 0.25);
+      } else if (taxable <= 500000) {
+        incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((taxable - 32333) * 0.30);
+      } else if (taxable <= 800000) {
+        incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((taxable - 500000) * 0.325);
+      } else {
+        incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((800000 - 500000) * 0.325) + ((taxable - 800000) * 0.35);
+      }
+      const relief = 2400;
+      const paye = Math.max(0, incomeTax - relief);
+      const payAfterTax = gross - (nssf + shif + housing + paye);
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text(`Payslip for Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}`, 14, 20);
+      doc.autoTable({
+        startY: 30,
+        head: [["Item", "Amount (Ksh)"]],
+        body: [
+          ["Basic Pay", gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["NSSF", nssf.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["SHIF", shif.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["Housing Levy", housing.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["Taxable Pay", taxable.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["Income Tax", incomeTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["Personal Relief", relief.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["P.A.Y.E", paye.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["Pay After Tax", payAfterTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+          ["Net Pay", payAfterTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+        ],
+        theme: "grid",
+        headStyles: { fillColor: [44,62,80] },
+        styles: { fontSize: 11 }
+      });
+      doc.save("payslip_2025.pdf");
+    }
+
+    function formatGrossInput(input) {
+      let value = input.value.replace(/[^\d]/g, '');
+      input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+function toggleFAQ(button) {
+  const item = button.parentElement;
+  const isActive = item.classList.contains("active");
+
+  // Close all
+  document.querySelectorAll(".faq-item").forEach(el => el.classList.remove("active"));
+
+  // Toggle current
+  if (!isActive) {
+    item.classList.add("active");
+  }
+}
+
+  </script>
+<section id="faq" class="faq-section">
+  <h2>Frequently Asked Questions (FAQs)</h2>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">What is JazaLoan and who is it for?</button>
+    <div class="faq-answer">
+      <p>JazaLoan is a free, mobile-friendly financial tool designed to help Kenyans — including employees, self-employed individuals, and SMEs — make informed loan and salary-related decisions. We offer calculators for loan repayment, PAYE, NHIF, and NSSF with downloadable PDF breakdowns.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Which types of loans does JazaLoan support?</button>
+    <div class="faq-answer">
+      <p>We support a wide range of loans including reducing balance, flat rate, SACCO loans, HELB, mobile loans (like M-Shwari or Fuliza), and SME financing. Our main goal is to help you understand and compare loans before making a financial decision.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">What’s the difference between reducing balance and flat rate loans in Kenya?</button>
+    <div class="faq-answer">
+      <p>A reducing balance loan charges interest on the remaining loan balance each month, meaning your interest reduces over time. A flat rate loan charges interest on the original loan amount for the entire period. Reducing balance is more cost-effective over time, and JazaLoan clearly explains both with full breakdowns.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">How is PAYE calculated in Kenya (2025)?</button>
+    <div class="faq-answer">
+      <p>PAYE is calculated based on income tax bands provided by KRA, along with deductions like housing levy, personal relief, and more. JazaLoan stays updated with the latest Finance Act changes to calculate your tax correctly.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">How is NHIF calculated in Kenya (2025)?</button>
+    <div class="faq-answer">
+      <p>As of 2025, NHIF contributions are calculated as a percentage of gross salary. JazaLoan reflects this updated formula, including minimum thresholds and employer contributions, based on the latest NHIF guidelines.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Can I download or print my loan or PAYE breakdown?</button>
+    <div class="faq-answer">
+      <p>Yes! Every calculation on JazaLoan includes a "Download PDF" button — ideal for sharing with your accountant, HR, loan officer, or for your own records.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Is JazaLoan really free?</button>
+    <div class="faq-answer">
+      <p>Absolutely. JazaLoan is 100% free. No sign-ups or hidden charges. Our mission is to make financial tools accessible to all Kenyans, at no cost.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Are there new calculators coming soon?</button>
+    <div class="faq-answer">
+      <p>Yes. We plan to launch mortgage and car loan calculators tailored to Kenyan lending terms, along with alerts when NHIF, PAYE, or NSSF rules change.</p>
+    </div>
+  </div>
+</section>
+ <script>
+    window.addEventListener("load", () => {
+      document.querySelector('.animated-logo')?.classList.add('visible');
+    });
+
+    function toggleMenu() {
+      const navbar = document.getElementById("navbar");
+      navbar.classList.toggle("show");
+    }
+  </script>
+  <footer>
+    <div class="footer-content">
+      <span><strong>JazaLoan</strong></span>
+      <span>|</span>
+      <span>© 2025 JazaLoan. All rights reserved.</span>
+      <span>|</span>
+      <span>📧 <a href="mailto:mburuthus@gmail.com">support@jazaloan.co.ke</a></span>
+      <span>|</span>
+      <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
+    </div>
+
+  </footer>
+  <button id="backToTop" title="Back to Top">⬆</button>
+  <script>
+    const backToTopBtn = document.getElementById("backToTop");
+    window.addEventListener("scroll", () => {
+      if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
+        backToTopBtn.style.display = "block";
+      } else {
+        backToTopBtn.style.display = "none";
+      }
+    });
+
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  </script>
+</body>
+</html>
+
+

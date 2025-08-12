@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Compare Loans in Kenya – JazaLoan</title>
+  <meta name="description" content="Compare loan options from banks, SACCOs, mobile lenders and HELB in Kenya. JazaLoan helps you choose the best loan with easy Apply buttons.">
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+    }
+    .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #ffffff;
+  padding: 5px 10px;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 1000px;
+      padding: 5px 15px;
+    }
+    .logo {
+      height: 90px;
+      width: auto;
+      margin-right: 10px;
+    }
+    .logo-link {
+      display: inline-block;
+    }
+    .navbar {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .navbar a {
+  position: relative;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  transition: color 0.3s ease;
+  padding: 6px 10px;
+}
+
+.navbar a:hover {
+  color: #007bff;
+}
+
+.navbar a::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0%;
+  height: 2px;
+  background-color: #007bff;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.navbar a:hover::after {
+  width: 100%;
+}
+
+    .dropdown {
+  position: relative;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  min-width: 180px;
+  z-index: 1000;
+  flex-direction: column;
+}
+
+.dropdown-content a {
+  padding: 10px;
+  display: block;
+  color: #2c3e50;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.dropdown-content a:hover {
+  background-color: #f4f4f4;
+}
+
+.dropdown-content {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.dropdown-content.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  display: flex;
+}
+    .navbar a:hover {
+      color: #007bff;
+    }
+    .compare-container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+    }
+    .loan-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      padding: 20px;
+    }
+    .loan-card h3 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    .loan-card p {
+      color: #555;
+      font-size: 15px;
+      margin-bottom: 15px;
+    }
+    .loan-card a {
+      background-color: #2e7d32;
+      color: white;
+      padding: 10px 15px;
+      display: inline-block;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+    .loan-card a:hover {
+      background-color: #27672b;
+    }
+    .results-section h2 {
+      background: #3d72ed;
+      color: white;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .results-section {
+  scroll-margin-top: 120px;
+}
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .results-table th, .results-table td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: center;
+    }
+    .results-table th {
+      background-color: #2e7d32;
+      color: white;
+    }
+    .results-table a {
+      color: #2e7d32;
+      text-decoration: underline;
+      font-weight: bold;
+    }
+    .results-table a:hover {
+      color: #1b5e20;
+    }
+    /* Add spacing below dropdown parent link to separate the dropdown menu */
+.navbar .dropdown > a {
+  padding: 6px 10px;
+  margin-bottom: 8px; /* 👈 Adds gap so dropdown doesn't overlap */
+  display: inline-block;
+}
+    .calculator-link-box {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #2e7d32;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      text-decoration: none;
+      box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+    .calculator-link-box:hover {
+      background-color: #256c28;
+      transform: scale(1.05);
+    }
+    .back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 25px;
+  background-color: #2e7d32;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  z-index: 999;
+}
+.back-to-top:hover {
+  background-color: #256c28;
+  transform: scale(1.1);
+}
+
+    footer {
+  background-color: #03457b;
+  padding: 10px 0;
+  font-size: 13px;
+  text-align: center;
+  color: #fff;
+}
+footer a {
+  color: #fff;
+  text-decoration: none;
+  margin: 0 5px;
+}
+footer a:hover {
+  text-decoration: underline;
+}
+.footer-content {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+   .hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+}
+.hamburger span {
+  height: 3px;
+  width: 25px;
+  background: #03457b;
+  margin: 4px 0;
+  border-radius: 2px;
+}
+.mobile-nav {
+  display: none;
+  flex-direction: column;
+  background: white;
+  padding: 10px;
+}
+.mobile-nav a {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+.mobile-submenu {
+  display: none;
+  flex-direction: column;
+  padding-left: 10px;
+}
+.mobile-submenu a {
+  font-size: 14px;
+  padding: 8px 10px;
+}
+.mobile-submenu.show {
+  display: flex;
+}
+@media (max-width: 768px) {
+  .navbar {
+    display: none;
+  }
+  .hamburger {
+    display: flex;
+  }
+  .mobile-nav.show {
+    display: flex;
+  }
+}
+.mobile-submenu {
+  transition: max-height 0.3s ease;
+  overflow: hidden;
+  max-height: 0;
+}
+.mobile-submenu.show {
+  max-height: 500px;
+}
+.loan-info-box {
+  background: #edf9f1;
+  border-left: 5px solid #0b5e2b;
+  padding: 20px 20px 15px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.loan-info-box:hover {
+  background: #e9faed;
+}
+
+.loan-info-box h2 {
+  margin-top: 0;
+}
+.loan-info-box p {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.7;
+}
+.loan-warning-wrapper {
+  max-width: 800px;
+  margin: 30px auto;
+  font-family: Arial, sans-serif;
+}
+
+.toggle-warning {
+  width: 100%;
+  background: #f0fdf4;
+  border: 2px solid #2e7d32;
+  color: #03457b;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-warning:hover {
+  background: #e0f7e9;
+}
+
+.loan-warning-box {
+  background: #f0fdf4;
+  border-left: 4px solid #2e7d32;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 10px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.5s ease, opacity 0.4s ease;
+  opacity: 0;
+}
+
+.loan-warning-box.show {
+  max-height: 1500px;
+  opacity: 1;
+}
+
+  </style>
+</head>
+<body>
+  <header class="site-header fade-in">
+  <div class="header-content">
+    <img src="Images/logo.png" alt="Logo" class="logo animated-logo" />
+
+    <div class="hamburger" id="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <nav class="navbar" id="mainNav">
+  <a href="index.html">Home</a>
+
+  <div class="dropdown">
+    <a href="#" class="dropdown-toggle" data-target="dropdown1">Loan Calculators ▾</a>
+    <div class="dropdown-content" id="dropdown1">
+      <a href="kcb-mpesa-loan.html">KCB Mpesa</a>
+      <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    </div>
+  </div>
+
+  <a href="vat-calculator.html">VAT Calculator</a>
+  <a href="best-loans-by-salary.html">Loans by Salary</a>
+  <a href="blog.html">Blog</a>
+</nav>
+
+
+  <nav class="mobile-nav" id="mobileNav">
+  <a href="index.html">Home</a>
+  <a href="#" id="mobileDropdownToggle">Loan Calculators ▾</a>
+  <div class="mobile-submenu" id="mobileSubmenu">
+    <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+  </div>
+  <a href="vat-calculator.html">VAT Calculator</a>
+  <a href="best-loans-by-salary.html">Loans by Salary</a>
+  <a href="blog.html">Blog</a>
+</nav>
+
+</header>
+
+  <div class="compare-container">
+    <h1 style="text-align:center; color:#2c3e50;">Compare Loans in Kenya</h1>
+    <div class="compare-grid">
+      <div class="loan-card"><h3>Bank Loans</h3><p>For salary or business loans with reducing balance repayment.</p><a href="#bank-loans">See Bank Loan Options</a></div>
+      <div class="loan-card"><h3>SACCO Loans</h3><p>Great for members with savings, typically fixed principal.</p><a href="#sacco-loans">See SACCO Loan Options</a></div>
+      <div class="loan-card"><h3>Mobile Loans</h3><p>Short-term emergency loans with fast access.</p><a href="#mobile-loans">See Mobile Loan Options</a></div>
+      <div class="loan-card"><h3>Credit Lenders</h3><p>Fintech lenders offering unsecured short-term credit.</p><a href="#credit-loans">See Credit Lender Options</a></div>
+      <div class="loan-card"><h3>HELB Student Loans</h3><p>Affordable education loans for university & college students.</p><a href="#helb-loans">See HELB Loan Options</a></div>
+    </div>
+
+    <section id="bank-loans" class="results-section">
+  <div class="loan-info-box">
+    <h2>Bank Loan Comparison in Kenya</h2>
+    <p>Bank loans in Kenya are ideal for individuals with formal income or registered businesses. These loans typically use a reducing balance method, where interest reduces over time as the principal reduces. They are perfect for purposes like school fees, buying assets, or home construction.</p>
+    <p>Banks such as Equity, KCB, and Absa offer competitive loan products. When choosing a bank loan, evaluate the APR, fees (like processing or insurance), required collateral, and repayment flexibility. Ensure the lender is licensed by the CBK for consumer protection.</p>
+  
+       <div style="overflow-x: auto; margin-top: 20px;">
+  <table class="results-table">
+        <tr><th>Bank</th><th>Interest</th><th>Loan Type</th><th>Duration</th><th>Apply</th></tr>
+        <tr><td>Equity Bank</td><td>13.5%</td><td>Personal Loan</td><td>12–60 mo</td><td><a href="#">Apply</a></td></tr>
+        <tr><td>KCB</td><td>14%</td><td>Business Loan</td><td>6–72 mo</td><td><a href="#">Apply</a></td></tr>
+        <tr><td>Absa Bank</td><td>13%</td><td>Unsecured Loan</td><td>12–48 mo</td><td><a href="#">Apply</a></td></tr>
+        <tr><td>NCBA</td><td>12.8%</td><td>Asset Finance</td><td>12–60 mo</td><td><a href="#">Apply</a></td></tr>
+        <tr><td>Co-operative Bank</td><td>13.2%</td><td>Salary Loan</td><td>12–36 mo</td><td><a href="#">Apply</a></td></tr>
+        <tr><td>Stanbic Bank</td><td>13.8%</td><td>SME Loan</td><td>6–48 mo</td><td><a href="#">Apply</a></td></tr>
+      </table>
+      <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
+      </div>
+    </section>
+
+    <section id="sacco-loans" class="results-section">
+      <div class="loan-info-box">
+  <h2>SACCO Loan Comparison</h2>
+  <p>SACCO loans in Kenya offer affordable financing options for members of Savings and Credit Cooperatives. These loans are often based on your savings and are commonly structured with fixed interest on a flat rate basis.</p>
+  <p>Popular SACCOs like Hazina, Stima, Mwalimu, and Kenya Police SACCO offer competitive personal, development, and emergency loan options with minimal collateral. SACCOs are member-owned and generally charge lower fees compared to banks or digital lenders.</p>
+  <p>When considering a SACCO loan, look at eligibility (often based on membership duration and savings multiplier), interest method (flat vs reducing), and processing timelines. These loans work well for teachers, civil servants, and members of established cooperatives.</p>
+
+  <div style="overflow-x: auto; margin-top: 20px;">
+  <table class="results-table">
+    <tr><th>SACCO</th><th>Interest</th><th>Type</th><th>Duration</th><th>Apply</th></tr>
+    <tr><td>Hazina</td><td>12%</td><td>Normal Loan</td><td>Up to 36 mo</td><td><a href="#">Apply</a></td></tr>
+    <tr><td>Stima</td><td>10%</td><td>Emergency Loan</td><td>12 mo</td><td><a href="#">Apply</a></td></tr>
+    <tr><td>Mwalimu</td><td>11%</td><td>School Fees</td><td>Up to 24 mo</td><td><a href="#">Apply</a></td></tr>
+    <tr><td>Kenya Police SACCO</td><td>13%</td><td>Development Loan</td><td>Up to 48 mo</td><td><a href="#">Apply</a></td></tr>
+  </table>
+
+  <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
+</div>
+
+    </section>
+
+    <section id="mobile-loans" class="results-section">
+  <div class="loan-info-box">
+    <h2>Mobile Loan Comparison</h2>
+    <p>Mobile loans in Kenya are fast and accessible short-term credit options available via smartphone apps or USSD. Platforms like M-Shwari, Branch, and Tala have made borrowing easier, especially for emergencies and small expenses.</p>
+    <p>These loans typically offer instant disbursement, no collateral, and flexible amounts ranging from a few hundred to several thousand shillings. However, they come with higher interest rates, often calculated daily or monthly.</p>
+    <p>Always check loan limits, daily rates, penalties for late repayment, and whether the provider is licensed by CBK. Mobile loans are ideal for salaried individuals needing emergency funds, but should be used responsibly.</p>
+
+    <div style="overflow-x: auto; margin-top: 20px;">
+  <table class="results-table">
+      <tr><th>Platform</th><th>Daily Rate</th><th>Limit</th><th>Apply</th></tr>
+      <tr><td>M-Shwari</td><td>0.167%</td><td>Up to Ksh 50K</td><td><a href="#">Apply</a></td></tr>
+      <tr><td>Branch</td><td>Varies</td><td>Ksh 250 – 70K</td><td><a href="#">Apply</a></td></tr>
+      <tr><td>Tala</td><td>Varies</td><td>Ksh 500 – 50K</td><td><a href="#">Apply</a></td></tr>
+      <tr><td>Zenka</td><td>Varies</td><td>Ksh 500 – 30K</td><td><a href="#">Apply</a></td></tr>
+      <tr><td>Timiza</td><td>Varies</td><td>Ksh 500 – 150K</td><td><a href="#">Apply</a></td></tr>
+    </table>
+
+    <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
+  </div>
+</section>
+
+<section id="credit-loans" class="results-section">
+  <div class="loan-info-box">
+    <h2>Credit Lender Comparison</h2>
+    <p>Credit lenders in Kenya, especially fintech-based apps, provide unsecured short-term loans through mobile platforms. These digital lenders often cater to users who may not qualify for traditional bank credit, using alternative data for risk assessment.</p>
+    <p>Lenders like Asante, Okash, and Umba offer loan limits ranging from Ksh 500 to Ksh 60,000 with flexible terms. Most loans are processed instantly and do not require physical paperwork or collateral.</p>
+    <p>Before applying, review their terms carefully: check loan tenure, total repayment, fees, and whether they report to credit bureaus. Use credit lenders responsibly for bridging gaps, and avoid rolling over multiple loans.</p>
+
+    <div style="overflow-x: auto; margin-top: 20px;">
+  <table class="results-table">
+      <tr><th>Lender</th><th>Terms</th><th>Limit</th><th>Apply</th></tr>
+      <tr><td>Asante</td><td>Flexible, App-based</td><td>Ksh 500 – 50K</td><td><a href="#">Apply</a></td></tr>
+      <tr><td>Okash</td><td>Short Term</td><td>Ksh 500 – 40K</td><td><a href="#">Apply</a></td></tr>
+      <tr><td>Umba</td><td>Mobile Credit</td><td>Ksh 500 – 60K</td><td><a href="#">Apply</a></td></tr>
+    </table>
+
+    <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
+  </div>
+</section>
+
+<section id="helb-loans" class="results-section">
+  <div class="loan-info-box">
+    <h2>HELB Loan Info</h2>
+    <p>HELB (Higher Education Loans Board) loans in Kenya are designed to support students in universities, TVET institutions, and colleges by offering affordable financing for tuition, accommodation, and other education-related expenses.</p>
+    <p>HELB loans are funded by the government and provide low fixed interest rates, long repayment grace periods, and accessible online application. Beneficiaries begin repayment after completing their studies, making HELB a key resource for students without financial sponsors.</p>
+    <p>There are various categories of HELB loans including undergraduate loans, TVET loans, and postgraduate loans. It’s important to apply early, keep your records updated, and repay on time to avoid penalties and maintain good standing.</p>
+
+    <div style="overflow-x: auto; margin-top: 20px;">
+  <table class="results-table">
+      <tr><th>Type</th><th>Interest</th><th>Grace Period</th><th>Apply</th></tr>
+      <tr><td>Undergrad</td><td>4%</td><td>12 months</td><td><a href="#">Apply</a></td></tr>
+      <tr><td>TVET</td><td>4%</td><td>12 months</td><td><a href="#">Apply</a></td></tr>
+    </table>
+
+    <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
+  </div>
+</section>
+
+    <section style="margin-top: 50px;">
+  <div class="loan-info-box">
+    <h2 style="text-align:center;">How to Choose the Best Loan in Kenya</h2>
+    <p style="text-align:center; max-width: 750px; margin: 0 auto 20px; color: #444;">
+      Choosing the right loan is crucial to ensure affordability and long-term financial stability. Whether applying for a personal, mobile, SACCO, or student loan, understanding the full cost and terms helps avoid debt stress.
+    </p>
+    <ul style="max-width: 750px; margin: 20px auto; line-height: 1.8; font-size: 15px; color: #333;">
+      <li><strong>Compare APR (Annual Percentage Rate):</strong> This reflects the true cost of the loan including interest and fees. A lower APR is generally better.</li>
+      <li><strong>Loan Tenure:</strong> Shorter terms mean faster repayment but higher monthly costs; longer terms reduce monthly payments but increase total interest.</li>
+      <li><strong>Hidden Charges:</strong> Look for processing fees, insurance costs, penalties, and late payment charges. These vary between banks and mobile lenders.</li>
+      <li><strong>Check Eligibility:</strong> Ensure you meet salary or savings requirements before applying to avoid rejection and CRB listings.</li>
+      <li><strong>Use Comparison Tools:</strong> JazaLoan calculators help you preview monthly installments and total interest before you commit.</li>
+    </ul>
+    <div style="text-align:center;">
+      <a href="index.html#loan" class="calculator-link-box">Try JazaLoan Calculator</a>
+    </div>
+  </div>
+</div>
+<div class="loan-warning-wrapper">
+  <button class="toggle-warning">📌 Common Mistakes to Avoid When Borrowing</button>
+  <div class="loan-warning-box" hidden>
+    <p>
+      Kenyan borrowers often fall into debt traps by making avoidable mistakes. From overborrowing to missing CRB implications, here’s what to avoid when taking loans from mobile apps, banks, or SACCOs.
+    </p>
+    <ul style="line-height: 1.8; font-size: 15px; color: #333;">
+  <li><span style="font-weight: 600; color: #2c3e50;">Overborrowing:</span> Applying for higher amounts than you can afford increases your CRB risk.</li>
+  <li><span style="font-weight: 600; color: #2c3e50;">Skipping the APR:</span> Focus on APR, not just monthly interest, to understand real cost.</li>
+  <li><span style="font-weight: 600; color: #2c3e50;">Mobile Loan Overuse:</span> Taking too many quick mobile loans can lead to payment overlap.</li>
+  <li><span style="font-weight: 600; color: #2c3e50;">No Lender Comparison:</span> Not comparing banks, SACCOs, and apps may cost you more in fees.</li>
+  <li><span style="font-weight: 600; color: #2c3e50;">Late Repayments:</span> This lowers your credit score and may attract higher penalties.</li>
+  <li><span style="font-weight: 600; color: #2c3e50;">Signing blind contracts:</span> Always read loan agreements for penalties and rollover traps.</li>
+</ul>
+
+    <p>
+      ✅ <strong>Tip:</strong> Use <a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">JazaLoan Calculator</a> to estimate repayments and avoid surprises.
+    </p>
+  </div>
+</div>
+
+<a href="#" class="back-to-top" title="Back to Top" style="display: none;">↑ Top</a>
+<script>
+  // Hide the button once it's clicked and user scrolls to top
+  const backToTop = document.querySelector(".back-to-top");
+
+  backToTop.addEventListener("click", function () {
+    setTimeout(() => {
+      backToTop.style.display = "none";
+    }, 800); // Wait for scroll animation (800ms)
+  });
+
+  // Show button only when scrolling down
+  window.addEventListener("scroll", function () {
+    if (window.scrollY > 200) {
+      backToTop.style.display = "inline-block";
+    } else {
+      backToTop.style.display = "none";
+    }
+  });
+</script>
+
+  <script>
+  document.getElementById("hamburger").addEventListener("click", function () {
+    document.getElementById("mobileNav").classList.toggle("show");
+  });
+
+  document.getElementById("mobileDropdownToggle").addEventListener("click", function (e) {
+    e.preventDefault();
+    document.getElementById("mobileSubmenu").classList.toggle("show");
+  });
+</script>
+<script>
+  // Auto-close mobile nav when any link is clicked
+  document.querySelectorAll("#mobileNav a").forEach(link => {
+    link.addEventListener("click", () => {
+      document.getElementById("mobileNav").classList.remove("show");
+      document.getElementById("mobileSubmenu").classList.remove("show"); // optional
+    });
+  });
+</script>
+<script>
+  const toggleBtn = document.querySelector(".toggle-warning");
+  const warningBox = document.querySelector(".loan-warning-box");
+
+  toggleBtn.addEventListener("click", () => {
+    warningBox.hidden = false;
+    warningBox.classList.toggle("show");
+
+    if (!warningBox.classList.contains("show")) {
+      setTimeout(() => (warningBox.hidden = true), 500); // Wait for animation
+    }
+    warningBox.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+</script>
+<script>
+  document.querySelectorAll(".dropdown").forEach(dropdown => {
+    const content = dropdown.querySelector(".dropdown-content");
+
+    let hideTimeout;
+
+    dropdown.addEventListener("mouseenter", () => {
+      clearTimeout(hideTimeout);
+      content.classList.add("show");
+    });
+
+    dropdown.addEventListener("mouseleave", () => {
+      hideTimeout = setTimeout(() => {
+        content.classList.remove("show");
+      }, 100); // Delay hide for smooth exit
+    });
+  });
+</script>
+
+<footer>
+  <div class="footer-content">
+    <span><strong>JazaLoan</strong></span>
+    <span>|</span>
+    <span>© 2025 JazaLoan. All rights reserved.</span>
+    <span>|</span>
+    <span>📧 <a href="mailto:support@jazaloan.co.ke">support@jazaloan.co.ke</a></span>
+    <span>|</span>
+    <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
+  </div>
+</footer>
+
+
+</body>
+</html>
