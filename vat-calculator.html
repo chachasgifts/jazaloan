@@ -2,10 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kenya VAT Calculator 2025 | JazaLoan</title>
-  <meta name="description" content="Free online VAT calculator for Kenya. Add or remove 16% VAT instantly. Accurate, fast, mobile-friendly.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
+  <title>Kenya VAT Calculator 2025 – Add or Remove 16% Value Added Tax Instantly</title>
+  <meta name="description" content="Use our free Kenya VAT Calculator 2025 to quickly add or remove 16% VAT. Accurate, instant, and mobile-friendly tool for businesses, invoices, and tax compliance.">
+  
+  <meta name="keywords" content="Kenya VAT calculator, 2025 VAT rate, calculate VAT Kenya, add VAT, remove VAT, 16% VAT Kenya, tax calculator Kenya">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="JazaLoan">
+  
+  <meta property="og:title" content="Kenya VAT Calculator 2025 – Calculate 16% VAT Online | JazaLoan" />
+  <meta property="og:description" content="Free and accurate Kenya VAT Calculator 2025. Instantly add or remove 16% VAT for invoices, quotes, and tax compliance." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://yourdomain.com/kenya-vat-calculator" />
+  <meta property="og:image" content="https://yourdomain.com/images/vat-calculator-kenya.jpg" />
+  
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Kenya VAT Calculator 2025 – Calculate 16% VAT Online | JazaLoan">
+  <meta name="twitter:description" content="Add or remove 16% VAT instantly. Free, accurate, and mobile-friendly Kenya VAT Calculator 2025.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/vat-calculator-kenya.jpg">
+
 <style>
 html {
   scroll-behavior: smooth;
@@ -226,7 +242,12 @@ label {
   .hamburger { display: flex; }
   .desktop-only { display: none !important; }
 }
-
+/* Ensure header layout keeps logo left + hamburger right */
+  .header-content {
+    display: flex;
+    justify-content: space-between; /* Logo on left, hamburger on right */
+    align-items: center;
+  }
 /* ————— Mobile-only Share (Bottom) ————— */
 .mobile-only-share {
   display: none;
@@ -273,6 +294,7 @@ label {
   .hamburger { display: flex; }
   .desktop-only { display: none !important; }
 }
+
 #backToTop {
   position: fixed;
   bottom: 40px;
@@ -470,6 +492,16 @@ details[open] > summary {
   display: block;
   margin: 25px auto;
 }
+.intro-text {
+  background: #f9f9f9;
+  padding: 15px 20px;
+  border-left: 6px solid transparent;
+  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1; /* Green → Blue */
+  font-size: 1.05em;
+  line-height: 1.6;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
 
 </style>
 
@@ -487,6 +519,7 @@ details[open] > summary {
   <span></span>
   <span></span>
 </div>
+
  <nav class="navbar desktop-only" id="mainNav">
     <a href="index.html">Home</a>
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
@@ -508,7 +541,13 @@ details[open] > summary {
 
 <!-- VAT Calculator -->
   <main class="container" style="padding: 40px 20px;">
-    <h1>Kenya VAT Calculator (2025)</h1>
+    <h1>Kenya VAT Calculator 2025 – Add or Remove 16% VAT Instantly</h1>
+   <p class="intro-text">
+  Use our free <strong>Kenya VAT Calculator 2025</strong> to quickly add or remove the standard 
+  <strong>16% Value Added Tax (VAT)</strong> from any amount. Whether you’re a business owner, accountant, 
+  or shopper, this easy-to-use tool gives instant and accurate results. Perfect for calculating 
+  VAT-inclusive or VAT-exclusive prices in Kenya.
+</p>
 
     <label for="vatAmount">Amount (Ksh):</label>
     <input type="text" id="vatAmount" placeholder="e.g. 10,000" oninput="formatNumberInput(this)" />
@@ -645,6 +684,7 @@ const toggleMobileMenu = () => {
 
 hamburger.addEventListener("click", toggleMobileMenu);
 overlay.addEventListener("click", toggleMobileMenu);
+
   // Social share links
   const currentURL = encodeURIComponent(window.location.href);
   const pageTitle = encodeURIComponent(document.title);
