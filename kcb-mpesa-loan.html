@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KCB M‑PESA Loan Calculator – JazaLoan</title>
+  <title>KCB M-PESA Loan Calculator 2025 – Calculate Interest, Fees & Repayments | JazaLoan</title>
+  <meta name="description" content="Free KCB M-PESA Loan Calculator for 2025. Instantly calculate your repayment amount, interest, and fees based on current KCB M-PESA terms in Kenya. Mobile-friendly, accurate, and easy to use.">
+  <meta name="keywords" content="KCB M-PESA loan calculator, KCB M-PESA interest rate, KCB M-PESA loan repayment, KCB loan Kenya, KCB M-PESA 2025">
+  <meta name="author" content="JazaLoan">
+</head>
+
+
   <style>
     html {
       scroll-behavior: smooth;
@@ -14,67 +20,223 @@
       margin: 0;
       padding: 0;
     }
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background-color: #ffffff;
-      padding: 5px 10px;
-      border-bottom: 1px solid #ccc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-wrap: wrap;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+.fade-in {
+      animation: fadeIn 0.8s ease-in-out;
     }
-    .header-content {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      max-width: 1000px;
-      padding: 5px 15px;
-    }
-    .logo {
-      height: 90px;
-      max-height: 90px;
-      width: auto;
-      object-fit: contain;
-      margin-right: 10px;
-    }
-    .navbar {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .navbar a {
-      position: relative;
-      color: #2c3e50;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 15px;
-      transition: color 0.3s ease;
-      padding: 6px 10px;
-    }
-    .navbar a:hover {
-      color: #007bff;
-    }
-    .navbar a::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      width: 0%;
-      height: 2px;
-      background-color: #007bff;
-      transition: all 0.3s ease;
-      transform: translateX(-50%);
-    }
-    .navbar a:hover::after {
-      width: 100%;
-    }
+    /* ————— Sticky Shrinking Header ————— */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  background: white;
+}
+.site-header.shrink {
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.site-header.shrink .logo {
+  height: 60px !important;
+  max-height: 60px !important;
+}
+.site-header.shrink .navbar a {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* ————— Header / Logo / Nav ————— */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1000px;
+  margin: auto;
+  padding: 5px 15px;
+}
+.logo {
+  height: 90px;
+  transition: height 0.3s ease;
+}
+.navbar {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.navbar a {
+  font-size: 15px;
+  text-decoration: none;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 8px 12px;
+  position: relative;
+}
+.navbar a:hover { color: #007bff; }
+.navbar a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0%;
+  height: 2px;
+  background-color: #007bff;
+  transition: width 0.3s ease;
+}
+.navbar a:hover::after { width: 100%; }
+
+/* ————— Mobile Nav + Hamburger ————— */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
+}
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100%;
+  width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 20px 20px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 999;
+}
+.mobile-nav.show {
+  right: 0;
+}
+.mobile-nav a {
+  padding: 12px 0;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+}
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+/* Ensure header layout keeps logo left + hamburger right */
+  .header-content {
+    display: flex;
+    justify-content: space-between; /* Logo on left, hamburger on right */
+    align-items: center;
+  }
+/* ————— Mobile-only Share (Bottom) ————— */
+.mobile-only-share {
+  display: none;
+}
+.mobile-only-share a {
+  width: 32px;
+  height: 32px;
+  margin: 0 6px;
+  border-radius: 50%;
+  background-size: 60% 60%;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.mobile-share-title {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: none;
+}
+@media (max-width: 768px) {
+  .floating-share-icons { display: none; }
+  .mobile-only-share {
+    display: flex;
+    justify-content: center;
+    margin: 20px auto;
+  }
+  .mobile-share-title {
+    display: block;
+  }
+  .mobile-only-share a:hover {
+    animation: bounce 0.4s ease;
+  }
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.2); }
+    50% { transform: scale(0.9); }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+
+#backToTop {
+  position: fixed;
+  bottom: 40px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  display: none;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+#backToTop:hover {
+  background-color: #148f77;
+  transform: scale(1.15);
+}
+.site-header {
+  height: 100px; /* or however tall it is initially */
+  transition: all 0.3s ease;
+}
+
+.site-header.shrink {
+  height: 70px;
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
 
     .container {
       max-width: 600px;
@@ -150,68 +312,11 @@
     footer a:hover {
       text-decoration: underline;
     }
-    @media (max-width: 600px) {
-      .navbar {
-        flex-direction: column;
-        align-items: flex-start;
-        width: 100%;
-        padding: 10px;
-      }
-      .logo {
-        margin: 0 auto;
-        display: block;
-      }
-    }
+
 .affiliate details {
   scroll-margin-top: 100px;
   transition: all 0.3s ease;
 }
-
-  .dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-content {
-  display: none;
-  position: absolute;
-  background-color: #ffffff;
-  min-width: 180px;
-  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
-  z-index: 1;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.dropdown-content a {
-  display: block;
-  color: #2c3e50;
-  padding: 10px 15px;
-  text-decoration: none;
-  font-size: 15px;
-}
-
-.dropdown-content a:hover {
-  background-color: #f1f1f1;
-  color: #007bff;
-}
-
-.dropdown:hover .dropdown-content {
-  display: block;
-}
-.navbar .dropdown > a {
-  padding: 6px 10px;
-  font-weight: 600;
-  font-size: 14px;
-  display: inline-block;
-  line-height: 1.5;
-  color: #2c3e50;
-  text-decoration: none;
-}
-.navbar .dropdown > a:hover {
-  color: #007bff;
-}
-
 
   details {
     margin-bottom: 20px;
@@ -234,52 +339,7 @@
     border-bottom: 1px solid #ccc;
     margin-bottom: 10px;
   }
-  .mobile-submenu {
-  display: none;
-  flex-direction: column;
-  padding-left: 10px;
-}
-.mobile-submenu a {
-  font-size: 14px;
-  padding: 8px 10px;
-}
-.mobile-submenu.show {
-  display: flex;
-}
-
-  .hamburger {
-    display: none;
-    flex-direction: column;
-    cursor: pointer;
-  }
-  .hamburger span {
-    height: 3px;
-    width: 25px;
-    background: #03457b;
-    margin: 4px 0;
-    border-radius: 2px;
-  }
-  .mobile-nav {
-    display: none;
-    flex-direction: column;
-    background: white;
-    padding: 10px;
-  }
-  .mobile-nav a {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-  }
-  @media (max-width: 768px) {
-    .navbar {
-      display: none;
-    }
-    .hamburger {
-      display: flex;
-    }
-    .mobile-nav.show {
-      display: flex;
-    }
-  }
+  
   @keyframes fadeInAnswer {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -288,91 +348,111 @@
 .affiliate details[open] > *:not(summary) {
   animation: fadeInAnswer 0.35s ease-in-out;
 }
-header.shrink {
-  padding: 4px 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
+.intro-text {
+  background: #f9f9f9;
+  padding: 15px 20px;
+  border-left: 6px solid transparent;
+  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1; /* Green → Blue */
+  font-size: 1.05em;
+  line-height: 1.6;
+  border-radius: 6px;
+  margin-bottom: 20px;
 }
-header.shrink .logo {
-  height: 60px !important;
-  max-height: 60px !important;
+.mshwari-btn {
+  display: inline-block;
+  background-color: #007bff; /* Blue */
+  color: white;
+  padding: 12px 20px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.mshwari-btn:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+  transform: scale(1.03);
 }
 
   </style>
 </head>
 <body>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 <header class="site-header fade-in">
-  <div class="header-content">
-    <img src="Images/logo.png" alt="Logo" class="logo animated-logo" />
+    <div id="overlay" class="mobile-overlay"></div>
+    <div class="header-content">
+      <img src="Images/logo.png" alt="JazaLoan Logo" class="logo">
+     <div id="hamburger" class="hamburger">
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
 
-    <div class="hamburger" id="hamburger">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-
-    <nav class="navbar" id="mainNav">
-      <a href="index.html">Home</a>
-      <div class="dropdown">
-        <a href="#" class="dropdown-toggle" data-target="dropdown1">Loan Calculators ▾</a>
-        <div class="dropdown-content" id="dropdown1">
-          <a href="mshwari-calculator.html">Mshawari Loan Calculator</a>
-          <a href="index.html">Sacco Loans Calculator</a>
-        </div>
-      </div>
-      <a href="compare-loans.html">Compare Loans</a>
-      <a href="best-loans-by-salary.html">Loans by Salary</a>
-      <a href="blog.html">Blog</a>
-    </nav>
-  </div>
-
-  <nav class="mobile-nav" id="mobileNav">
+ <nav class="navbar desktop-only" id="mainNav">
     <a href="index.html">Home</a>
-    <a href="#" id="mobileDropdownToggle">Loan Calculators ▾</a>
-    <div class="mobile-submenu" id="mobileSubmenu">
-      <a href="kcb-mpesa-calculator.html">Mshwari Loan Calculator</a>
-      <a href="index.html">Sacco Loans Calculator</a>
-    </div>
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    <a href="index.html">Sacco Loan Calculator</a>
+    <a href="index.html#paye-section">PAYE Calculator</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
+</nav>
+
+<nav class="mobile-nav" id="mobileNav">
+   <a href="index.html">Home</a>
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    <a href="index.html">Sacco Loan Calculator</a>
+    <a href="index.html#paye-section">PAYE Calculator</a>
     <a href="compare-loans.html">Compare Loans</a>
-    <a href="best-loans-by-salary.html">Loans By salary</a>
-    <a href="blog.html">Blog</a>
-  </nav>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
+    <a href="blog.html">Blogs</a>
+</nav>
+<div id="overlay" class="mobile-overlay"></div>
 </header>
 
 
 <div class="container">
-  <h2>KCB M‑PESA Loan Calculator</h2>
+ <main class="container" style="padding: 40px 20px;">
+  <h1>KCB M-PESA Loan Calculator (2025)</h1>
+  <p class="intro-text">
+    Easily calculate your KCB M-PESA loan repayments for 2025. This free tool shows your total repayment, interest, and fees 
+    instantly based on the latest KCB M-PESA terms in Kenya. Mobile-friendly, accurate, and designed to help you plan better.
+  </p>
+</main>
 
-  <label for="loanAmount">Loan Amount (Ksh):</label>
+ <label for="loanAmount">Loan Amount (Ksh):</label>
 <input type="text" id="loanAmount" placeholder="e.g. 5,000" oninput="formatNumberInput(this)" />
 
-  <label for="appDate">Application Date:</label>
-  <input type="date" id="appDate" />
+<label for="appDate">Application Date:</label>
+<input type="date" id="appDate" />
 
-  <label for="feeRate">Fee Rate (%):</label>
-  <select id="feeRate">
-    <option value="0.0735">7.35% (standard)</option>
-    <option value="0.0906">9.06% (includes excise duty)</option>
-  </select>
+<label for="feeRate">Facility Fee Rate (%):</label>
+<input type="text" id="feeRate" value="8.88" readonly autocomplete="off" />
 
-  <button onclick="calcKCB()">Calculate</button>
 
-  <div id="kcbResult" class="results" style="display:none;"></div>
-  <div id="resetSection" style="display:none; margin-top: 15px;">
-  <button onclick="resetKCB()" style="background:#246ede;">Reset & Clear</button>
+<p>Note: The default facility fee of 8.88% is the current official KCB M-PESA rate for one-month loans. Excise duty (1.5%) will also be deducted from the disbursed amount.</p>
+
+<!-- Only this Calculate button -->
+<button id="calculateBtn" onclick="calcKCB()">Calculate</button>
+
+<!-- Hidden result box -->
+<div id="kcbResult" style="display:none; margin-top:20px;"></div>
+
+<!-- Hidden Download + Reset section -->
+<div id="downloadSection" style="display:none; margin-top:10px;">
+  <button onclick="downloadKCB()">Download</button>
+  <button onclick="resetKCB()">Reset</button>
+</div>
+<!-- Mshwari Calculator Link (Initially Hidden) -->
+<div id="mshwariLink" style="display:none; margin-top:15px; text-align:center; font-size: 15px; color: #2c3e50;">
+  <p>
+    Interested in checking your <strong>Mshwari loan</strong>? 
+    <a href="mshwari-calculator.html" style="color:#007bff; text-decoration:underline;">Try the Mshwari Calculator here</a>.
+  </p>
 </div>
 
+
 </div>
-<script>
-  // Automatically preselect 9.06% rate if not changed by user
-  window.addEventListener('DOMContentLoaded', () => {
-    const rateDropdown = document.getElementById("feeRate");
-    if (rateDropdown) {
-      rateDropdown.value = "0.0906";
-    }
-  });
-  
-</script>
 
 <section class="affiliate">
   <h2>Everything You Need to Know About KCB M‑PESA Loans in Kenya</h2>
@@ -469,6 +549,7 @@ header.shrink .logo {
   </footer>
 <script>
 
+// Formats input with Kenya-style commas
 function formatNumberInput(input) {
   let value = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
   if (value) {
@@ -478,20 +559,32 @@ function formatNumberInput(input) {
   }
 }
 
+// Formats input with Kenya-style commas
+function formatNumberInput(input) {
+  let value = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
+  if (value) {
+    input.value = parseInt(value, 10).toLocaleString('en-KE');
+  } else {
+    input.value = '';
+  }
+}
+
+// Main KCB M-PESA loan calculator
 function calcKCB() {
   const rawValue = document.getElementById("loanAmount").value.replace(/,/g, "");
   const amt = parseFloat(rawValue);
   const dt = document.getElementById("appDate").value;
-  const rate = parseFloat(document.getElementById("feeRate").value);
+  const rate = parseFloat(document.getElementById("feeRate").value) / 100; // 8.88% official fee
 
   if (!(amt > 0) || !dt) {
     alert("Please enter a valid loan amount and application date.");
     return;
   }
 
-  const fee = amt * rate;
-  const total = amt + fee;
-  const disbursed = amt - fee;
+  const facilityFee = amt * rate;           // Facility Fee 8.88%
+  const exciseDuty = amt * 0.015;           // Excise Duty 1.5%
+  const disbursed = amt - exciseDuty;       // Amount disbursed
+  const totalRepayment = amt + facilityFee; // Total repayment
 
   const appDate = new Date(dt);
   const dueDate = new Date(appDate);
@@ -500,9 +593,10 @@ function calcKCB() {
 
   const breakdown = `
     <h3>Loan Breakdown</h3>
-    <p><strong>Facility Fee (${(rate * 100).toFixed(2)}%):</strong> Ksh ${fee.toLocaleString()}</p>
+    <p><strong>Facility Fee (8.88%):</strong> Ksh ${facilityFee.toLocaleString()}</p>
+    <p><strong>Excise Duty (1.5%):</strong> Ksh ${exciseDuty.toLocaleString()}</p>
     <p><strong>Amount Disbursed to You:</strong> Ksh ${disbursed.toLocaleString()}</p>
-    <p><strong>Total Repayment Amount:</strong> Ksh ${total.toLocaleString()}</p>
+    <p><strong>Total Repayment Amount:</strong> Ksh ${totalRepayment.toLocaleString()}</p>
     <p><strong>KCB M‑PESA Due Date:</strong> ${dueStr}</p>
   `;
 
@@ -510,40 +604,133 @@ function calcKCB() {
   resultBox.innerHTML = breakdown;
   resultBox.style.display = 'block';
 
-  document.getElementById("resetSection").style.display = 'block';
+  // Show Download and Reset buttons
+  document.getElementById("downloadSection").style.display = 'block';
+  
 
- // 👇 Soft scroll to just above the result box
-const yOffset = -100;
-const y = resultBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
-window.scrollTo({ top: y, behavior: 'smooth' });
+  // Smooth scroll to result
+  const yOffset = -100;
+  const y = resultBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
+  window.scrollTo({ top: y, behavior: 'smooth' });
+
+  // Show Mshwari link
+document.getElementById("mshwariLink").style.display = 'block';
 
 }
+
 function resetKCB() {
+  // Clear inputs
   document.getElementById("loanAmount").value = '';
   document.getElementById("appDate").value = '';
-  document.getElementById("feeRate").value = "0.0906"; // default again
-  document.getElementById("kcbResult").style.display = 'none';
-  document.getElementById("resetSection").style.display = 'none';
 
-  // Scroll to top of calculator
-  const container = document.querySelector(".container");
-  const y = container.getBoundingClientRect().top + window.pageYOffset - 50;
-  window.scrollTo({ top: y, behavior: 'smooth' });
+  // Hide results and download section
+  document.getElementById("kcbResult").style.display = 'none';
+  document.getElementById("downloadSection").style.display = 'none';
+
+  // Smooth scroll to the first input (Loan Amount)
+  const firstInput = document.getElementById("loanAmount");
+  firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Focus the input for convenience
+  firstInput.focus();
+
+  // Hide Mshwari link
+document.getElementById("mshwariLink").style.display = 'none';
+
+}
+function downloadKCB() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const amt = parseFloat(document.getElementById("loanAmount").value.replace(/,/g, ""));
+  const dt = document.getElementById("appDate").value;
+  const rate = parseFloat(document.getElementById("feeRate").value) / 100; 
+
+  const facilityFee = amt * rate;
+  const exciseDuty = amt * 0.015;
+  const disbursed = amt - exciseDuty;
+  const totalRepayment = amt + facilityFee;
+
+  const dueDate = new Date(dt);
+  dueDate.setDate(dueDate.getDate() + 30);
+  const dueStr = dueDate.toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Title
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text("KCB M-PESA Loan Report", 300, 50, { align: 'center' });
+
+  // Summary Table
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text("Loan Summary", 40, 90);
+
+  doc.autoTable({
+    startY: 100,
+    theme: 'grid',
+    head: [['Description', 'Amount (Ksh)']],
+    body: [
+      ['Loan Amount', amt.toLocaleString()],
+      ['Facility Fee (8.88%)', facilityFee.toLocaleString()],
+      ['Excise Duty (1.5%)', exciseDuty.toLocaleString()],
+      ['Amount Disbursed', disbursed.toLocaleString()],
+      ['Total Repayment', totalRepayment.toLocaleString()],
+      ['Due Date', dueStr]
+    ],
+    styles: { cellPadding: 4, fontSize: 11 },
+    headStyles: { fillColor: [7, 94, 43], textColor: 255, halign: 'center' },
+    bodyStyles: { halign: 'right' },
+    didParseCell: function (data) {
+      if (data.row.index === 4) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [220, 235, 245];
+      }
+    }
+  });
+
+  // Add a professional summary below the table
+  const finalY = doc.lastAutoTable.finalY + 20; // position below table
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Loan Summary Highlights:", 40, finalY);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text(`• Total Amount to Repay: Ksh ${totalRepayment.toLocaleString()}`, 50, finalY + 20);
+  doc.text(`• Amount You Receive: Ksh ${disbursed.toLocaleString()}`, 50, finalY + 35);
+  doc.text(`• Repayment Due Date: ${dueStr}`, 50, finalY + 50);
+
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Created by JazaLoan`, 40, 800);
+    doc.text(`Page ${i} of ${pageCount}`, 500, 800);
+  }
+
+  doc.save(`KCB-MPESA-Loan-${amt.toLocaleString()}.pdf`);
 }
 
 </script>
 
-
 <script>
-  document.getElementById("hamburger").addEventListener("click", function () {
-    document.getElementById("mobileNav").classList.toggle("show");
-  });
+  // Mobile nav toggle
+ const hamburger = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobileNav");
+const overlay = document.getElementById("overlay");
 
-  document.getElementById("mobileDropdownToggle").addEventListener("click", function (e) {
-    e.preventDefault();
-    document.getElementById("mobileSubmenu").classList.toggle("show");
-  });
+const toggleMobileMenu = () => {
+  hamburger.classList.toggle("active");
+  mobileNav.classList.toggle("show");
+  overlay.classList.toggle("show");
+};
+
+hamburger.addEventListener("click", toggleMobileMenu);
+overlay.addEventListener("click", toggleMobileMenu);
 </script>
+
 <script>
   document.querySelectorAll("section.affiliate details summary").forEach(summary => {
     summary.addEventListener("click", function (e) {
@@ -561,15 +748,32 @@ function resetKCB() {
   });
 </script>
 <script>
+   // Shrink header on scroll
   window.addEventListener("scroll", () => {
-    const header = document.querySelector("header");
+    const header = document.querySelector(".site-header");
     if (window.scrollY > 50) {
       header.classList.add("shrink");
     } else {
       header.classList.remove("shrink");
     }
   });
+  
 </script>
+<button id="backToTop" title="Back to Top">⬆</button>
+  <script>
+    const backToTopBtn = document.getElementById("backToTop");
+    window.addEventListener("scroll", () => {
+      if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
+        backToTopBtn.style.display = "block";
+      } else {
+        backToTopBtn.style.display = "none";
+      }
+    });
 
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  </script>
+  
 </body>
 </html>
