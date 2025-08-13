@@ -26,69 +26,191 @@
       margin: 0;
       padding: 0;
     }
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background-color: #ffffff;
-      padding: 5px 10px;
-      border-bottom: 1px solid #ccc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-wrap: wrap;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-    }
-    .header-content {
+/* ————— Sticky Shrinking Header ————— */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  background: white;
+}
+.site-header.shrink {
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.site-header.shrink .logo {
+  height: 60px !important;
+  max-height: 60px !important;
+}
+.site-header.shrink .navbar a {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* ————— Header / Logo / Nav ————— */
+.header-content {
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
   max-width: 1000px;
+  margin: auto;
   padding: 5px 15px;
 }
-
 .logo {
   height: 90px;
-  max-height: 90px;
-  width: auto;
-  object-fit: contain;
+  transition: height 0.3s ease;
+}
+.navbar {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.navbar a {
+  font-size: 15px;
+  text-decoration: none;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 8px 12px;
+  position: relative;
+}
+.navbar a:hover { color: #007bff; }
+.navbar a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0%;
+  height: 2px;
+  background-color: #007bff;
+  transition: width 0.3s ease;
+}
+.navbar a:hover::after { width: 100%; }
+
+/* ————— Mobile Nav + Hamburger ————— */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
+}
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100%;
+  width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 20px 20px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 999;
+}
+.mobile-nav.show {
+  right: 0;
+}
+.mobile-nav a {
+  padding: 12px 0;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+}
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
 }
 
 
-    .navbar {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .navbar a {
-      position: relative;
-      color: #2c3e50;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 15px;
-      transition: color 0.3s ease;
-      padding: 6px 10px;
-    }
-    .navbar a:hover {
-      color: #007bff;
-    }
-    .navbar a::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      width: 0%;
-      height: 2px;
-      background-color: #007bff;
-      transition: all 0.3s ease;
-      transform: translateX(-50%);
-    }
-    .navbar a:hover::after {
-      width: 100%;
-    }
+.site-header {
+  height: 100px; /* or however tall it is initially */
+  transition: all 0.3s ease;
+}
+
+.site-header.shrink {
+  height: 70px;
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+/* ————— Mobile-only Share (Bottom) ————— */
+.mobile-only-share {
+  display: none;
+}
+.mobile-only-share a {
+  width: 32px;
+  height: 32px;
+  margin: 0 6px;
+  border-radius: 50%;
+  background-size: 60% 60%;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.mobile-share-title {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: none;
+}
+@media (max-width: 768px) {
+  .floating-share-icons { display: none; }
+  .mobile-only-share {
+    display: flex;
+    justify-content: center;
+    margin: 20px auto;
+  }
+  .mobile-share-title {
+    display: block;
+  }
+  .mobile-only-share a:hover {
+    animation: bounce 0.4s ease;
+  }
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.2); }
+    50% { transform: scale(0.9); }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
 
     .container {
       max-width: 600px;
@@ -176,52 +298,6 @@
   transition: all 0.3s ease;
 }
 
-  .dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-content {
-  display: none;
-  position: absolute;
-  background-color: #ffffff;
-  min-width: 180px;
-  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
-  z-index: 1;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.dropdown-content a {
-  display: block;
-  color: #2c3e50;
-  padding: 10px 15px;
-  text-decoration: none;
-  font-size: 15px;
-}
-
-.dropdown-content a:hover {
-  background-color: #f1f1f1;
-  color: #007bff;
-}
-
-.dropdown:hover .dropdown-content {
-  display: block;
-}
-.navbar .dropdown > a {
-  padding: 6px 10px;
-  font-weight: 600;
-  font-size: 14px;
-  display: inline-block;
-  line-height: 1.5;
-  color: #2c3e50;
-  text-decoration: none;
-}
-.navbar .dropdown > a:hover {
-  color: #007bff;
-}
-
-
   details {
     margin-bottom: 20px;
     border: 1px solid #ddd;
@@ -243,46 +319,8 @@
     border-bottom: 1px solid #ccc;
     margin-bottom: 10px;
   }
- .hamburger {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 5px;
-  cursor: pointer;
-}
 
-  .hamburger span {
-    height: 3px;
-    width: 25px;
-    background: #03457b;
-    margin: 4px 0;
-    border-radius: 2px;
-  }
-  .navbar.desktop-only {
-  display: flex;
-}
-
-@media (max-width: 768px) {
-  .navbar.desktop-only {
-    display: none;
-  }
-}
-
-.mobile-nav.show {
-  display: flex;
-}
-
-  @media (max-width: 768px) {
-    .navbar {
-      display: none;
-    }
-    .hamburger {
-      display: flex;
-    }
-    .mobile-nav.show {
-      display: flex;
-    }
-  }
+  
   @keyframes fadeInAnswer {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -319,51 +357,6 @@
     transform: translateY(0);
   }
 }
-  .dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-content {
-  display: none;
-  position: absolute;
-  background-color: #ffffff;
-  min-width: 180px;
-  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
-  z-index: 1;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.dropdown-content a {
-  display: block;
-  color: #2c3e50;
-  padding: 10px 15px;
-  text-decoration: none;
-  font-size: 15px;
-}
-
-.dropdown-content a:hover {
-  background-color: #f1f1f1;
-  color: #007bff;
-}
-
-.dropdown:hover .dropdown-content {
-  display: block;
-}
-.navbar .dropdown > a {
-  padding: 6px 10px;
-  font-weight: 600;
-  font-size: 14px;
-  display: inline-block;
-  line-height: 1.5;
-  color: #2c3e50;
-  text-decoration: none;
-}
-.navbar .dropdown > a:hover {
-  color: #007bff;
-}
-
 
   details {
     margin-bottom: 20px;
@@ -386,74 +379,7 @@
     border-bottom: 1px solid #ccc;
     margin-bottom: 10px;
   }
-  .mobile-submenu {
-  display: none;
-  flex-direction: column;
-  padding-left: 10px;
-}
-.mobile-submenu a {
-  font-size: 14px;
-  padding: 8px 10px;
-}
-.mobile-submenu.show {
-  display: flex;
-}
- .hamburger {
-  display: none;
-  flex-direction: column;
-  cursor: pointer;
-}
-.hamburger span {
-  height: 3px;
-  width: 25px;
-  background: #03457b;
-  margin: 4px 0;
-  border-radius: 2px;
-}
-.mobile-nav {
-  display: none;
-  flex-direction: column;
-  background: white;
-  padding: 10px;
-  position: fixed;
-  top: 70px;
-  left: 0;
-  right: 0;
-  z-index: 1000; /* ← this line is missing */
-}
-
-.mobile-nav a {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
-.mobile-submenu {
-  display: none;
-  flex-direction: column;
-  padding-left: 10px;
-}
-.mobile-submenu a {
-  font-size: 14px;
-  padding: 8px 10px;
-}
-.mobile-submenu.show {
-  display: flex;
-}
-@media (max-width: 768px) {
-  .navbar {
-    display: none;
-  }
-  .hamburger {
-    display: flex;
-  }
-  .mobile-nav.show {
-    display: flex;
-  }
-}
-@media (max-width: 600px) {
-  .logo {
-    height: 60px;
-  }
-}
+  
 .cta-button {
   background-color: #0b5e2b;
   color: white;
@@ -478,68 +404,102 @@ body {
 body.fade-in {
   opacity: 1;
 }
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.results-grid {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
 }
-@media (min-width: 769px) {
-  .site-header {
-    transition: all 0.3s ease;
-    padding: 10px 20px;
-  }
 
-  .site-header.shrink {
-    padding: 2px 20px;
-  }
-
-  .site-header .logo {
-    height: 90px;
-    transition: height 0.3s ease;
-  }
-
-  .site-header.shrink .logo {
-    height: 60px;
-  }
+.result-card {
+  flex: 1;
+  background: #f9f9f9;
+  padding: 20px;
+  text-align: center;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.mobile-overlay {
+
+.result-card h3 {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.result-card p {
+  font-size: 1.6em;
+  font-weight: bold;
+  color: #27ae60;
+}
+
+.details-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.details-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.details-table td:first-child {
+  font-weight: 600;
+}
+
+.explanation {
+  margin-top: 15px;
+  padding: 15px;
+  background: #eef5ff;
+  border-left: 4px solid #2980b9;
+  font-size: 0.95em;
+  line-height: 1.4em;
+}
+
+.results-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+#backToTop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 999;
+  bottom: 40px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
   display: none;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, background-color 0.3s ease;
 }
-.mobile-overlay.show {
-  display: block;
+#backToTop:hover {
+  background-color: #148f77;
+  transform: scale(1.15);
 }
-.hamburger.active span:nth-child(1) {
-  transform: rotate(45deg) translate(5px, 5px);
-}
-.hamburger.active span:nth-child(2) {
-  opacity: 0;
-}
-.hamburger.active span:nth-child(3) {
-  transform: rotate(-45deg) translate(5px, -5px);
-}
-
   </style>
   <link rel="canonical" href="https://jazaloan.co.ke/mshwari-loan-calculator" />
 </head>
 <body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
-<header class="site-header fade-in">
-  <div class="header-content">
-    <a href="index.html" aria-label="JazaLoan homepage">
-      <img src="Images/logo.png" alt="JazaLoan – Kenya's Mobile Loan Guide" class="logo animated-logo" />
-    </a>
-
-    <div class="hamburger" id="hamburger" aria-label="Toggle mobile menu">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
+  <header class="site-header fade-in">
+    <div id="overlay" class="mobile-overlay"></div>
+    <div class="header-content">
+      <img src="Images/logo.png" alt="JazaLoan Logo" class="logo">
+     <div id="hamburger" class="hamburger">
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
 
     <!-- Desktop Nav -->
     <nav class="navbar desktop-only" id="mainNav">
@@ -559,7 +519,6 @@ body.fade-in {
     <a href="best-loans-by-salary.html">Loans by Salary</a>
     <a href="compare-loans.html">Compare Loans</a>
   </nav>
-
   <div id="overlay" class="mobile-overlay"></div>
 </header>
 
@@ -594,24 +553,38 @@ body.fade-in {
 
       <button onclick="calculateMshwariLoan()" class="btn">Calculate</button>
 
-      <div id="mshwariResults" style="display:none; margin-top: 20px; scroll-margin-top: 100px;">
-  <h3 style="color: #0b5e2b; font-size: 22px; margin-bottom: 15px;">Loan Repayment Breakdown</h3>
-  <p>This breakdown includes your disbursed loan amount, facility fee, excise duty, and exact due date—calculated as per M‑Shwari’s current terms.</p>
+<div id="mshwariResults" style="display:none; margin-top: 20px; scroll-margin-top: 100px;">
+  <h3 style="color: #0b5e2b; font-size: 22px; margin-bottom: 15px;">
+    Loan Repayment Breakdown
+  </h3>
+  <p>
+    This breakdown includes your disbursed loan amount, facility fee, excise duty, and exact due date—
+    calculated in line with <strong>M-Shwari’s current terms</strong>.
+  </p>
+
   <p>M-PESA Deposited Amount: <strong>Ksh <span id="mpesaDeposited"></span></strong></p>
   <p>Facility Fee (7.5%): <strong>Ksh <span id="facilityFee"></span></strong></p>
   <p>Excise Duty on Fee (15%): <strong>Ksh <span id="exciseDuty"></span></strong></p>
   <p>Total Repayment Amount: <strong>Ksh <span id="repaymentTotal"></span></strong></p>
   <p>M-Shwari Due Date (30 Days): <strong><span id="dueDate"></span></strong></p>
-  <div style="text-align: center; margin-top: 20px;">
-  <button onclick="resetMshwariCalculator()" id="resetBtn" style="display: none; background-color: #038531; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
-  Reset & Start Again
-</button>
-<div style="text-align: center; margin-top: 10px;">
-  <button onclick="downloadMshwariResults()" id="downloadBtn" style="display: none; background-color: #03457b; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
-    ⬇️ Download Breakdown
-  </button>
-</div>
 
+  <div style="text-align: center; margin-top: 10px;">
+    <button 
+      onclick="downloadMshwariResults()" 
+      id="downloadBtn" 
+      style="display: none; background-color: #03457b; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
+      ⬇️ Download Breakdown (PDF)
+    </button>
+
+  <div style="text-align: center; margin-top: 20px;">
+    <button 
+      onclick="resetMshwariCalculator()" 
+      id="resetBtn" 
+      style="display: none; background-color: #038531; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
+      🔄 Reset & Start Again
+    </button>
+  </div>
+  </div>
 </div>
 
 </div>
@@ -698,6 +671,21 @@ body.fade-in {
     </div>
   </div>
 </section>
+<button id="backToTop" title="Back to Top">⬆</button>
+  <script>
+    const backToTopBtn = document.getElementById("backToTop");
+    window.addEventListener("scroll", () => {
+      if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
+        backToTopBtn.style.display = "block";
+      } else {
+        backToTopBtn.style.display = "none";
+      }
+    });
+
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  </script>
   <footer>
     <div class="footer-content">
       <span><strong>JazaLoan</strong></span>
@@ -709,7 +697,9 @@ body.fade-in {
       <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
     </div>
   </footer>
-  <script>
+
+<script>
+
 function formatAmountInput(el) {
   // Remove all non-digit characters
   let raw = el.value.replace(/[^\d]/g, '');
@@ -732,56 +722,60 @@ function calculateMshwariLoan() {
     return;
   }
 
-  const facilityFee = amount * 0.075;
-  const exciseDuty = facilityFee * 0.15;
-  const netDisbursed = amount - facilityFee - exciseDuty;
-  const totalRepayable = amount;
+  const FACILITY_RATE = 0.075;  // 7.5%
+  const EXCISE_ON_FEE = 0.20;   // 20% of facility fee
+
+  const facilityFee = amount * FACILITY_RATE;
+  const exciseDuty = facilityFee * EXCISE_ON_FEE;
+  const netDisbursed = amount - exciseDuty; 
+  const totalRepayable = amount + facilityFee;
 
   const dueDate = new Date(dateStr);
   dueDate.setDate(dueDate.getDate() + 30);
 
-  document.getElementById("facilityFee").innerText = facilityFee.toFixed(2);
-  document.getElementById("exciseDuty").innerText = exciseDuty.toFixed(2);
-  document.getElementById("mpesaDeposited").innerText = netDisbursed.toFixed(2);
-  document.getElementById("repaymentTotal").innerText = totalRepayable.toFixed(2);
+  const fmt = (n) => Number(n).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  document.getElementById("facilityFee").innerText = fmt(facilityFee);
+  document.getElementById("exciseDuty").innerText = fmt(exciseDuty);
+  document.getElementById("mpesaDeposited").innerText = fmt(netDisbursed);
+  document.getElementById("repaymentTotal").innerText = fmt(totalRepayable);
   document.getElementById("dueDate").innerText = dueDate.toDateString();
-  document.getElementById("dueDate").innerText = dueDate.toDateString();
 
-const resultsBlock = document.getElementById("mshwariResults");
-resultsBlock.style.display = "block";
-document.getElementById("resetBtn").style.display = "inline-block";
-resultsBlock.classList.add("results-animate");
-document.getElementById("downloadBtn").style.display = "inline-block";
+  const resultsBlock = document.getElementById("mshwariResults");
+  resultsBlock.style.display = "block";
+  document.getElementById("resetBtn").style.display = "inline-block";
+  resultsBlock.classList.add("results-animate");
+  document.getElementById("downloadBtn").style.display = "inline-block";
 
+  setTimeout(() => {
+    resultsBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 200);
 
-// Scroll into view
-setTimeout(() => {
-  resultsBlock.scrollIntoView({ behavior: "smooth", block: "center" });
-}, 200);
+  const explanation = `The facility fee (7.5% of the loan) is Ksh ${fmt(facilityFee)}. ` +
+    `Excise duty is 20% of the facility fee (Ksh ${fmt(exciseDuty)}) and is deducted at disbursement. ` +
+    `You will receive Ksh ${fmt(netDisbursed)} in your M-PESA account. ` +
+    `You must repay the principal plus the facility fee, a total of Ksh ${fmt(totalRepayable)}, within 30 days.`;
+
+  const explEl = document.getElementById("mshwariExplanation");
+  if (explEl) explEl.innerText = explanation;
 }
-document.addEventListener("DOMContentLoaded", () => {
-  const hamburger = document.getElementById("hamburger");
-  const mobileNav = document.getElementById("mobileNav");
-  const overlay = document.getElementById("overlay");
 
-  const toggleMobileMenu = () => {
-    hamburger.classList.toggle("active");
-    mobileNav.classList.toggle("show");
-    overlay.classList.toggle("show");
-  };
 
-  hamburger.addEventListener("click", toggleMobileMenu);
-  overlay.addEventListener("click", toggleMobileMenu);
+  // Mobile nav toggle
+ const hamburger = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobileNav");
+const overlay = document.getElementById("overlay");
 
-  // Close menu when any nav link is clicked
-  document.querySelectorAll("#mobileNav a").forEach(link => {
-    link.addEventListener("click", () => {
-      hamburger.classList.remove("active");
-      mobileNav.classList.remove("show");
-      overlay.classList.remove("show");
-    });
-  });
-});
+const toggleMobileMenu = () => {
+  hamburger.classList.toggle("active");
+  mobileNav.classList.toggle("show");
+  overlay.classList.toggle("show");
+};
+
+hamburger.addEventListener("click", toggleMobileMenu);
+overlay.addEventListener("click", toggleMobileMenu);
+
+
 function resetMshwariCalculator() {
   document.getElementById("mshwariAmount").value = "";
   document.getElementById("loanDate").value = "";
@@ -792,83 +786,99 @@ function resetMshwariCalculator() {
   document.getElementById("mshwari").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-async function downloadMshwariResults() {
-  if (typeof calculateMshwariLoan === "function") {
-  await calculateMshwariLoan();
-                     // <-- ensure values are fresh
-    await new Promise(resolve => setTimeout(resolve, 50)); // <-- wait for DOM update
+function downloadMshwariResults() {
+  if (typeof window.jspdf === "undefined") {
+    alert("PDF generation library not loaded. Please check jsPDF script.");
+    return;
   }
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const amount = document.getElementById("mshwariAmount").value;
-  const date = document.getElementById("loanDate").value;
-  const fee = document.getElementById("facilityFee").innerText;
-  const duty = document.getElementById("exciseDuty").innerText;
-  const deposited = document.getElementById("mpesaDeposited").innerText;
-  const total = document.getElementById("repaymentTotal").innerText;
-  const due = document.getElementById("dueDate").innerText;
+  const safeNum = (value) => {
+    const cleaned = String(value || "").replace(/,/g, "").trim();
+    return isNaN(cleaned) || cleaned === "" ? 0 : Number(cleaned);
+  };
 
-  function formatCurrency(numStr) {
-    let num = parseFloat(numStr.toString().replace(/,/g, ""));
-    return "Ksh " + num.toLocaleString("en-KE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
-
-  // Title
-  doc.setFontSize(16);
+  // --- Header ---
   doc.setFont("helvetica", "bold");
-  doc.text("M‑Shwari Loan Repayment Breakdown", 20, 20);
+  doc.setFontSize(18);
+  doc.text("M-Shwari Loan Repayment Report", 14, 20);
 
-  // Sub-details
-  doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text(`Loan Applied: ${formatCurrency(amount)}`, 20, 30);
-  doc.text(`Application Date: ${date}`, 20, 36);
+  doc.setFontSize(11);
+  doc.setTextColor(100);
+  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
-  // Table
+  // --- Get Data Safely ---
+  const amount = safeNum(document.getElementById("mshwariAmount").value);
+  const date = document.getElementById("loanDate").value || "-";
+  const fee = safeNum(document.getElementById("facilityFee").innerText);
+  const duty = safeNum(document.getElementById("exciseDuty").innerText);
+  const deposited = safeNum(document.getElementById("mpesaDeposited").innerText);
+  const total = safeNum(document.getElementById("repaymentTotal").innerText);
+  const due = document.getElementById("dueDate").innerText || "-";
+
+  // --- Table ---
+  const tableData = [
+    ["Loan Amount", `Ksh ${amount.toLocaleString()}`],
+    ["Loan Start Date", date],
+    ["M-PESA Deposited", `Ksh ${deposited.toLocaleString()}`],
+    ["Facility Fee (7.5%)", `Ksh ${fee.toLocaleString()}`],
+    ["Excise Duty on Fee (15%)", `Ksh ${duty.toLocaleString()}`],
+    ["Total Repayment Amount", `Ksh ${total.toLocaleString()}`],
+    ["Due Date (30 Days)", due]
+  ];
+
   doc.autoTable({
-    startY: 45,
-    head: [["Item", "Amount (Ksh)"]],
-    body: [
-      ["Loan Amount Requested", formatCurrency(amount)],
-      ["Facility Fee (7.5%)", formatCurrency(fee)],
-      ["Excise Duty on Fee (15%)", formatCurrency(duty)],
-      ["Net Disbursed via M‑PESA", formatCurrency(deposited)],
-      ["Total Repayable (After 30 Days)", formatCurrency(total)],
-      ["Due Date", due]
-    ],
-    theme: 'striped',
-    styles: {
-      font: 'helvetica',
-      fontSize: 11,
-      cellPadding: 6,
-      textColor: '#333',
-      halign: 'left'
-    },
-    headStyles: {
-      fillColor: [3, 69, 123],
-      textColor: 255,
-      fontSize: 12,
-      fontStyle: 'bold',
-      halign: 'center'
-    },
-    columnStyles: {
-      0: { cellWidth: 90 },
-      1: { cellWidth: 90 }
-    }
+    startY: 38,
+    head: [["Description", "Amount"]],
+    body: tableData,
+    styles: { fontSize: 11, cellPadding: 4 },
+    headStyles: { fillColor: [3, 69, 123], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [240, 240, 240] }
   });
 
-  // Footer
-  const pageHeight = doc.internal.pageSize.height;
-  doc.setFontSize(10);
-  doc.text("Generated by JazaLoan.co.ke – Kenya’s Smart Loan Tools", 20, pageHeight - 10);
+ // --- Summary Section ---
+const summaryY = doc.lastAutoTable.finalY + 12;
+doc.setFont("helvetica", "bold");
+doc.setFontSize(13);
+doc.setTextColor(40);
+doc.text("Loan Summary", 14, summaryY);
 
-  doc.save("mshwari-loan-breakdown.pdf");
+doc.setFont("helvetica", "normal");
+doc.setFontSize(11);
+doc.setTextColor(60);
+
+const summaryPoints = [
+  `Loan Amount: Ksh ${amount.toLocaleString()}`,
+  `Loan Start Date: ${date}`,
+  `Facility Fee: 7.5% of loan amount (Ksh ${fee.toLocaleString()})`,
+  `Excise Duty: 15% of facility fee (Ksh ${duty.toLocaleString()})`,
+  `Total Repayment: Ksh ${total.toLocaleString()}`,
+  `Due Date: ${due}`,
+  `Note: Ensure timely repayment to avoid penalties or negative credit reporting.`
+];
+
+// Bulleted style
+let bulletY = summaryY + 8;
+summaryPoints.forEach(point => {
+  doc.circle(12, bulletY - 2.5, 1, "F"); // small bullet
+  doc.text(point, 16, bulletY);
+  bulletY += 7;
+});
+
+
+  // --- Footer ---
+  const pageHeight = doc.internal.pageSize.height;
+  doc.setFontSize(9);
+  doc.setTextColor(150);
+  doc.text("Generated by JazaLoan.co.ke – For informational purposes only", 14, pageHeight - 10);
+  doc.text(`Page 1 of 1`, doc.internal.pageSize.width - 30, pageHeight - 10);
+
+  doc.save("M-Shwari_Loan_Report.pdf");
 }
+
 </script>
 
 <script>
@@ -887,16 +897,18 @@ document.querySelectorAll("details.faq-block").forEach((detail) => {
     }
   });
 });
-</script>
-<script>
-window.addEventListener('scroll', () => {
-  const header = document.querySelector('.site-header');
-  if (window.scrollY > 50 && window.innerWidth > 768) {
-    header.classList.add('shrink');
-  } else {
-    header.classList.remove('shrink');
-  }
+document.addEventListener("DOMContentLoaded", () => {
+  // Shrink header on scroll
+  window.addEventListener("scroll", () => {
+    const header = document.querySelector(".site-header");
+    if (window.scrollY > 50) {
+      header.classList.add("shrink");
+    } else {
+      header.classList.remove("shrink");
+    }
+  });
 });
+
 </script>
 <script type="application/ld+json">
 {
