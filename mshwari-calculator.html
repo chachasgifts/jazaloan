@@ -149,17 +149,29 @@
 .mobile-overlay.show {
   display: block;
 }
+
 @media (max-width: 768px) {
+  /* Show hamburger, hide desktop navbar */
   .hamburger { display: flex; }
-  .desktop-only { display: none !important; }
-}
-/* Ensure header layout keeps logo left + hamburger right */
+  .desktop-only, 
+  .navbar { display: none !important; }
+
+  /* Keep logo left, hamburger right */
   .header-content {
     display: flex;
-    justify-content: space-between; /* Logo on left, hamburger on right */
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
+    width: 100%;
   }
-  
+
+  /* Make sure logo doesn't auto-center */
+  .logo {
+    margin-left: 0;
+    display: block;
+  }
+}
+
 .site-header {
   height: 100px; /* or however tall it is initially */
   transition: all 0.3s ease;
