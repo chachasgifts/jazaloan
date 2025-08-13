@@ -153,8 +153,13 @@
   .hamburger { display: flex; }
   .desktop-only { display: none !important; }
 }
-
-
+/* Ensure header layout keeps logo left + hamburger right */
+  .header-content {
+    display: flex;
+    justify-content: space-between; /* Logo on left, hamburger on right */
+    align-items: center;
+  }
+  
 .site-header {
   height: 100px; /* or however tall it is initially */
   transition: all 0.3s ease;
@@ -286,12 +291,6 @@
     footer a:hover {
       text-decoration: underline;
     }
-   @media (max-width: 600px) {
-  .logo {
-    margin: 0 auto;
-    display: block;
-  }
-}
 
 .affiliate details {
   scroll-margin-top: 100px;
