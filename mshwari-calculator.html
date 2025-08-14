@@ -17,6 +17,14 @@
 <meta name="twitter:description" content="Free Kenyan M‑Shwari loan calculator. Instantly view disbursed amount, facility fees, excise duty and due date." />
 
   <style>
+    /* --- Mobile-safe defaults (no layout change on desktop) --- */
+html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; } /* stop iOS auto text zoom */
+*, *::before, *::after { box-sizing: border-box; }                    /* padding won't cause overflow */
+img, svg, video { max-width: 100%; height: auto; display: block; }    /* media never wider than screen */
+
+.header-content { width: 100%; }
+.container { width: 100%; } 
+
     html {
       scroll-behavior: smooth;
     }
@@ -118,20 +126,22 @@
 .mobile-nav {
   position: fixed;
   top: 0;
-  right: -100%;
+  right: 0;
   height: 100%;
   width: 250px;
   background: #fff;
   display: flex;
   flex-direction: column;
   padding: 60px 20px 20px;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-  transition: right 0.3s ease;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
   z-index: 999;
+  transform: translateX(100%);   /* hidden off-canvas without affecting layout width */
 }
 .mobile-nav.show {
-  right: 0;
+  transform: translateX(0);      /* slide in */
 }
+
 .mobile-nav a {
   padding: 12px 0;
   color: #2c3e50;
@@ -514,7 +524,6 @@ body.fade-in {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
   <header class="site-header fade-in">
-    <div id="overlay" class="mobile-overlay"></div>
     <div class="header-content">
       <img src="Images/logo.png" alt="JazaLoan Logo" class="logo">
      <div id="hamburger" class="hamburger">
@@ -573,7 +582,8 @@ body.fade-in {
     </div>
 
       <button onclick="calculateMshwariLoan()" class="btn">Calculate</button>
-</main>
+  </div>
+
 
 <div id="mshwariResults" style="display:none; margin-top: 20px; scroll-margin-top: 100px;">
   <h3 style="color: #0b5e2b; font-size: 22px; margin-bottom: 15px;">
@@ -606,12 +616,7 @@ body.fade-in {
       🔄 Reset & Start Again
     </button>
   </div>
-  </div>
-</div>
-
-</div>
-
-    </div>
+  </main>
 
     <div style="margin: 40px auto; max-width: 728px; text-align: center; border: 1px dashed #ccc; padding: 20px;">
       <em>Ad or affiliate link here (e.g., Tala, Zenka, Branch, M-KOPA)</em>
