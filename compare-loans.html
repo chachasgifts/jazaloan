@@ -2,10 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Compare Loans in Kenya – JazaLoan</title>
-  <meta name="description" content="Compare loan options from banks, SACCOs, mobile lenders and HELB in Kenya. JazaLoan helps you choose the best loan with easy Apply buttons.">
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary SEO Tags -->
+  <title>Compare Loans in Kenya | JazaLoan – Bank, SACCO & Mobile Lender Rates</title>
+  <meta name="description" content="Easily compare loan options from banks, SACCOs, mobile lenders, and HELB in Kenya. JazaLoan lets you find the best interest rates and apply online in minutes." />
+
+  <!-- Keywords (optional for minor SEO impact, but can help contextual relevance) -->
+  <meta name="keywords" content="loans in Kenya, compare loans Kenya, SACCO loans, bank loans Kenya, mobile loans Kenya, HELB loan comparison" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="Compare Loans in Kenya | JazaLoan" />
+  <meta property="og:description" content="Find and compare bank, SACCO, mobile, and HELB loans in Kenya. Apply quickly and get the best rates today." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://www.jazaloan.com/" />
+  <meta property="og:image" content="https://www.jazaloan.com/images/loan-comparison.jpg" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Compare Loans in Kenya | JazaLoan" />
+  <meta name="twitter:description" content="Compare bank, SACCO, mobile, and HELB loans in Kenya. Apply online and get the best rates instantly." />
+  <meta name="twitter:image" content="https://www.jazaloan.com/images/loan-comparison.jpg" />
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://www.jazaloan.com/" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+
+  <!-- Preload Key Assets (optional for performance) -->
+  <link rel="preload" href="/css/styles.css" as="style" />
+  <link rel="preload" href="/images/loan-comparison.jpg" as="image" />
+
   <style>
     
     html {
@@ -16,118 +44,220 @@
       font-family: Arial, sans-serif;
       background: #f2f2f2;
     }
-    .site-header {
+    /* ————— Sticky Shrinking Header ————— */
+.site-header {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background-color: #ffffff;
-  padding: 5px 10px;
-  border-bottom: 1px solid #ccc;
+  transition: all 0.3s ease;
+  background: white;
+}
+.site-header.shrink {
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.site-header.shrink .logo {
+  height: 60px !important;
+  max-height: 60px !important;
+}
+.site-header.shrink .navbar a {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* ————— Header / Logo / Nav ————— */
+.header-content {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  max-width: 1000px;
+  margin: auto;
+  padding: 5px 15px;
+}
+.logo {
+  height: 90px;
+  transition: height 0.3s ease;
+}
+.navbar {
+  display: flex;
+  gap: 15px;
   flex-wrap: wrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  justify-content: center;
 }
-
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      max-width: 1000px;
-      padding: 5px 15px;
-    }
-    .logo {
-      height: 90px;
-      width: auto;
-      margin-right: 10px;
-    }
-    .logo-link {
-      display: inline-block;
-    }
-    .navbar {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .navbar a {
-  position: relative;
-  color: #2c3e50;
-  text-decoration: none;
-  font-weight: 600;
+.navbar a {
   font-size: 15px;
-  transition: color 0.3s ease;
-  padding: 6px 10px;
+  text-decoration: none;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 8px 12px;
+  position: relative;
 }
-
-.navbar a:hover {
-  color: #007bff;
-}
-
+.navbar a:hover { color: #007bff; }
 .navbar a::after {
   content: '';
   position: absolute;
-  left: 50%;
   bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 0%;
   height: 2px;
   background-color: #007bff;
-  transition: all 0.3s ease;
-  transform: translateX(-50%);
+  transition: width 0.3s ease;
 }
+.navbar a:hover::after { width: 100%; }
 
-.navbar a:hover::after {
-  width: 100%;
-}
-
-    .dropdown {
-  position: relative;
-}
-
-.dropdown-content {
+/* ————— Mobile Nav + Hamburger ————— */
+.hamburger {
   display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: white;
-  border: 1px solid #ddd;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  min-width: 180px;
-  z-index: 1000;
   flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
 }
-
-.dropdown-content a {
-  padding: 10px;
+.hamburger span {
   display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100%;
+  width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 20px 20px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 999;
+}
+.mobile-nav.show {
+  right: 0;
+}
+.mobile-nav a {
+  padding: 12px 0;
   color: #2c3e50;
   text-decoration: none;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 16px;
+}
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+/* Ensure header layout keeps logo left + hamburger right */
+  .header-content {
+    display: flex;
+    justify-content: space-between; /* Logo on left, hamburger on right */
+    align-items: center;
+  }
+/* ————— Mobile-only Share (Bottom) ————— */
+.mobile-only-share {
+  display: none;
+}
+.mobile-only-share a {
+  width: 32px;
+  height: 32px;
+  margin: 0 6px;
+  border-radius: 50%;
+  background-size: 60% 60%;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.mobile-share-title {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: none;
+}
+@media (max-width: 768px) {
+  .floating-share-icons { display: none; }
+  .mobile-only-share {
+    display: flex;
+    justify-content: center;
+    margin: 20px auto;
+  }
+  .mobile-share-title {
+    display: block;
+  }
+  .mobile-only-share a:hover {
+    animation: bounce 0.4s ease;
+  }
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.2); }
+    50% { transform: scale(0.9); }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
 }
 
-.dropdown-content a:hover {
-  background-color: #f4f4f4;
+#backToTop {
+  position: fixed;
+  bottom: 40px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  display: none;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+#backToTop:hover {
+  background-color: #148f77;
+  transform: scale(1.15);
+}
+.site-header {
+  height: 100px; /* or however tall it is initially */
+  transition: all 0.3s ease;
 }
 
-.dropdown-content {
-  opacity: 0;
-  transform: translateY(10px);
-  pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+.site-header.shrink {
+  height: 70px;
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-
-.dropdown-content.show {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  display: flex;
-}
-    .navbar a:hover {
-      color: #007bff;
-    }
     .compare-container {
       max-width: 1000px;
       margin: 30px auto;
@@ -199,12 +329,7 @@
     .results-table a:hover {
       color: #1b5e20;
     }
-    /* Add spacing below dropdown parent link to separate the dropdown menu */
-.navbar .dropdown > a {
-  padding: 6px 10px;
-  margin-bottom: 8px; /* 👈 Adds gap so dropdown doesn't overlap */
-  display: inline-block;
-}
+   
     .calculator-link-box {
       display: inline-block;
       margin-top: 10px;
@@ -266,59 +391,7 @@ footer a:hover {
   gap: 8px;
 }
 
-   .hamburger {
-  display: none;
-  flex-direction: column;
-  cursor: pointer;
-}
-.hamburger span {
-  height: 3px;
-  width: 25px;
-  background: #03457b;
-  margin: 4px 0;
-  border-radius: 2px;
-}
-.mobile-nav {
-  display: none;
-  flex-direction: column;
-  background: white;
-  padding: 10px;
-}
-.mobile-nav a {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
-.mobile-submenu {
-  display: none;
-  flex-direction: column;
-  padding-left: 10px;
-}
-.mobile-submenu a {
-  font-size: 14px;
-  padding: 8px 10px;
-}
-.mobile-submenu.show {
-  display: flex;
-}
-@media (max-width: 768px) {
-  .navbar {
-    display: none;
-  }
-  .hamburger {
-    display: flex;
-  }
-  .mobile-nav.show {
-    display: flex;
-  }
-}
-.mobile-submenu {
-  transition: max-height 0.3s ease;
-  overflow: hidden;
-  max-height: 0;
-}
-.mobile-submenu.show {
-  max-height: 500px;
-}
+
 .loan-info-box {
   background: #edf9f1;
   border-left: 5px solid #0b5e2b;
@@ -380,47 +453,78 @@ footer a:hover {
 }
 
   </style>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How can I compare loans in Kenya?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You can compare loans in Kenya by checking interest rates, repayment terms, fees, and eligibility criteria from banks, SACCOs, mobile lenders, and HELB. JazaLoan provides an easy side-by-side comparison and Apply buttons."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What types of loans does JazaLoan compare?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JazaLoan compares personal loans, business loans, SACCO loans, bank loans, mobile loans, and HELB loans in Kenya."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is using JazaLoan free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, JazaLoan is free to use for anyone who wants to compare loan options in Kenya. We connect you directly with lenders without extra charges."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I apply for a loan through JazaLoan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Simply click the Apply button next to your preferred loan option, fill out the lender’s application form, and follow their approval process."
+      }
+    }
+  ]
+}
+</script>
+
 </head>
 <body>
-  <header class="site-header fade-in">
-  <div class="header-content">
-    <img src="Images/logo.png" alt="Logo" class="logo animated-logo" />
+   <header class="site-header fade-in">
+    <div id="overlay" class="mobile-overlay"></div>
+    <div class="header-content">
+      <a href="index.html">
+  <img src="Images/logo.png" alt="JazaLoan Logo" class="logo">
+      </a>
+     <div id="hamburger" class="hamburger">
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
 
-    <div class="hamburger" id="hamburger">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-
-    <nav class="navbar" id="mainNav">
-  <a href="index.html">Home</a>
-
-  <div class="dropdown">
-    <a href="#" class="dropdown-toggle" data-target="dropdown1">Loan Calculators ▾</a>
-    <div class="dropdown-content" id="dropdown1">
-      <a href="kcb-mpesa-loan.html">KCB Mpesa</a>
-      <a href="mshwari-calculator.html">Mshwari Calculator</a>
-    </div>
-  </div>
-
-  <a href="vat-calculator.html">VAT Calculator</a>
-  <a href="best-loans-by-salary.html">Loans by Salary</a>
-  <a href="blog.html">Blog</a>
-</nav>
-
-
-  <nav class="mobile-nav" id="mobileNav">
-  <a href="index.html">Home</a>
-  <a href="#" id="mobileDropdownToggle">Loan Calculators ▾</a>
-  <div class="mobile-submenu" id="mobileSubmenu">
-    <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+ <nav class="navbar desktop-only" id="mainNav">
+    <a href="index.html">Home</a>
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
-  </div>
-  <a href="vat-calculator.html">VAT Calculator</a>
-  <a href="best-loans-by-salary.html">Loans by Salary</a>
-  <a href="blog.html">Blog</a>
+    <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
 </nav>
 
+<nav class="mobile-nav" id="mobileNav">
+   <a href="index.html">Home</a>
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="compare-loans.html">Compare Loans</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
+</nav>
+<div id="overlay" class="mobile-overlay"></div>
 </header>
 
   <div class="compare-container">
@@ -572,7 +676,10 @@ footer a:hover {
 </div>
 
 <a href="#" class="back-to-top" title="Back to Top" style="display: none;">↑ Top</a>
+
 <script>
+  
+  
   // Hide the button once it's clicked and user scrolls to top
   const backToTop = document.querySelector(".back-to-top");
 
@@ -593,24 +700,40 @@ footer a:hover {
 </script>
 
   <script>
-  document.getElementById("hamburger").addEventListener("click", function () {
-    document.getElementById("mobileNav").classList.toggle("show");
-  });
+  // Mobile nav toggle
+ const hamburger = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobileNav");
+const overlay = document.getElementById("overlay");
 
-  document.getElementById("mobileDropdownToggle").addEventListener("click", function (e) {
-    e.preventDefault();
-    document.getElementById("mobileSubmenu").classList.toggle("show");
-  });
+const toggleMobileMenu = () => {
+  hamburger.classList.toggle("active");
+  mobileNav.classList.toggle("show");
+  overlay.classList.toggle("show");
+};
+
+hamburger.addEventListener("click", toggleMobileMenu);
+overlay.addEventListener("click", toggleMobileMenu);
 </script>
-<script>
-  // Auto-close mobile nav when any link is clicked
-  document.querySelectorAll("#mobileNav a").forEach(link => {
-    link.addEventListener("click", () => {
-      document.getElementById("mobileNav").classList.remove("show");
-      document.getElementById("mobileSubmenu").classList.remove("show"); // optional
-    });
-  });
+
+<script> // Social share links
+  const currentURL = encodeURIComponent(window.location.href);
+  const pageTitle = encodeURIComponent(document.title);
+
+  document.querySelectorAll(".facebook-share").forEach(el =>
+    el.href = `https://www.facebook.com/sharer/sharer.php?u=${currentURL}`
+  );
+  document.querySelectorAll(".whatsapp-share").forEach(el =>
+    el.href = `https://wa.me/?text=${pageTitle}%20${currentURL}`
+  );
+  document.querySelectorAll(".twitter-share").forEach(el =>
+    el.href = `https://twitter.com/intent/tweet?url=${currentURL}&text=${pageTitle}`
+  );
+  document.querySelectorAll(".telegram-share").forEach(el =>
+    el.href = `https://t.me/share/url?url=${currentURL}&text=${pageTitle}`
+  );
+
 </script>
+
 <script>
   const toggleBtn = document.querySelector(".toggle-warning");
   const warningBox = document.querySelector(".loan-warning-box");
@@ -655,6 +778,16 @@ footer a:hover {
     <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
   </div>
 </footer>
+<script>
+  window.addEventListener("scroll", function () {
+    const header = document.querySelector(".site-header");
+    if (window.scrollY > 50) {
+      header.classList.add("shrink");
+    } else {
+      header.classList.remove("shrink");
+    }
+  });
+</script>
 
 
 </body>
