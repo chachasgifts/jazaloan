@@ -617,7 +617,6 @@ function calcKCB() {
 document.getElementById("mshwariLink").style.display = 'block';
 
 }
-
 function resetKCB() {
   // Clear inputs
   document.getElementById("loanAmount").value = '';
@@ -627,17 +626,16 @@ function resetKCB() {
   document.getElementById("kcbResult").style.display = 'none';
   document.getElementById("downloadSection").style.display = 'none';
 
-  // Smooth scroll to the first input (Loan Amount)
-  const firstInput = document.getElementById("loanAmount");
-  firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  // Focus the input for convenience
-  firstInput.focus();
-
   // Hide Mshwari link
-document.getElementById("mshwariLink").style.display = 'none';
+  document.getElementById("mshwariLink").style.display = 'none';
 
+  // Smooth scroll to the first input after DOM updates
+  setTimeout(() => {
+    const firstInput = document.getElementById("loanAmount");
+    firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 50); // Slight delay ensures layout updates before scrolling
 }
+
 function downloadKCB() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
