@@ -98,13 +98,7 @@
       background-color: #1f6392;
       transform: scale(1.03);
     }
-    .fade-in {
-      animation: fadeIn 0.8s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+
 .site-header {
   position: sticky;
   top: 0;
@@ -556,13 +550,7 @@
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animated-logo {
-  animation: fadeInLogo 1s ease-in-out;
-}
-@keyframes fadeInLogo {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
+
 .dropdown {
   position: relative;
   display: inline-block;
@@ -889,6 +877,9 @@
   ]
 }
 </script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 </head>
 <body>
  <header class="site-header fade-in">
