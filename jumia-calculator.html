@@ -3,16 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Jumia Commission Calculator Kenya – JazaLoan</title>
-  <meta name="description" content="Use our Jumia Commission Calculator to find your net vendor payout after category-based fees and shipping costs. Plan your pricing smartly as a Jumia seller in Kenya."/>
-  
+
+  <title>Jumia Commission Calculator Kenya 2025 – Seller Fee & Profit Estimator</title>
+  <meta name="description" content="Free 2025 Jumia Commission Calculator for Kenya. Instantly estimate commissions, seller fees, shipping costs, and net profit after category-based charges. Perfect for Jumia vendors planning smart pricing.">
+  <meta name="keywords" content="Jumia commission calculator, Kenya Jumia seller fees, Jumia vendor payout calculator, Jumia profit calculator Kenya, Jumia 2025 commissions, Jumia category fees, Jumia seller tool">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="JazaLoan">
+
+  <meta property="og:title" content="Jumia Commission Calculator Kenya 2025 – Seller Fee & Profit Estimator" />
+  <meta property="og:description" content="Calculate your Jumia seller commissions, category fees, and net profit instantly. Updated with 2025 Jumia Kenya rates for smart pricing decisions." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://yourdomain.com/jumia-commission-calculator" />
+  <meta property="og:image" content="https://yourdomain.com/images/jumia-commission-calculator.jpg" />
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Jumia Commission Calculator Kenya 2025 – Seller Fee & Profit Estimator">
+  <meta name="twitter:description" content="Free 2025 Jumia Commission Calculator for Kenya. Instantly estimate seller fees, shipping costs, and profit. Updated with current Jumia Kenya rates.">
+  <meta name="twitter:image" content="https://yourdomain.com/images/jumia-commission-calculator.jpg">
+</head>
+
   <style>
   html {
       scroll-behavior: smooth;
     }
-    select, button, input, .navbar a, .dropdown-content a, summary {
-  font-family: inherit;
-}
 
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -20,74 +33,219 @@
       margin: 0;
       padding: 0;
     }
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background-color: #ffffff;
-      padding: 5px 10px;
-      border-bottom: 1px solid #ccc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-wrap: wrap;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-    }
-    .header-content {
+    /* ————— Sticky Shrinking Header ————— */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  background: white;
+}
+.site-header.shrink {
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.site-header.shrink .logo {
+  height: 60px !important;
+  max-height: 60px !important;
+}
+.site-header.shrink .navbar a {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* ————— Header / Logo / Nav ————— */
+.header-content {
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
   max-width: 1000px;
+  margin: auto;
   padding: 5px 15px;
+}
+.logo {
+  height: 90px;
+  transition: height 0.3s ease;
+}
+.navbar {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.navbar a {
+  font-size: 15px;
+  text-decoration: none;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 8px 12px;
   position: relative;
 }
+.navbar a:hover { color: #007bff; }
+.navbar a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0%;
+  height: 2px;
+  background-color: #007bff;
+  transition: width 0.3s ease;
+}
+.navbar a:hover::after { width: 100%; }
 
-    .logo {
-  height: 90px;
-  width: auto;
-  object-fit: contain;
-  margin-right: 10px;
+/* ————— Mobile Nav + Hamburger ————— */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
+}
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100%;
+  width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 20px 20px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 999;
+}
+.mobile-nav.show {
+  right: 0;
+}
+.mobile-nav a {
+  padding: 12px 0;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+}
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+/* Ensure header layout keeps logo left + hamburger right */
+  .header-content {
+    display: flex;
+    justify-content: space-between; /* Logo on left, hamburger on right */
+    align-items: center;
+  }
+/* ————— Mobile-only Share (Bottom) ————— */
+.mobile-only-share {
+  display: none;
+}
+.mobile-only-share a {
+  width: 32px;
+  height: 32px;
+  margin: 0 6px;
+  border-radius: 50%;
+  background-size: 60% 60%;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.mobile-share-title {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: none;
+}
+@media (max-width: 768px) {
+  .floating-share-icons { display: none; }
+  .mobile-only-share {
+    display: flex;
+    justify-content: center;
+    margin: 20px auto;
+  }
+  .mobile-share-title {
+    display: block;
+  }
+  .mobile-only-share a:hover {
+    animation: bounce 0.4s ease;
+  }
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.2); }
+    50% { transform: scale(0.9); }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
 }
 
-    .navbar {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .navbar a {
-      position: relative;
-      color: #2c3e50;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 15px;
-      transition: color 0.3s ease;
-      padding: 6px 10px;
-    }
-    .navbar a:hover {
-      color: #007bff;
-    }
-    .navbar a::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      width: 0%;
-      height: 2px;
-      background-color: #007bff;
-      transition: all 0.3s ease;
-      transform: translateX(-50%);
-    }
-    .navbar a:hover::after {
-      width: 100%;
-    }
-    /* Add spacing below dropdown parent link to separate the dropdown menu */
-.navbar .dropdown > a {
-  padding: 6px 10px;
-  margin-bottom: 8px; /* 👈 Adds gap so dropdown doesn't overlap */
-  display: inline-block;
+#backToTop {
+  position: fixed;
+  bottom: 40px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  display: none;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+#backToTop:hover {
+  background-color: #148f77;
+  transform: scale(1.15);
+}
+.site-header {
+  height: 100px; /* or however tall it is initially */
+  transition: all 0.3s ease;
+}
+
+.site-header.shrink {
+  height: 70px;
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
     .container {
       max-width: 600px;
@@ -153,81 +311,30 @@
       padding: 10px 0;
       font-size: 13px;
       text-align: center;
-      color: white;
+      color: #fff;
     }
     footer a {
-      color: white;
+      color: #fff;
       text-decoration: none;
       margin: 0 5px;
     }
     footer a:hover {
       text-decoration: underline;
     }
-    @media (max-width: 600px) {
-      .navbar {
-        flex-direction: column;
-        align-items: flex-start;
-        width: 100%;
-        padding: 10px;
-      }
-      .logo {
-        margin: 0 auto;
-        display: block;
-      }
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
     }
+    
 .affiliate details {
   scroll-margin-top: 100px;
   transition: all 0.3s ease;
 }
-
-  .dropdown {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-content {
-  display: none;
-  position: absolute;
-  background-color: #ffffff;
-  min-width: 180px;
-  box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
-  z-index: 1;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  top: 100%;
-
-}
-
-.dropdown-content a {
-  display: block;
-  color: #2c3e50;
-  padding: 10px 15px;
-  text-decoration: none;
-  font-size: 15px;
-}
-
-.dropdown-content a:hover {
-  background-color: #f1f1f1;
-  color: #007bff;
-}
-
-.dropdown:hover .dropdown-content {
-  display: block;
-}
-.navbar .dropdown > a {
-  padding: 6px 10px;
-  font-weight: 600;
-  font-size: 14px;
-  display: inline-block;
-  line-height: 1.5;
-  color: #2c3e50;
-  text-decoration: none;
-  font-family: inherit;
-}
-.navbar .dropdown > a:hover {
-  color: #007bff;
-}
-
 
   details {
     margin-bottom: 20px;
@@ -250,141 +357,6 @@
     border-bottom: 1px solid #ccc;
     margin-bottom: 10px;
   }
-  .mobile-submenu {
-  display: none;
-  flex-direction: column;
-  padding-left: 10px;
-}
-.mobile-submenu a {
-  font-size: 14px;
-  padding: 8px 10px;
-}
-.mobile-submenu.show {
-  display: flex;
-}
-
-.hamburger {
-  display: flex; /* ✅ make it visible */
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 30px;
-  height: 24px;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  z-index: 1103;
-  margin-left: auto;
-  padding: 0;
-  transition: transform 0.3s ease;
-
-}
-
-.hamburger span {
-  display: block;
-  height: 3px;
-  width: 25px;
-  background-color: #2c3e50;
-  margin: 4px 0;
-  border-radius: 2px;
-  transition: all 0.3s ease-in-out;
-}
-.hamburger.active span:nth-child(1) {
-  transform: rotate(45deg) translate(5px, 5px);
-}
-
-.hamburger.active span:nth-child(2) {
-  opacity: 0;
-  transform: scaleX(0);
-}
-
-.hamburger.active span:nth-child(3) {
-  transform: rotate(-45deg) translate(5px, -5px);
-}
-
-.mobile-nav {
-  position: fixed;
-  top: 0;
-  right: -100%;
-  height: 100%;
-  width: 250px;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  padding: 100px 20px 20px;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-  transition: right 0.3s ease;
-  z-index: 1102;
-}
-.mobile-nav.show {
-  right: 0;
-}
-.mobile-nav a {
-  padding: 12px 0;
-  color: #2c3e50;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 16px;
-}
-.mobile-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-  z-index: 1101;
-}
-.mobile-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-@media (max-width: 768px) {
-  .navbar {
-    display: none;
-  }
-
-.hamburger {
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-  .header-content {
-    justify-content: space-between;
-  }
-
-.logo {
-  flex-shrink: 0;
-  max-width: 70%;
-  margin-right: auto;
-}
-
-  .hamburger {
-    flex-shrink: 0;
-    margin-left: auto;
-  }
- @media (max-width: 768px) {
-  .hamburger {
-    display: flex;
-  }
-}
-
-@media (min-width: 769px) {
-  .hamburger {
-    display: none !important;
-  }
-}
-
-}
-
-  @keyframes fadeInAnswer {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.mobile-nav,
-.mobile-overlay {
-  pointer-events: auto;
-}
 
 .affiliate details[open] > *:not(summary) {
   animation: fadeInAnswer 0.35s ease-in-out;
@@ -437,59 +409,59 @@ details[open] > *:not(summary) {
     transform: translateY(0);
   }
 }
-.site-header.shrink {
-  padding: 2px 10px;
-  transition: padding 0.3s ease;
-}
 
+.intro-text {
+  background: #f9f9f9;
+  padding: 15px 20px;
+  border-left: 6px solid transparent;
+  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1; /* Green → Blue */
+  font-size: 1.05em;
+  line-height: 1.6;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
 </style>
+
 </head>
 <body>
-  <header class="site-header">
-  <div class="header-content">
- <img src="Images/logo.png" alt="JazaLoan logo" class="logo">
 
-<div id="hamburger" class="hamburger">
+   <header class="site-header fade-in">
+    <div id="overlay" class="mobile-overlay"></div>
+    <div class="header-content">
+      <img src="Images/logo.png" alt="JazaLoan Logo" class="logo">
+     <div id="hamburger" class="hamburger">
   <span></span>
   <span></span>
   <span></span>
 </div>
 
-    <nav class="navbar" id="mainNav">
-      <a href="index.html">Home</a>
-      <div class="dropdown">
-        <a href="#">Loan Calculators ▾</a>
-        <div class="dropdown-content">
-          <a href="mshwari-calculator.html">Mshwari Calculator</a>
-          <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
-        </div>
-      </div>
-      <div class="dropdown">
-        <a href="#">Tax Calculators ▾</a>
-        <div class="dropdown-content">
-          <a href="index.html#paye-section">PAYE Calculator</a>
-          <a href="vat-calculator.html">VAT Calculator</a>
-        </div>
-      </div>
-      <a href="best-loans-by-salary.html">Loans by Salary</a>
-      <a href="blog.html">Blogs</a>
-    </nav>
-    <nav class="mobile-nav" id="mobileNav">
-  <a href="index.html">Home</a>
-  <a href="mshwari-calculator.html">Mshwari Calculator</a>
-  <a href="kcb-mpesa-calculator.html">KCB Mpesa Calculator</a>
-  <a href="#paye-section">PAYE Calculator</a>
-  <a href="vat-calculator.html">VAT Calculator</a>
-  <a href="best-loans-by-salary.html">Loans by Salary</a>
-  <a href="blog.html">Blogs</a>
+ <nav class="navbar desktop-only" id="mainNav">
+    <a href="index.html">Bank Loans Calculator</a>
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
+</nav>
+
+<nav class="mobile-nav" id="mobileNav">
+   <a href="index.html">Bank Loan Calculator</a>
+    <a href="mshwari-calculator.html">Mshwari Calculator</a>
+    <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="compare-loans.html">Compare Loans</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
 </nav>
 <div id="overlay" class="mobile-overlay"></div>
-  </div>
 </header>
 
   <div class="container">
-    <h1>Jumia Commission Calculator (Kenya)</h1>
-    <p>Select your product category and input the selling price to calculate how much commission Jumia will deduct and what you’ll actually earn as the vendor.</p>
+    <h1>Jumia Commission Calculator Kenya (2025)</h1>
+<p class="intro-text">
+  Calculate your Jumia seller commissions, category-based fees, and final payout instantly. 
+  Simply select your product category and enter the selling price to see exactly how much 
+  Jumia will deduct and what you’ll earn as a vendor. Updated with <strong>2025 Jumia Kenya rates</strong> 
+  for accurate, real-time results.
+</p>
 
     <label for="category">Select Product Category:</label>
     <select id="category">
@@ -548,63 +520,87 @@ details[open] > *:not(summary) {
     <button onclick="resetAndScroll()" style="background-color:#2281e6; margin-top:10px;">Clear Input</button>
   </div>
 </div>
+  <button id="downloadJumiaPDF" style="
+  display:none;
+  margin-top:15px;
+  background:#0b5e2b;
+  color:white;
+  padding:10px 20px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;">
+  📄 Download Results as PDF
+</button>
 
     <div style="margin-top: 30px;">
   <details>
   <summary>📦 What is the Jumia Commission Calculator Kenya?</summary>
   <p>
-    The <strong>Jumia Commission Calculator Kenya</strong> is a free tool designed for <strong>Jumia sellers, vendors, and small businesses</strong> in Kenya. It helps you instantly calculate how much commission Jumia will deduct based on your selected product category and selling price.
+    The <strong>Jumia Commission Calculator Kenya (2025)</strong> is a free, mobile-friendly tool for 
+    <strong>Jumia sellers, vendors, and small businesses</strong> in Kenya. It instantly calculates your 
+    <strong>net vendor payout</strong> after deducting Jumia’s category-based commission, 16% VAT, and the 
+    flat <strong>Ksh 120 shipping fee</strong> per order.
   </p>
   <p>
-    With Jumia’s commission rates varying across categories (from 6% to 29%) and flat Ksh 120 shipping fees applied per order, many sellers struggle to price products profitably. This tool solves that by showing your <strong>net vendor payout after deductions</strong>, helping you make smarter pricing decisions.
+    Since <strong>Jumia Kenya commission rates</strong> range from <strong>6% to 29%</strong> depending on the product category, 
+    pricing your items correctly is critical to avoid losses. This calculator ensures you 
+    know exactly what you’ll earn before you list a product.
   </p>
   <ul>
-    <li>📊 Updated for 2025 Jumia Kenya commission rates</li>
-    <li>🔍 Includes 16% VAT in commission calculations</li>
-    <li>🚚 Includes flat shipping deduction (Ksh 120)</li>
-    <li>💼 Trusted by Kenyan side hustlers & ecommerce sellers</li>
+    <li>📊 Updated with official <strong>2025 Jumia Kenya commission rates</strong></li>
+    <li>🔍 Automatically includes <strong>16% VAT</strong> in commission deductions</li>
+    <li>🚚 Accounts for the <strong>Ksh 120 flat shipping deduction</strong></li>
+    <li>💼 Trusted by Kenyan <strong>e-commerce entrepreneurs, resellers, and side hustlers</strong></li>
   </ul>
 </details>
 
 <details>
   <summary>💡 Why Use the Jumia Calculator Before Listing a Product?</summary>
   <p>
-    Before setting your product price, it’s essential to know how much you’ll take home. Many vendors unknowingly price too low and end up with losses after deductions.
+    Many Jumia vendors unknowingly underprice their products and discover too late that profits vanish 
+    after commission, VAT, and shipping deductions. Using this tool before publishing any listing 
+    ensures you make data-driven pricing decisions.
   </p>
-  <p>Using this calculator helps you:</p>
+  <p>With this calculator, you can:</p>
   <ul>
-    <li>✅ Avoid underpricing your products</li>
-    <li>✅ Set strategic prices that cover all deductions</li>
-    <li>✅ Choose high-margin categories wisely</li>
-    <li>✅ Understand profit margins before uploading listings</li>
+    <li>✅ Avoid underpricing and protect your profit margins</li>
+    <li>✅ Set <strong>strategic product prices</strong> that cover all deductions</li>
+    <li>✅ Compare <strong>high-margin vs. low-margin categories</strong> instantly</li>
+    <li>✅ Understand true earnings before you upload a listing</li>
   </ul>
 </details>
 
 <details>
-  <summary>📈 How to Make More Money on Jumia Kenya</summary>
-  <p>Smart Jumia sellers know where to list and how to optimize profits. Here are tips that go hand-in-hand with this calculator:</p>
+  <summary>📈 How to Increase Your Profits on Jumia Kenya</summary>
+  <p>
+    Successful Jumia sellers don’t just list products — they list strategically. 
+    Combine this calculator with these proven tips to boost your earnings:
+  </p>
   <ol>
-    <li><strong>Use the calculator</strong> before publishing any product to validate margin</li>
-    <li><strong>Target low-commission categories</strong> like Mobile Phones (6%) vs. Grocery (29%)</li>
-    <li><strong>Bundle accessories</strong> for higher perceived value without affecting commission rate</li>
-    <li><strong>Boost images, reviews, and keywords</strong> to increase conversions</li>
+    <li><strong>Always calculate margins first</strong> with this tool before setting a selling price</li>
+    <li><strong>Prioritize low-commission categories</strong> such as Mobile Phones (6%) over high-commission ones like Grocery (29%)</li>
+    <li><strong>Bundle related items</strong> to increase perceived value without raising commission costs</li>
+    <li><strong>Optimize product titles, keywords, and images</strong> for better search visibility and conversion rates</li>
   </ol>
 </details>
 
 <details>
-  <summary>🔗 Join the Jumia Affiliate Program & Earn Commissions</summary>
+  <summary>🔗 Earn Without Selling — Join the Jumia Affiliate Program</summary>
   <p>
-    Not a seller? You can still earn money online in Kenya by promoting Jumia products as an affiliate. It's free to join, and you don’t need to own inventory.
+    Even if you don’t sell on Jumia, you can still earn in Kenya by promoting 
+    <strong>Jumia products as an affiliate</strong>. It’s completely free to join and requires no inventory.
   </p>
   <ul>
-    <li>💰 Earn a % commission every time someone buys through your link</li>
-    <li>🔗 Promote with WhatsApp, Telegram, YouTube, Facebook, or your blog</li>
-    <li>📱 Works on mobile or desktop — just share and earn</li>
+    <li>💰 Earn a commission percentage for every sale made through your affiliate link</li>
+    <li>🔗 Share links on <strong>WhatsApp, Facebook, YouTube, TikTok, Telegram</strong>, or your blog</li>
+    <li>📱 Fully mobile-friendly — promote and earn from your phone</li>
   </ul>
   <p>
-    👉 <a href="https://www.jumia.co.ke/sp-affiliate-program/" target="_blank" rel="noopener">Join the Jumia Kenya Affiliate Program here</a> and start earning today.
+    👉 <a href="https://www.jumia.co.ke/sp-affiliate-program/" target="_blank" rel="noopener">
+    Join the Jumia Kenya Affiliate Program</a> today and start earning passive income.
   </p>
 </details>
+
 <div style="text-align: center; margin-top: 30px;">
   <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
   <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
@@ -626,42 +622,102 @@ details[open] > *:not(summary) {
     </div>
 </div>
 
-  <script>
-   function calculateCommission() {
-  const category = parseFloat(document.getElementById("category").value);
+<script>
+
+  document.addEventListener("DOMContentLoaded", () => {
+  // Shrink header on scroll
+  window.addEventListener("scroll", () => {
+    const header = document.querySelector(".site-header");
+    if (window.scrollY > 50) {
+      header.classList.add("shrink");
+    } else {
+      header.classList.remove("shrink");
+    }
+
+    // Back to top button
+    const backToTopBtn = document.getElementById("backToTop");
+    backToTopBtn.style.display = window.scrollY > 300 ? "block" : "none";
+  });
+
+  // Back to top smooth scroll
+  const backToTopBtn = document.getElementById("backToTop");
+  backToTopBtn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  // Mobile nav toggle
+ const hamburger = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobileNav");
+const overlay = document.getElementById("overlay");
+
+const toggleMobileMenu = () => {
+  hamburger.classList.toggle("active");
+  mobileNav.classList.toggle("show");
+  overlay.classList.toggle("show");
+};
+
+hamburger.addEventListener("click", toggleMobileMenu);
+overlay.addEventListener("click", toggleMobileMenu);
+
+  // Social share links
+  const currentURL = encodeURIComponent(window.location.href);
+  const pageTitle = encodeURIComponent(document.title);
+
+  document.querySelectorAll(".facebook-share").forEach(el =>
+    el.href = `https://www.facebook.com/sharer/sharer.php?u=${currentURL}`
+  );
+  document.querySelectorAll(".whatsapp-share").forEach(el =>
+    el.href = `https://wa.me/?text=${pageTitle}%20${currentURL}`
+  );
+  document.querySelectorAll(".twitter-share").forEach(el =>
+    el.href = `https://twitter.com/intent/tweet?url=${currentURL}&text=${pageTitle}`
+  );
+  document.querySelectorAll(".telegram-share").forEach(el =>
+    el.href = `https://t.me/share/url?url=${currentURL}&text=${pageTitle}`
+  );
+});
+
+function calculateCommission() {
+  const categoryRate = parseFloat(document.getElementById("category").value);
+  const categoryName = document.getElementById("category").selectedOptions[0].text;
   const price = parseFloat(document.getElementById("price").value.replace(/,/g, ""));
 
-  if (isNaN(price) || price <= 0) {
-    document.getElementById("result").innerHTML = "<p>Please enter a valid price.</p>";
+  if (isNaN(price) || price <= 0 || isNaN(categoryRate)) {
+    document.getElementById("result").innerHTML = "<p>Please select a valid category and enter a valid price.</p>";
     return;
   }
 
-  const commission = category * price;
+  const commission = categoryRate * price;
   const shipping = 120;
   const totalDeducted = commission + shipping;
   const payout = price - totalDeducted;
 
   const resultBox = document.getElementById("result");
   resultBox.innerHTML = `
-  <h3>Commission Breakdown</h3>
-  <p><strong>Commission Fee:</strong> Ksh ${commission.toFixed(2)}</p>
-  <p><strong>Shipping Deduction:</strong> Ksh ${shipping.toFixed(2)}</p>
-  <p><strong>Total Deductions:</strong> Ksh ${totalDeducted.toFixed(2)}</p>
-  <p><strong>Net Vendor Payout:</strong> <span style="color:green">Ksh ${payout.toFixed(2)}</span></p>
-  <small><em>Note: Commission includes 16% VAT.</em></small>
-  <div id="resetBtnWrapper" style="margin-top:20px;">
-    <button onclick="resetAndScroll()" style="background-color:#2281e6;">Clear Input</button>
-  </div>
-`;
+    <h3>Commission Breakdown</h3>
+    <p><strong>Category:</strong> <span id="categorySelect">${categoryName}</span></p>
+    <p><strong>Selling Price:</strong> Ksh <span id="sellingPrice">${price.toFixed(2)}</span></p>
+    <p><strong>Commission Rate:</strong> <span id="commissionPercent">${(categoryRate * 100).toFixed(2)}%</span></p>
+    <p><strong>Commission Fee:</strong> Ksh <span id="commissionAmount">${commission.toFixed(2)}</span></p>
+    <p><strong>Shipping Deduction:</strong> Ksh <span id="shippingFee">${shipping.toFixed(2)}</span></p>
+    <p><strong>Net Vendor Payout:</strong> <span id="netPayout" style="color:green">${payout.toFixed(2)}</span></p>
+    <small><em>Note: Commission includes 16% VAT.</em></small>
+    <div id="resetBtnWrapper" style="margin-top:20px;">
+      <button onclick="resetAndScroll()" style="background-color:#2281e6;">Clear Input</button>
+    </div>
+  `;
 
-  document.getElementById("resetBtnWrapper").style.display = "block";
+  // Show download PDF button
+  document.getElementById("downloadJumiaPDF").style.display = "inline-block";
+
+  // Smooth scroll to results
   setTimeout(() => {
-  const offsetY = -150;
-  const y = resultBox.getBoundingClientRect().top + window.pageYOffset + offsetY;
-  window.scrollTo({ top: y, behavior: "smooth" });
-}, 100);
-
+    const offsetY = -150;
+    const y = resultBox.getBoundingClientRect().top + window.pageYOffset + offsetY;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }, 100);
 }
+
 function resetAndScroll() {
   const priceInput = document.getElementById("price");
   const categoryInput = document.getElementById("category");
@@ -685,25 +741,137 @@ function resetAndScroll() {
   const scrollY = categoryInput.getBoundingClientRect().top + window.scrollY + offsetY;
   window.scrollTo({ top: scrollY, behavior: "smooth" });
 }
-document.addEventListener("DOMContentLoaded", () => {
-  const hamburger = document.getElementById("hamburger");
-  const mobileNav = document.getElementById("mobileNav");
-  const overlay = document.getElementById("overlay");
 
-  const toggleMobileMenu = () => {
-    hamburger.classList.toggle("active");
-    mobileNav.classList.toggle("show");
-    overlay.classList.toggle("show");
-    document.body.style.overflow = mobileNav.classList.contains("show") ? "hidden" : "auto";
-  };
+document.getElementById("downloadJumiaPDF").addEventListener("click", function () {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-  hamburger.addEventListener("click", toggleMobileMenu);
-  overlay.addEventListener("click", toggleMobileMenu);
+    // Get results from DOM (use innerText for proper display)
+    let category = document.getElementById("categorySelect").innerText;
+    let price = document.getElementById("sellingPrice").innerText;
+    let commissionPercent = document.getElementById("commissionPercent").innerText;
+    let commissionAmount = document.getElementById("commissionAmount").innerText;
+    let shippingFee = document.getElementById("shippingFee").innerText;
+    let netPayout = document.getElementById("netPayout").innerText;
+
+    // === Title ===
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("Jumia Commission Report – Kenya", 105, 20, { align: "center" });
+
+    // Line separator
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(14, 25, 196, 25);
+
+    // === Summary Section ===
+    doc.setFontSize(14);
+    doc.setTextColor(0, 102, 204);
+    doc.text("Summary of Calculation", 14, 35);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    let y = 43;
+    const summary = [
+        ["Category", category],
+        ["Selling Price", `Ksh ${price}`],
+        ["Commission Rate", commissionPercent],
+        ["Commission Deduction", `Ksh ${commissionAmount}`],
+        ["Shipping Fee", `Ksh ${shippingFee}`],
+        ["Net Payout", `Ksh ${netPayout}`]
+    ];
+
+    summary.forEach(([label, value]) => {
+        doc.text(`${label}:`, 14, y);
+        doc.text(value, 80, y);
+        y += 7;
+    });
+
+    // === Detailed Breakdown (Black Bullets) ===
+    y += 5;
+    doc.setFontSize(13);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("Detailed Breakdown", 14, y);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(40, 40, 40);
+    y += 6;
+    const breakdownPoints = [
+        `Selling price: Ksh ${price} in the ${category} category.`,
+        `Commission deducted: Ksh ${commissionAmount} (${commissionPercent}).`,
+        `Flat shipping fee: Ksh ${shippingFee}.`,
+        `Final payout after deductions: Ksh ${netPayout}.`,
+        `Ensure your pricing covers these costs for profitability.`
+    ];
+    breakdownPoints.forEach((point, index) => {
+        doc.text(`• ${point}`, 14, y + (index * 6));
+    });
+
+    // === Business Tips (Blue Bullets) ===
+    y += (breakdownPoints.length * 6) + 10;
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 102, 204);
+    doc.text("Business Tips", 14, y);
+
+    doc.setFontSize(11);
+    let tips = [
+        "Always factor in Jumia fees before listing a product.",
+        "Consider bundling products to boost perceived value.",
+        "Use high-quality product images to increase conversion."
+    ];
+
+    // Tailor tips based on commission rate
+    let commissionValue = parseFloat(commissionPercent.replace("%", ""));
+    if (commissionValue > 20) {
+        tips.push("High commission category – consider shifting to lower commission ones.");
+    } else {
+        tips.push("Low commission category – you can compete on price while keeping margins healthy.");
+    }
+
+    y += 6;
+    tips.forEach((tip, index) => {
+        doc.setTextColor(0, 102, 204); // Blue bullet
+        doc.text(`•`, 14, y + (index * 6));
+
+        doc.setTextColor(40, 40, 40); // Grey text
+        doc.text(tip, 20, y + (index * 6));
+    });
+
+    // === Footer ===
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Made by JazaLoan`, 14, 287);
+        doc.text(`Page ${i} of ${pageCount}`, 196, 287, { align: "right" });
+    }
+
+    // Save PDF
+    doc.save("jumia-commission-report.pdf");
 });
 
 </script>
+ <button id="backToTop" title="Back to Top">⬆</button>
+  <script>
+    const backToTopBtn = document.getElementById("backToTop");
+    window.addEventListener("scroll", () => {
+      if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
+        backToTopBtn.style.display = "block";
+      } else {
+        backToTopBtn.style.display = "none";
+      }
+    });
 
-   <footer>
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  </script>
+
+<footer>
     <div class="footer-content">
       <span><strong>JazaLoan</strong></span>
       <span>|</span>
@@ -713,8 +881,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <span>|</span>
       <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
     </div>
-
-  </footer>
+</footer>
+    
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     const allDetails = document.querySelectorAll("details");
@@ -754,6 +922,7 @@ function formatWithCommas(input) {
 }
 
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 </body>
 </html>
