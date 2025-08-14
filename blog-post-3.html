@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>How to Create a Personal Budget in Kenya: Step-by-Step Guide - JazaLoan Blog</title>
+  <meta name="description" content="Learn how to create a personal budget in Kenya, manage expenses, save effectively, and plan for loans and taxes. Use JazaLoan's interactive budget and loan calculators to take control of your finances.">
+  <meta name="keywords" content="personal budget Kenya, Kenya budget calculator, budgeting tips Kenya, loan repayment planning Kenya, PAYE calculator Kenya, managing expenses Kenya, financial planning Kenya, JazaLoan">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  margin: 0;
+  padding: 0;
+}
+.individual-post-container {
+  max-width: 800px;
+  margin: 30px auto;
+  background: #fff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  line-height: 1.7;
+  color: #333;
+}
+h1, h2, h3 { color: #2c3e50; }
+
+/* ————— Sticky Shrinking Header ————— */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  background: white;
+}
+.site-header.shrink {
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.site-header.shrink .logo {
+  height: 60px !important;
+  max-height: 60px !important;
+}
+.site-header.shrink .navbar a {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* ————— Header / Logo / Nav ————— */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1000px;
+  margin: auto;
+  padding: 5px 15px;
+}
+.logo {
+  height: 90px;
+  transition: height 0.3s ease;
+}
+.navbar {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.navbar a {
+  font-size: 15px;
+  text-decoration: none;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 8px 12px;
+  position: relative;
+}
+.navbar a:hover { color: #007bff; }
+.navbar a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0%;
+  height: 2px;
+  background-color: #007bff;
+  transition: width 0.3s ease;
+}
+.navbar a:hover::after { width: 100%; }
+
+/* ————— Mobile Nav + Hamburger ————— */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
+}
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100%;
+  width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 20px 20px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 999;
+}
+.mobile-nav.show {
+  right: 0;
+}
+.mobile-nav a {
+  padding: 12px 0;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+}
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+/* ————— Share Buttons Floating ————— */
+.floating-share-icons {
+  position: fixed;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.share-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: 60% 60%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: #ccc;
+  transition: transform 0.3s ease;
+}
+.share-icon:hover {
+  transform: scale(1.1);
+}
+.facebook { background-color: #1877f2; background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg'); }
+.whatsapp { background-color: #25d366; background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg'); }
+.twitter  { background-color: #1da1f2; background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg'); }
+.telegram { background-color: #0088cc; background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/telegram.svg'); }
+
+/* ————— Mobile-only Share (Bottom) ————— */
+.mobile-only-share {
+  display: none;
+}
+.mobile-only-share a {
+  width: 32px;
+  height: 32px;
+  margin: 0 6px;
+  border-radius: 50%;
+  background-size: 60% 60%;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+.mobile-share-title {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: none;
+}
+@media (max-width: 768px) {
+  .floating-share-icons { display: none; }
+  .mobile-only-share {
+    display: flex;
+    justify-content: center;
+    margin: 20px auto;
+  }
+  .mobile-share-title {
+    display: block;
+  }
+  .mobile-only-share a:hover {
+    animation: bounce 0.4s ease;
+  }
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.2); }
+    50% { transform: scale(0.9); }
+    70% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+#backToTop {
+  position: fixed;
+  bottom: 40px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  display: none;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+#backToTop:hover {
+  background-color: #148f77;
+  transform: scale(1.15);
+}
+.site-header {
+  height: 100px; /* or however tall it is initially */
+  transition: all 0.3s ease;
+}
+
+.site-header.shrink {
+  height: 70px;
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+footer {
+  background-color: #044378;
+  color: #ffffff;
+  padding: 20px 0;
+  text-align: center;
+  font-size: 14px;
+  margin-top: 40px;
+}
+
+.footer-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-content a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.footer-content a:hover {
+  color: #1abc9c;
+}
+.cta-button {
+  display: block;
+  width: fit-content;
+  margin: 30px auto;
+  background-color: #27ae60; /* Green base */
+  color: white;
+  padding: 15px 25px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1em;
+  text-align: center;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.cta-button:hover {
+  background-color: #1e8449; /* Darker green on hover */
+  transform: translateY(-2px);
+}
+.mobile-only-share .facebook-share {
+  background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg');
+  background-color: #1877f2;
+}
+
+.mobile-only-share .whatsapp-share {
+  background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg');
+  background-color: #25d366;
+}
+
+.mobile-only-share .twitter-share {
+  background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg');
+  background-color: #1da1f2;
+}
+
+.mobile-only-share .telegram-share {
+  background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/telegram.svg');
+  background-color: #0088cc;
+}
+.individual-post-container img {
+  width: 100%;
+  max-width: 100%;
+  height: 360px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  margin: 25px auto;
+}
+
+</style>
+</head>
+<body>
+  <header class="site-header fade-in">
+  <div id="overlay" class="mobile-overlay"></div>
+  <div class="header-content">
+    <img src="Images/logo.png" alt="JazaLoan Logo" class="logo">
+      </a>
+    <div id="hamburger" class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <nav class="navbar desktop-only" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="kcb-mpesa-loan.html">KCB Mpesa</a>
+      <a href="compare-loans.html">Compare Loans</a>
+      <a href="best-loans-by-salary.html">Loans by Salary</a>
+      <a href="blog.html">Blog</a>
+    </nav>
+  </div>
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html">Home</a>
+    <a href="kcb-mpesa-loan.html">KCB Mpesa</a>
+    <a href="compare-loans.html">Compare Loans</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
+    <a href="blog.html">Blog</a>
+  </nav>
+</header>
+
+<div class="individual-post-container">
+    <h1>How to Create a Personal Budget in Kenya: Step-by-Step Guide</h1>
+    <p class="post-meta">Published: August 14, 2025 | By JazaLoan Team | Category: Personal Finance Kenya, Budgeting</p>
+
+    <img src="Images/budget-how.jpg" alt="Kenya personal budgeting concept" />
+
+    <p>
+      Managing your finances in Kenya can feel overwhelming, especially with rising living costs, loans, and taxes. A well-structured <strong>personal budget</strong> helps you take control of your money, save for emergencies, and make informed financial decisions. Use our <a href="index.html#budget-calculator" title="Kenya Personal Budget Calculator"><strong>budget calculator</strong></a> to simplify this process.
+    </p>
+
+    <h2>Why Budgeting Matters in Kenya</h2>
+    <p>
+      Budgeting ensures your income covers essential expenses, helps you save, and keeps you on track with financial goals.
+    </p>
+    <ul>
+      <li><strong>Track spending:</strong> Identify where your money goes and adjust as needed.</li>
+      <li><strong>Save for future goals:</strong> Allocate funds for emergencies, education, or retirement.</li>
+      <li><strong>Plan for loans:</strong> Know how much you can comfortably repay with tools like our <a href="index.html#loan-calculator" title="Reducing Balance vs Flat Rate Loan Calculators Kenya"><strong>loan calculators</strong></a>.</li>
+      <li><strong>Optimize net income:</strong> Estimate take-home pay with our <a href="index.html#paye-calculator" title="Kenya PAYE Calculator"><strong>PAYE calculator</strong></a>.</li>
+    </ul>
+
+    <h2>Step-by-Step Guide to Creating a Personal Budget</h2>
+
+    <h3>1. Assess Your Monthly Income</h3>
+    <p>
+      Include salary, side hustles, rental income, and allowances. For exact take-home pay after tax, use our <a href="index.html#paye-calculator" title="Kenya PAYE Calculator"><strong>PAYE calculator</strong></a>.
+    </p>
+
+    <h3>2. Track Your Expenses</h3>
+    <p>
+      Monitor all monthly spending. Categorize into fixed costs (rent, utilities, insurance, loans), variable costs (groceries, transport, entertainment), and savings or investments.
+    </p>
+
+    <h3>3. Categorize Spending</h3>
+    <p>
+      Divide your expenses into <em>needs, wants, and savings</em> to prioritize essentials and identify areas to reduce spending.
+    </p>
+
+    <h3>4. Apply a Budgeting Framework</h3>
+    <p>
+      The 50/30/20 rule works well: 50% for needs, 30% for wants, and 20% for savings and debt repayment. Adjust based on your financial goals and obligations.
+    </p>
+
+    <h3>5. Draft Your Budget Plan</h3>
+    <p>
+      Use your income and tracked expenses to create a realistic monthly plan. Tools like our <a href="index.html#budget-calculator" title="Kenya Personal Budget Calculator"><strong>budget calculator</strong></a> can automatically categorize and visualize your spending.
+    </p>
+
+    <h3>6. Stick to Your Budget</h3>
+    <p>
+      Regularly review and adjust your plan as income or expenses change. Consistency is key to long-term success.
+    </p>
+
+    <h2>Sample Monthly Budget Table for a Kenyan Household</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Amount (KES)</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Income</strong></td><td>100,000</td><td>After PAYE (<a href="index.html#paye-calculator" title="Kenya PAYE Calculator">calculate here</a>)</td></tr>
+        <tr><td>Rent</td><td>30,000</td><td>Fixed essential expense</td></tr>
+        <tr><td>Utilities</td><td>5,000</td><td>Electricity, water, internet</td></tr>
+        <tr><td>Groceries</td><td>15,000</td><td>Food and household essentials</td></tr>
+        <tr><td>Transport</td><td>10,000</td><td>Commuting costs</td></tr>
+        <tr><td>Insurance</td><td>5,000</td><td>Health, car, or life insurance</td></tr>
+        <tr><td>Loan Repayment</td><td>10,000</td><td>Use our <a href="index.html#loan-calculator" title="Loan Calculators Kenya"><strong>loan calculators</strong></a> to plan repayment</td></tr>
+        <tr><td>Entertainment</td><td>5,000</td><td>Leisure activities</td></tr>
+        <tr><td><strong>Savings</strong></td><td>10,000</td><td>Emergency fund or fixed savings</td></tr>
+        <tr><td><strong>Investments</strong></td><td>10,000</td><td>Stocks, bonds, or mutual funds</td></tr>
+        <tr><td><strong>Total Expenses</strong></td><td>100,000</td><td>Ensure expenses ≤ income</td></tr>
+      </tbody>
+    </table>
+
+    <img src="Images/budget2.jpg" alt="Visual representation of a personal budget in Kenya" />
+
+    <h2>How Loans and PAYE Affect Your Budget</h2>
+    <p>
+      Budgeting should account for taxes and loan obligations. Our calculators help you understand real monthly costs:
+    </p>
+    <ul>
+      <li>Estimate PAYE deductions using our <a href="index.html#paye-calculator" title="Kenya PAYE Calculator"><strong>PAYE calculator</strong></a>.</li>
+      <li>Compare monthly payments for different loan types with our <a href="index.html#loan-calculator" title="Reducing Balance vs Flat Rate Loan Calculators Kenya"><strong>reducing balance and flat rate loan calculators</strong></a>.</li>
+    </ul>
+
+    <h2>Tips for Staying on Track</h2>
+    <ul>
+      <li>Automate savings and bill payments to avoid overspending.</li>
+      <li>Review your budget monthly and adjust for income or loan changes.</li>
+      <li>Visualize progress with charts from our <a href="index.html#budget-calculator" title="Kenya Budget Calculator"><strong>budget calculator</strong></a>.</li>
+    </ul>
+
+    <h2>Conclusion: Take Control of Your Finances in Kenya</h2>
+    <p>
+      A personal budget is the foundation for financial stability. Track income, manage expenses, and plan for loans and taxes. Leverage JazaLoan's interactive tools like the <a href="index.html#budget-calculator" title="Kenya Budget Calculator"><strong>budget calculator</strong></a> and <a href="index.html#loan-calculator" title="Loan Calculators Kenya"><strong>loan calculators</strong></a> to make informed financial decisions.
+    </p>
+
+    <a href="index.html#budget-calculator" class="cta-button">
+      Build Your Personal Budget Today with Our Free Kenya Budget Calculator!
+    </a>
+</div>
+
+
+<div class="mobile-share-wrapper">
+  <h3 class="mobile-share-title">Share this blog</h3>
+  <div class="share-buttons mobile-only-share">
+    <a href="#" class="facebook-share" target="_blank" rel="noopener" aria-label="Share on Facebook"></a>
+    <a href="#" class="whatsapp-share" target="_blank" rel="noopener" aria-label="Share on WhatsApp"></a>
+    <a href="#" class="twitter-share" target="_blank" rel="noopener" aria-label="Share on Twitter"></a>
+    <a href="#" class="telegram-share" target="_blank" rel="noopener" aria-label="Share on Telegram"></a>
+  </div>
+</div>
+
+<div class="floating-share-icons">
+  <a href="#" class="share-icon facebook" title="Share on Facebook" target="_blank" rel="noopener"></a>
+  <a href="#" class="share-icon whatsapp" title="Share on WhatsApp" target="_blank" rel="noopener"></a>
+  <a href="#" class="share-icon twitter" title="Share on Twitter" target="_blank" rel="noopener"></a>
+  <a href="#" class="share-icon telegram" title="Share on Telegram" target="_blank" rel="noopener"></a>
+</div>
+
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <span><strong>JazaLoan</strong></span>
+      <span>|</span>
+      <span>© 2025 JazaLoan. All rights reserved.</span>
+      <span>|</span>
+      <span>📧 <a href="mailto:mburuthus@gmail.com">support@jazaloan.co.ke</a></span>
+      <span>|</span>
+      <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+  // Shrink header on scroll
+  window.addEventListener("scroll", () => {
+    const header = document.querySelector(".site-header");
+    if (window.scrollY > 50) {
+      header.classList.add("shrink");
+    } else {
+      header.classList.remove("shrink");
+    }
+
+    // Back to top button
+    const backToTopBtn = document.getElementById("backToTop");
+    backToTopBtn.style.display = window.scrollY > 300 ? "block" : "none";
+  });
+
+  // Back to top smooth scroll
+  const backToTopBtn = document.getElementById("backToTop");
+  backToTopBtn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  // Mobile nav toggle
+ const hamburger = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobileNav");
+const overlay = document.getElementById("overlay");
+
+const toggleMobileMenu = () => {
+  hamburger.classList.toggle("active");
+  mobileNav.classList.toggle("show");
+  overlay.classList.toggle("show");
+};
+
+hamburger.addEventListener("click", toggleMobileMenu);
+overlay.addEventListener("click", toggleMobileMenu);
+  // Social share links
+  const currentURL = encodeURIComponent(window.location.href);
+  const pageTitle = encodeURIComponent(document.title);
+
+  document.querySelectorAll(".facebook-share").forEach(el =>
+    el.href = `https://www.facebook.com/sharer/sharer.php?u=${currentURL}`
+  );
+  document.querySelectorAll(".whatsapp-share").forEach(el =>
+    el.href = `https://wa.me/?text=${pageTitle}%20${currentURL}`
+  );
+  document.querySelectorAll(".twitter-share").forEach(el =>
+    el.href = `https://twitter.com/intent/tweet?url=${currentURL}&text=${pageTitle}`
+  );
+  document.querySelectorAll(".telegram-share").forEach(el =>
+    el.href = `https://t.me/share/url?url=${currentURL}&text=${pageTitle}`
+  );
+});
+
+    </script>
+  </footer>
+  <button id="backToTop" title="Back to Top">⬆</button>
+  <script>
+    const backToTopBtn = document.getElementById("backToTop");
+    window.addEventListener("scroll", () => {
+      if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
+        backToTopBtn.style.display = "block";
+      } else {
+        backToTopBtn.style.display = "none";
+      }
+    });
+
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  </script>
+  
+
+</body>
+</html>
