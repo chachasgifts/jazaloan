@@ -342,27 +342,29 @@ canvas {
   height: 26px;
 }
 footer {
-  background-color: #03457b;
-  padding: 10px 0;
-  font-size: 13px;
-  text-align: center;
-  color: white;
-}
-footer a {
-  color: white;
-  text-decoration: none;
-  margin: 0 5px;
-}
-footer a:hover { text-decoration: underline; }
-.qa-block {
-  margin-bottom: 30px;
-  padding: 10px 15px;
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-left: 5px solid #03457b;
-  border-radius: 6px;
-  animation: fadeInAnswer 0.35s ease-in-out;
-}
+      background-color: #03457b;
+      padding: 10px 0;
+      font-size: 13px;
+      text-align: center;
+      color: #fff;
+    }
+    footer a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
 .qa-block h3 {
   color: #03457b;
   font-size: 18px;
@@ -441,7 +443,6 @@ footer a:hover { text-decoration: underline; }
   <p style="margin-top:8px; font-size:0.9rem; color:#000000;">
   Not sure about your <strong>net salary</strong>? Use our <a href="index.html#paye-section" style="color:#2980b9; text-decoration:underline;">Free PAYE Calculator</a> to find out exactly how much you take home — then budget confidently!
 </p>
-
 
   <div class="results" id="results" style="display:none;">
     <h3 id="resultsHeading">Budget Breakdown</h3>
@@ -943,8 +944,8 @@ document.getElementById("resetBtn").addEventListener("click", () => {
       <span>|</span>
       <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
     </div>
-
-  </footer>
+    </footer>
+    
     <button id="backToTop" title="Back to Top">⬆</button>
   <script>
     const backToTopBtn = document.getElementById("backToTop");
