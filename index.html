@@ -1861,13 +1861,12 @@ document.querySelectorAll("#mobileNav a").forEach(link => {
 });
 
 document.addEventListener('DOMContentLoaded', function () {
-  if (window.location.hash === '#paye-section') {
-    setTimeout(() => {
-      const target = document.querySelector(window.location.hash);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100); // delay ensures scripts & layout are ready
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('paye')) {
+    const target = document.getElementById('paye-section');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 });
 
