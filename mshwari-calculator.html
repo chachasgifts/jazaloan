@@ -8,7 +8,7 @@
   <!-- Open Graph -->
 <meta property="og:title" content="M‑Shwari Loan Calculator Kenya" />
 <meta property="og:description" content="Accurate M‑Shwari loan breakdown for Kenyan borrowers. Calculate fees, disbursed amount, and due date easily." />
-<meta property="og:url" content="https://jazaloan.co.ke/mshwari-loan-calculator" />
+<meta property="og:url" content="https://jazaloancalculator.co.ke/mshwari-loan-calculator" />
 <meta property="og:type" content="website" />
 
 <!-- Twitter Card -->
@@ -23,10 +23,10 @@
 <link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
   
   <style>
-    /* --- Mobile-safe defaults (no layout change on desktop) --- */
-html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; } /* stop iOS auto text zoom */
-*, *::before, *::after { box-sizing: border-box; }                    /* padding won't cause overflow */
-img, svg, video { max-width: 100%; height: auto; display: block; }    /* media never wider than screen */
+  
+html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+*, *::before, *::after { box-sizing: border-box; }                   
+img, svg, video { max-width: 100%; height: auto; display: block; }    
 
 .header-content { width: 100%; }
 .container { width: 100%; } 
@@ -40,7 +40,6 @@ img, svg, video { max-width: 100%; height: auto; display: block; }    /* media n
       margin: 0;
       padding: 0;
     }
-/* ————— Sticky Shrinking Header ————— */
 .site-header {
   position: sticky;
   top: 0;
@@ -61,7 +60,6 @@ img, svg, video { max-width: 100%; height: auto; display: block; }    /* media n
   padding: 4px 8px;
 }
 
-/* ————— Header / Logo / Nav ————— */
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -101,8 +99,6 @@ img, svg, video { max-width: 100%; height: auto; display: block; }    /* media n
   transition: width 0.3s ease;
 }
 .navbar a:hover::after { width: 100%; }
-
-/* ————— Mobile Nav + Hamburger ————— */
 .hamburger {
   display: none;
   flex-direction: column;
@@ -142,10 +138,10 @@ img, svg, video { max-width: 100%; height: auto; display: block; }    /* media n
   box-shadow: -2px 0 8px rgba(0,0,0,0.1);
   transition: transform 0.3s ease;
   z-index: 999;
-  transform: translateX(100%);   /* hidden off-canvas without affecting layout width */
+  transform: translateX(100%);  
 }
 .mobile-nav.show {
-  transform: translateX(0);      /* slide in */
+  transform: translateX(0);  
 }
 
 .mobile-nav a {
@@ -167,12 +163,10 @@ img, svg, video { max-width: 100%; height: auto; display: block; }    /* media n
 }
 
 @media (max-width: 768px) {
-  /* Show hamburger, hide desktop navbar */
   .hamburger { display: flex; }
   .desktop-only, 
-  .navbar { display: none !important; }
+  .navbar { display: none; }
 
-  /* Keep logo left, hamburger right */
   .header-content {
     display: flex;
     flex-direction: row;
@@ -180,8 +174,6 @@ img, svg, video { max-width: 100%; height: auto; display: block; }    /* media n
     align-items: center;
     width: 100%;
   }
-
-  /* Make sure logo doesn't auto-center */
   .logo {
     margin-left: 0;
     display: block;
@@ -1053,4 +1045,5 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
+
 
