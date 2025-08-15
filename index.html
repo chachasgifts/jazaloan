@@ -11,7 +11,6 @@
    html {
   scroll-behavior: smooth;
 }
-   /* All of your original styles are preserved */
     body {
       font-family: Arial, sans-serif;
       background: #f2f2f2;
@@ -19,7 +18,7 @@
       padding: 0;
     }
     .container {
-      max-width: 600px;
+      max-width: 750px;
       margin: 30px auto;
       background: #fff;
       padding: 20px;
@@ -181,10 +180,10 @@
     .navbar a:hover::after {
       width: 100%;
     }
-    /* Add spacing below dropdown parent link to separate the dropdown menu */
+    
 .navbar .dropdown > a {
   padding: 6px 10px;
-  margin-bottom: 8px; /* 👈 Adds gap so dropdown doesn't overlap */
+  margin-bottom: 8px;
   display: inline-block;
 }
     #about {
@@ -193,7 +192,7 @@
       margin: 40px auto;
       padding: 25px 20px;
       font-family: 'Segoe UI', sans-serif;
-      max-width: 800px;
+      max-width: 950px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
     }
@@ -255,19 +254,18 @@
       transform: scale(1.15);
     }
 
-    /* Styles for the Reviews Section (already added) */
     #reviews-section {
-      background-color: #f0f8ff; /* Light blue background */
+      background-color: #f0f8ff; 
       padding: 40px 20px;
       margin: 40px auto;
-      max-width: 900px; /* Slightly wider than container to differentiate */
+      max-width: 1100px; 
       border-radius: 10px;
       box-shadow: 0 0 15px rgba(0,0,0,0.08);
       text-align: center;
     }
 
     #reviews-section h2 {
-      color: #044378; /* Darker blue from footer */
+      color: #044378; 
       margin-bottom: 30px;
       font-size: 2em;
     }
@@ -287,7 +285,7 @@
       text-align: left;
       display: flex;
       flex-direction: column;
-      justify-content: space-between; /* Pushes reviewer to bottom */
+      justify-content: space-between;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
@@ -297,7 +295,7 @@
     }
 
     .review-card .stars {
-      color: #ffc107; /* Gold color for stars */
+      color: #ffc107;
       font-size: 1.5em;
       margin-bottom: 10px;
     }
@@ -306,152 +304,36 @@
       font-size: 1em;
       line-height: 1.6;
       color: #555;
-      margin-bottom: 15px; /* Space between text and reviewer */
-      flex-grow: 1; /* Allows text to grow and push reviewer down */
+      margin-bottom: 15px; 
+      flex-grow: 1; 
     }
 
     .review-card .reviewer {
       font-size: 0.9em;
       font-style: italic;
-      color: #777;
+      color: #000000;
       text-align: right;
-      margin-top: auto; /* Pushes reviewer to the bottom of the card */
+      margin-top: auto; 
     }
 
-    /* Responsive adjustments for smaller screens */
     @media (max-width: 768px) {
       .review-grid {
-        grid-template-columns: 1fr; /* Stack reviews on smaller screens */
+        grid-template-columns: 1fr; 
       }
     }
+.loan-calc input,
+.loan-calc select {
+  max-width: 720px;     
+  border-color: #27ae60;
+}
+@media (max-width: 600px) {
+  .loan-calc input,
+  .loan-calc select {
+    max-width: 325px;    
+    border-color: #27ae60;
+  }
+}
 
-    /* NEW STYLES FOR BLOG PAGE (blog.html specific) */
-    .blog-container {
-        max-width: 900px; /* Wider container for blog content */
-        margin-top: 20px;
-    }
-
-    .blog-post-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 30px;
-        padding: 20px 0;
-    }
-
-    .blog-post-card {
-        background: #ffffff;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.07);
-        overflow: hidden; /* Ensures image corners are rounded */
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .blog-post-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-    }
-
-    .blog-post-card img {
-        width: 100%;
-        height: 200px; /* Fixed height for consistency */
-        object-fit: cover; /* Ensures image covers the area */
-        display: block;
-    }
-
-    .blog-post-content {
-        padding: 20px;
-        flex-grow: 1; /* Makes sure content takes up available space */
-        display: flex;
-        flex-direction: column;
-    }
-
-    .blog-post-content h3 {
-        margin-top: 0;
-        margin-bottom: 10px;
-        color: #2c3e50;
-        font-size: 1.4em;
-    }
-
-    .blog-post-content p {
-        font-size: 0.95em;
-        line-height: 1.5;
-        color: #666;
-        margin-bottom: 15px;
-        flex-grow: 1; /* Pushes button to bottom */
-    }
-
-    .blog-post-meta {
-        font-size: 0.85em;
-        color: #888;
-        margin-bottom: 10px;
-    }
-
-    .blog-post-card .read-more {
-        display: inline-block;
-        background-color: #007bff;
-        color: white;
-        padding: 10px 15px;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-        transition: background-color 0.3s ease;
-        align-self: flex-start; /* Align to the left within flex container */
-    }
-
-    .blog-post-card .read-more:hover {
-        background-color: #0056b3;
-    }
-
-    /* Individual Blog Post Styles (for blog-post-1.html) */
-    .individual-post-container {
-      max-width: 800px;
-      margin: 30px auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      line-height: 1.7;
-      color: #333;
-    }
-    .individual-post-container h1 {
-      text-align: left; /* Post title usually left-aligned */
-      margin-bottom: 20px;
-      color: #2c3e50;
-      font-size: 2.5em;
-    }
-    .individual-post-container .post-meta {
-      font-size: 0.9em;
-      color: #777;
-      margin-bottom: 25px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-    }
-    .individual-post-container img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      margin-bottom: 25px;
-      display: block; /* Ensure no extra space below image */
-    }
-    .individual-post-container p {
-      margin-bottom: 1em;
-    }
-    .individual-post-container h3 {
-      color: #044378;
-      margin-top: 30px;
-      margin-bottom: 15px;
-      font-size: 1.8em;
-    }
-    .individual-post-container ul {
-      margin-bottom: 1em;
-      padding-left: 25px;
-    }
-    .individual-post-container li {
-      margin-bottom: 0.5em;
-    }
-    /* Style for the select dropdown */
     select#repaymentType {
         width: 100%;
         padding: 10px;
@@ -468,7 +350,7 @@
     .faq-section {
   background: #ffffff;
   padding: 60px 20px;
-  max-width: 1000px;
+  max-width: 1140px;
   margin: 0 auto;
   color: #222;
   font-family: "Segoe UI", sans-serif;
@@ -630,14 +512,6 @@
   }
 }
 
-.mobile-nav .dropdown-content {
-    display: none;
-    flex-direction: column;
-    padding-left: 10px;
-  }
-  .mobile-nav .dropdown-content.show {
-    display: flex;
-  }
 .faq-item details[open] > summary ~ * {
   animation: fadeIn 0.4s ease-in-out;
 }
@@ -649,7 +523,7 @@
 .faq-item summary {
   cursor: pointer;
 }
-/* Match FAQ font and appearance */
+
 #loan-insight-section, 
 #loan-insight-section h2, 
 #loan-insight-section h3, 
@@ -675,7 +549,7 @@
 }
 .table-wrapper table {
   width: 100%;
-  min-width: 600px; /* Prevents cramping */
+  min-width: 600px;
   border-collapse: collapse;
 }
 .table-wrapper th, .table-wrapper td {
@@ -683,7 +557,7 @@
   padding: 8px;
 }
 #payeResults {
-  scroll-margin-top: 100px; /* Adjust for your sticky nav */
+  scroll-margin-top: 100px;
 }
 @keyframes slideDown {
   from {
@@ -698,15 +572,7 @@
 #results {
   scroll-margin-top: 100px;
 }
-/* Move hamburger to the right on mobile */
-@media (max-width: 768px) {
-  .hamburger {
-    display: flex;
-    margin-left: auto;
-    margin-right: 10px;
-    z-index: 1001;
-  }
-}
+
 .hamburger {
   display: none;
   flex-direction: column;
@@ -733,7 +599,6 @@
 .hamburger.active span:nth-child(3) {
   transform: rotate(-45deg) translate(5px, -5px);
 }
-
 .mobile-nav {
   position: fixed;
   top: 0;
@@ -758,6 +623,27 @@
   font-weight: 600;
   font-size: 16px;
 }
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+
+  .header-content {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+  }
+
 #overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -769,65 +655,33 @@
   display: block;
 }
 
-@media (max-width: 768px) {
-  .hamburger { display: flex; }
-  .desktop-only { display: none !important; }
-}
-
-.mobile-nav a {
-  padding: 12px 0;
-  font-size: 16px;
-  font-weight: bold;
-  color: #03457b;
-}
-@media (max-width: 768px) {
-  .dropdown-content {
-    display: none;
-    flex-direction: column;
-    padding: 10px 15px;
-    margin-top: 4px;
-    gap: 6px;
-    border-left: 2px solid #03457b;
-    background-color: #f9f9f9;
-  }
-
-  .dropdown-content.show {
-    display: flex;
-  }
-
-  .mobile-nav a {
-    padding: 12px 0;
-    font-size: 16px;
-    font-weight: bold;
-    color: #03457b;
-  }
-}
-.mobile-dropdown {
-  display: none;
-  flex-direction: column;
-  padding-left: 15px;
-  margin-top: 5px;
-  gap: 8px;
-}
-
-.mobile-dropdown.show {
-  display: flex;
-}
-
-.mobile-dropdown-wrapper .dropdown-toggle {
-  display: block;
-  padding: 10px 15px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-}
 #results {
   scroll-margin-top: 90px;
 }
+#paye-area {
+  padding: 25px 20px;
+  margin-top: 40px;
+  background: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  max-width: 850px;
+  margin-left: auto;
+  margin-right: auto;
+}
+#paye-area input{
+  max-width: 750px;
+  width: 100%;
+  margin: 0 auto;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  #paye-area input {
+    max-width: 300px; 
+  }
+}
 
 </style>
-
-
 </head>
 <body>
  <header class="site-header fade-in">
@@ -837,11 +691,11 @@
     <img src="Images/logo.png" alt="JazaLoan – Kenya's Mobile Loan Guide" class="logo animated-logo" />
   </a>
 
-  <div class="hamburger" id="hamburger" aria-label="Toggle mobile menu">
-    <span></span>
-    <span></span>
-    <span></span>
-  </div>
+  <div id="hamburger" class="hamburger">
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
 
   <!-- Desktop Nav -->
   <nav class="navbar desktop-only" id="mainNav">
@@ -886,6 +740,7 @@
   <div class="container">
     <h1>Kenya Loan Calculator - JazaLoan</h1>
     <div class="ad-space">[Ad Space - Top]</div>
+    <div class="loan-calc">
     <label for="amount">Loan Amount (Ksh):</label>
     <input type="text" id="amount" placeholder="e.g. 50,000" oninput="formatNumberInput(this)">
     <label for="rate">Interest Rate (% per year):</label>
@@ -898,6 +753,8 @@
   <option value="fixed">Fixed Principal (SACCO style)</option>
   <option value="emi">Equal Installments (Bank style)</option>
 </select>
+</div>
+
     <button onclick="calculateLoan()">Calculate (Reducing Balance)</button>
     <button onclick="calculateFlatLoan()">Calculate (Flat Rate)</button>
     <div class="results" id="results" style="display: none;">
@@ -1001,22 +858,29 @@
 </div>
 
 </section>
-
+  </div>
+  
+  <section id="paye-area" style="padding:25px 20px; margin-top:40px; max-width:800px; background:#f9f9f9; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.05); margin-left:auto; margin-right:auto;">
     <div id="paye-section" class="paye-section">
-      <h2>Kenya PAYE Calculator</h2>
-      <label for="gross">Gross Monthly Salary (Ksh):</label>
-      <input type="text" id="gross" placeholder="e.g. 50,000" oninput="formatGrossInput(this)" />
-      <button onclick="calculatePAYE()">Calculate PAYE</button>
-      <div id="payeResults" style="margin-top: 15px;"></div>
-      <button id="payslip-btn" style="display: none;" onclick="downloadPayslip()">Download Payslip PDF</button>
-      <button id="paye-reset-btn" onclick="resetPAYEInputs()" style="display: none; margin-top: 15px;">Reset & Start Again</button>
-      <p id="budgetCta" style="display:none; margin-top:8px; font-size:0.9rem; color:#2c3e50;">
-  Ready to make the most of your <strong>net salary</strong>? Try our 
-  <a href="budgeting-calculator.html" style="color:#2980b9; text-decoration:underline;">Budget Calculator</a> to plan your expenses and savings easily!
-</p>
 
-    </div>
-   <div class="faq-item">
+  <h2>Kenya PAYE Calculator</h2>
+  <label for="gross">Gross Monthly Salary (Ksh):</label>
+  <input type="text" id="gross" placeholder="e.g. 50,000" oninput="formatGrossInput(this)" />
+  <button onclick="calculatePAYE()">Calculate PAYE</button>
+
+  <div id="payeResults" style="margin-top: 15px;"></div>
+  <button id="payslip-btn" style="display:none;margin-top:15px;" onclick="downloadPayslip()">Download Payslip PDF</button>
+  <button id="paye-reset-btn" style="display:none;margin-top:15px;" onclick="resetPAYEInputs()">Reset & Start Again</button>
+
+  <p id="budgetCta" style="display:none; margin-top:8px; font-size:0.9rem; color:#2c3e50;">
+    Ready to make the most of your <strong>net salary</strong>? Try our
+    <a href="budgeting-calculator.html" style="color:#2980b9; text-decoration:underline;">Budget Calculator</a>
+  </p>
+
+
+</div>
+
+   <div >
   <h3>Understanding PAYE in Kenya – Income Tax Breakdown (2025)</h3>
   <p>
     The PAYE (Pay As You Earn) system in Kenya is a monthly tax deduction method applied to employees’ salaries. It ensures that income tax is collected in real-time by employers on behalf of the Kenya Revenue Authority (KRA). This calculator is updated with the 2025 income tax brackets, housing levy changes, NHIF (SHIF) contributions, and the new NSSF structure to give you the most accurate breakdown of your payslip.
@@ -1113,16 +977,17 @@
     <a href="best-loans-by-salary.html">Loan Options by Salary</a> page. It compares mobile loans, SACCOs, and salary advances that match your income level.
   </p>
 </div>
+</section>
+</div>
 
 
-  </div>
  <section id="about" class="faq-item" style="padding: 25px 20px; margin-top: 40px;">
   <h2>About JazaLoan</h2>
   <p>
     <strong>JazaLoan</strong> is Kenya’s most trusted, free online financial toolkit — purpose-built to help you calculate your loans and taxes with clarity and confidence. Whether it’s reducing balance, flat rate loans, or PAYE tax deductions, we’ve got you covered.
   </p>
 
-  <h4 style="margin-top: 20px;">Why Kenyans Choose JazaLoan:</h4>
+  <h3 style="margin-top: 20px;">Why Kenyans Choose JazaLoan:</h3>
   <ul style="line-height: 1.8;">
     <li>✔ Instant, accurate monthly breakdowns</li>
     <li>✔ PDF reports you can download or share</li>
@@ -1134,7 +999,6 @@
     Our mission is to equip every Kenyan — from employees to entrepreneurs — with clear, accessible tools to take control of their finances. At JazaLoan, you don’t just calculate — you understand, plan, and grow.
   </p>
 </section>
-
 
   <section id="reviews-section">
     <h2>What Our Users Say</h2>
@@ -1161,6 +1025,84 @@
         </div>
     </div>
   </section>
+
+  <section id="faq" class="faq-section">
+  <h2>Frequently Asked Questions (FAQs)</h2>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">What is JazaLoan and who is it for?</button>
+    <div class="faq-answer">
+      <p>JazaLoan is a free, mobile-friendly financial tool designed to help Kenyans — including employees, self-employed individuals, and SMEs — make informed loan and salary-related decisions. We offer calculators for loan repayment, PAYE, NHIF, and NSSF with downloadable PDF breakdowns.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Which types of loans does JazaLoan support?</button>
+    <div class="faq-answer">
+      <p>We support a wide range of loans including reducing balance, flat rate, SACCO loans, HELB, mobile loans (like M-Shwari or Fuliza), and SME financing. Our main goal is to help you understand and compare loans before making a financial decision.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">What’s the difference between reducing balance and flat rate loans in Kenya?</button>
+    <div class="faq-answer">
+      <p>A reducing balance loan charges interest on the remaining loan balance each month, meaning your interest reduces over time. A flat rate loan charges interest on the original loan amount for the entire period. Reducing balance is more cost-effective over time, and JazaLoan clearly explains both with full breakdowns.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">How is PAYE calculated in Kenya (2025)?</button>
+    <div class="faq-answer">
+      <p>PAYE is calculated based on income tax bands provided by KRA, along with deductions like housing levy, personal relief, and more. JazaLoan stays updated with the latest Finance Act changes to calculate your tax correctly.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">How is NHIF calculated in Kenya (2025)?</button>
+    <div class="faq-answer">
+      <p>As of 2025, NHIF contributions are calculated as a percentage of gross salary. JazaLoan reflects this updated formula, including minimum thresholds and employer contributions, based on the latest NHIF guidelines.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Can I download or print my loan or PAYE breakdown?</button>
+    <div class="faq-answer">
+      <p>Yes! Every calculation on JazaLoan includes a "Download PDF" button — ideal for sharing with your accountant, HR, loan officer, or for your own records.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Is JazaLoan really free?</button>
+    <div class="faq-answer">
+      <p>Absolutely. JazaLoan is 100% free. No sign-ups or hidden charges. Our mission is to make financial tools accessible to all Kenyans, at no cost.</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-question" onclick="toggleFAQ(this)">Are there new calculators coming soon?</button>
+    <div class="faq-answer">
+      <p>Yes. We plan to launch mortgage and car loan calculators tailored to Kenyan lending terms, along with alerts when NHIF, PAYE, or NSSF rules change.</p>
+    </div>
+  </div>
+  <div style="text-align: center; margin-top: 30px;">
+  <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
+  <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloan.co.ke" target="_blank" title="Share on WhatsApp">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+  </div>
+</div>
+
+</section>
 
   <script>
     let lastLoanType = '';
@@ -1635,84 +1577,6 @@ function toggleFAQ(button) {
 }
 
   </script>
-<section id="faq" class="faq-section">
-  <h2>Frequently Asked Questions (FAQs)</h2>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">What is JazaLoan and who is it for?</button>
-    <div class="faq-answer">
-      <p>JazaLoan is a free, mobile-friendly financial tool designed to help Kenyans — including employees, self-employed individuals, and SMEs — make informed loan and salary-related decisions. We offer calculators for loan repayment, PAYE, NHIF, and NSSF with downloadable PDF breakdowns.</p>
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">Which types of loans does JazaLoan support?</button>
-    <div class="faq-answer">
-      <p>We support a wide range of loans including reducing balance, flat rate, SACCO loans, HELB, mobile loans (like M-Shwari or Fuliza), and SME financing. Our main goal is to help you understand and compare loans before making a financial decision.</p>
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">What’s the difference between reducing balance and flat rate loans in Kenya?</button>
-    <div class="faq-answer">
-      <p>A reducing balance loan charges interest on the remaining loan balance each month, meaning your interest reduces over time. A flat rate loan charges interest on the original loan amount for the entire period. Reducing balance is more cost-effective over time, and JazaLoan clearly explains both with full breakdowns.</p>
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">How is PAYE calculated in Kenya (2025)?</button>
-    <div class="faq-answer">
-      <p>PAYE is calculated based on income tax bands provided by KRA, along with deductions like housing levy, personal relief, and more. JazaLoan stays updated with the latest Finance Act changes to calculate your tax correctly.</p>
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">How is NHIF calculated in Kenya (2025)?</button>
-    <div class="faq-answer">
-      <p>As of 2025, NHIF contributions are calculated as a percentage of gross salary. JazaLoan reflects this updated formula, including minimum thresholds and employer contributions, based on the latest NHIF guidelines.</p>
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">Can I download or print my loan or PAYE breakdown?</button>
-    <div class="faq-answer">
-      <p>Yes! Every calculation on JazaLoan includes a "Download PDF" button — ideal for sharing with your accountant, HR, loan officer, or for your own records.</p>
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">Is JazaLoan really free?</button>
-    <div class="faq-answer">
-      <p>Absolutely. JazaLoan is 100% free. No sign-ups or hidden charges. Our mission is to make financial tools accessible to all Kenyans, at no cost.</p>
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-question" onclick="toggleFAQ(this)">Are there new calculators coming soon?</button>
-    <div class="faq-answer">
-      <p>Yes. We plan to launch mortgage and car loan calculators tailored to Kenyan lending terms, along with alerts when NHIF, PAYE, or NSSF rules change.</p>
-    </div>
-  </div>
-  <div style="text-align: center; margin-top: 30px;">
-  <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
-  <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloan.co.ke" target="_blank" title="Share on WhatsApp">
-      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
-    </a>
-    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
-      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
-    </a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
-      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
-    </a>
-    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
-      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
-    </a>
-  </div>
-</div>
-
-</section>
-
   <footer>
     <div class="footer-content">
       <span><strong>JazaLoan</strong></span>
