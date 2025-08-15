@@ -239,7 +239,7 @@
 }
 
     .container {
-      max-width: 600px;
+      max-width: 800px;
       margin: 30px auto;
       background: #fff;
       padding: 20px;
@@ -287,7 +287,7 @@
     }
     
     .affiliate, .about {
-      max-width: 800px;
+      max-width: 900px;
       margin: 40px auto;
       background: #fff;
       padding: 25px 20px;
@@ -374,7 +374,25 @@
   background-color: #0056b3; /* Darker blue on hover */
   transform: scale(1.03);
 }
+  .small-input {
+    max-width: 800px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
 
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+   @media (max-width: 600px) {
+    .small-input {
+      max-width: 360px;
+    }
+  }
   </style>
 </head>
 <body>
@@ -420,25 +438,16 @@
   </p>
 </main>
 
- <label for="loanAmount">Loan Amount (Ksh):</label>
-<input type="text" id="loanAmount" placeholder="e.g. 5,000" oninput="formatNumberInput(this)" />
-
+<label for="loanAmount">Loan Amount (Ksh):</label>
+<input type="text" id="loanAmount" class="small-input" placeholder="e.g. 5,000" oninput="formatNumberInput(this)" />
 <label for="appDate">Application Date:</label>
-<input type="date" id="appDate" />
-
+<input type="date" id="appDate" class="small-input" />
 <label for="feeRate">Facility Fee Rate (%):</label>
-<input type="text" id="feeRate" value="8.88" readonly autocomplete="off" />
-
-
+<input type="text" id="feeRate" class="small-input" value="8.88" readonly autocomplete="off" />
 <p>Note: The default facility fee of 8.88% is the current official KCB M-PESA rate for one-month loans. Excise duty (1.5%) will also be deducted from the disbursed amount.</p>
 
-<!-- Only this Calculate button -->
 <button id="calculateBtn" onclick="calcKCB()">Calculate</button>
-
-<!-- Hidden result box -->
 <div id="kcbResult" style="display:none; margin-top:20px;"></div>
-
-<!-- Hidden Download + Reset section -->
 <div id="downloadSection" style="display:none; margin-top:10px;">
   <button onclick="downloadKCB()">Download</button>
   <button onclick="resetKCB()">Reset</button>
