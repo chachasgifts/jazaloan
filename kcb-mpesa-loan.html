@@ -27,7 +27,6 @@
 .fade-in {
       animation: fadeIn 0.8s ease-in-out;
     }
-    /* ————— Sticky Shrinking Header ————— */
 .site-header {
   position: sticky;
   top: 0;
@@ -47,8 +46,6 @@
   font-size: 13px;
   padding: 4px 8px;
 }
-
-/* ————— Header / Logo / Nav ————— */
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -88,8 +85,6 @@
   transition: width 0.3s ease;
 }
 .navbar a:hover::after { width: 100%; }
-
-/* ————— Mobile Nav + Hamburger ————— */
 .hamburger {
   display: none;
   flex-direction: column;
@@ -154,13 +149,11 @@
   .hamburger { display: flex; }
   .desktop-only { display: none !important; }
 }
-/* Ensure header layout keeps logo left + hamburger right */
   .header-content {
     display: flex;
-    justify-content: space-between; /* Logo on left, hamburger on right */
+    justify-content: space-between;
     align-items: center;
   }
-/* ————— Mobile-only Share (Bottom) ————— */
 .mobile-only-share {
   display: none;
 }
@@ -232,7 +225,7 @@
   transform: scale(1.15);
 }
 .site-header {
-  height: 100px; /* or however tall it is initially */
+  height: 100px; 
   transition: all 0.3s ease;
 }
 
@@ -241,7 +234,6 @@
   padding: 2px 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-
     .container {
       max-width: 800px;
       margin: 30px auto;
@@ -357,7 +349,7 @@
   background: #f9f9f9;
   padding: 15px 20px;
   border-left: 6px solid transparent;
-  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1; /* Green → Blue */
+  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1;
   font-size: 1.05em;
   line-height: 1.6;
   border-radius: 6px;
@@ -365,7 +357,7 @@
 }
 .mshwari-btn {
   display: inline-block;
-  background-color: #007bff; /* Blue */
+  background-color: #007bff;
   color: white;
   padding: 12px 20px;
   border-radius: 5px;
@@ -375,7 +367,7 @@
   transition: transform 0.2s ease, background-color 0.3s ease;
 }
 .mshwari-btn:hover {
-  background-color: #0056b3; /* Darker blue on hover */
+  background-color: #0056b3;
   transform: scale(1.03);
 }
   .small-input {
@@ -456,7 +448,6 @@
   <button onclick="downloadKCB()">Download</button>
   <button onclick="resetKCB()">Reset</button>
 </div>
-<!-- Mshwari Calculator Link (Initially Hidden) -->
 <div id="mshwariLink" style="display:none; margin-top:15px; text-align:center; font-size: 15px; color: #2c3e50;">
   <p>
     Interested in checking your <strong>Mshwari loan</strong>? 
@@ -533,16 +524,16 @@
   <div style="text-align: center; margin-top: 30px;">
   <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
   <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloan.co.ke" target="_blank" title="Share on WhatsApp">
+    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloancalculator.co.ke" target="_blank" title="Share on WhatsApp">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloancalculator.co.ke" target="_blank" title="Share on Facebook">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloancalculator.co.ke" target="_blank" title="Share on LinkedIn">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
+    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloancalculator.co.ke" target="_blank" title="Share on X (Twitter)">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
     </a>
   </div>
@@ -572,7 +563,6 @@ function formatNumberInput(input) {
   }
 }
 
-// Formats input with Kenya-style commas
 function formatNumberInput(input) {
   let value = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
   if (value) {
@@ -582,7 +572,6 @@ function formatNumberInput(input) {
   }
 }
 
-// Main KCB M-PESA loan calculator
 function calcKCB() {
   const rawValue = document.getElementById("loanAmount").value.replace(/,/g, "");
   const amt = parseFloat(rawValue);
@@ -699,8 +688,7 @@ function downloadKCB() {
     }
   });
 
-  // Add a professional summary below the table
-  const finalY = doc.lastAutoTable.finalY + 20; // position below table
+  const finalY = doc.lastAutoTable.finalY + 20; 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text("Loan Summary Highlights:", 40, finalY);
@@ -788,5 +776,6 @@ overlay.addEventListener("click", toggleMobileMenu);
   
 </body>
 </html>
+
 
 
