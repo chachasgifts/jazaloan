@@ -1043,10 +1043,16 @@ document.addEventListener("DOMContentLoaded", () => {
   allDetails.forEach((detail) => {
     detail.addEventListener("toggle", function () {
       if (this.open) {
+       
         allDetails.forEach((other) => {
           if (other !== this) {
-            other.removeAttribute("open"); // close others
+            other.removeAttribute("open");
           }
+        });
+
+        this.scrollIntoView({
+          behavior: "smooth",
+          block: "start" 
         });
       }
     });
