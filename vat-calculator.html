@@ -28,6 +28,63 @@
 <link rel="manifest" href="Images/site.webmanifest">
 <link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What Is VAT and How Does It Work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "VAT is a consumption tax applied whenever value is added along the supply chain. Businesses offset input VAT paid on purchases against output VAT charged on sales. The net VAT payable is Output Tax minus Input Tax."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What Are the Current VAT Rates in Kenya?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The standard VAT rate in Kenya is 16%. Zero-rated items are taxed at 0% (such as exports and essential goods), while exempt items like education, healthcare, and residential rent are not taxed. The 8% VAT on petroleum products was abolished in July 2023."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Who Should Register and Charge VAT?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Businesses with an annual turnover of Ksh 5 million or more must register for VAT. Voluntary registration is possible for smaller businesses wishing to claim input VAT. Registered businesses must issue electronic tax invoices and file monthly VAT returns."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How Do I Register for VAT in Kenya?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Registration is done through the KRA iTax portal using a KRA PIN. After applying for VAT obligation and approval, businesses must charge VAT, issue KRA-compliant invoices, and file monthly VAT returns including nil returns."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When Is VAT Due?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "VAT returns and payments must be filed by the 20th day of the following month. Late filing attracts penalties and interest."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How Do I Use the VAT Calculator?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Enter an amount, choose to add or remove VAT, select the VAT type (16%, 0%, or exempt), and click Calculate for instant results. The tool is ideal for quotations and checks but does not replace official KRA filing."
+      }
+    }
+  ]
+}
+</script>
+
 <style>
 html {
   scroll-behavior: smooth;
@@ -80,7 +137,6 @@ label {
     .results, .tutorial, .paye-section {
       margin-top: 25px;
       padding: 15px;
-      background: #ecf0f1;
       border-radius: 8px;
     }
     .ad-space {
@@ -508,7 +564,7 @@ details[open] > summary {
 
 @media (max-width: 600px) {
   #vatAmount {
-    max-width:
+    max-width:340px;
   }
 }
 
@@ -536,6 +592,7 @@ details[open] > summary {
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
     <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
 </nav>
 
 <nav class="mobile-nav" id="mobileNav">
@@ -543,120 +600,201 @@ details[open] > summary {
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
     <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="compare-loans.html">Compare Loans</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
 </nav>
 <div id="overlay" class="mobile-overlay"></div>
 </header>
 
 <!-- VAT Calculator -->
-  <main class="container" style="padding: 40px 20px;">
-    <h1>Kenya VAT Calculator 2025 – Add or Remove 16% VAT Instantly</h1>
-   <p class="intro-text">
-  Use our free <strong>Kenya VAT Calculator 2025</strong> to quickly add or remove the standard 
-  <strong>16% Value Added Tax (VAT)</strong> from any amount. Whether you’re a business owner, accountant, 
-  or shopper, this easy-to-use tool gives instant and accurate results. Perfect for calculating 
-  VAT-inclusive or VAT-exclusive prices in Kenya.
-</p>
+<main class="container" style="padding: 40px 20px;">
+  <h1>Kenya VAT Calculator 2025 – Add or Remove 16% VAT Instantly</h1>
+  <p class="intro-text">
+    Use our free <strong>Kenya VAT Calculator 2025</strong> to quickly add or remove the standard
+    <strong>16% Value Added Tax (VAT)</strong> from any amount. Whether you’re a business owner, accountant,
+    freelancer, or shopper, this easy-to-use tool gives instant and accurate results. Perfect for calculating
+    VAT-inclusive or VAT-exclusive prices in Kenya and for preparing <strong>KRA-compliant tax invoices</strong>.
+  </p>
 
-    <label for="vatAmount">Amount (Ksh):</label>
-    <input type="text" id="vatAmount" placeholder="e.g. 10,000" oninput="formatNumberInput(this)" />
+  <label for="vatAmount">Amount (Ksh):</label>
+  <input type="text" id="vatAmount" placeholder="e.g. 10,000" oninput="formatNumberInput(this)" />
 
-    <label for="vatMode">VAT Mode:</label>
-    <select id="vatMode">
-      <option value="add">Add 16% VAT</option>
-      <option value="remove">Remove 16% VAT</option>
-    </select>
+  <label for="vatMode">VAT Mode:</label>
+  <select id="vatMode">
+    <option value="add">Add VAT</option>
+    <option value="remove">Remove VAT</option>
+  </select>
 
-    <button onclick="calculateVAT()">Calculate VAT</button>
+  <label for="vatType">VAT Type:</label>
+  <select id="vatType">
+    <option value="16">Standard Rate (16%)</option>
+    <option value="0">Zero-rated (0%)</option>
+    <option value="exempt">Exempt (No VAT applied)</option>
+  </select>
 
-    <div id="vatResults" style="margin-top: 20px; display: none;">
-      <p><strong>VAT (16%):</strong> Ksh <span id="vatOnly"></span></p>
-      <p><strong>Net Amount:</strong> Ksh <span id="netAmount"></span></p>
-      <p><strong>Total Amount:</strong> Ksh <span id="grossAmount"></span></p>
-    </div>
+  <button onclick="calculateVAT()">Calculate VAT</button>
 
-    <!-- SEO Section -->
-    <section class="paye-seo" style="margin-top: 40px;">
-      <h3>How to Calculate VAT in Kenya (2025 Guide)</h3>
-<p>
-  In Kenya, the standard <strong>Value Added Tax (VAT)</strong> rate is <strong>16%</strong>, 
-  applied to most goods and services. This VAT Calculator allows you to instantly 
-  <strong>add VAT</strong> to a base price or <strong>remove VAT</strong> from a gross amount 
-  to find the pre-VAT value. It’s ideal for <strong>small business owners</strong>, 
-  <strong>freelancers</strong>, <strong>importers</strong>, and everyday consumers 
-  who want to verify pricing, prepare quotations, or issue <strong>KRA-compliant tax invoices</strong>.
-</p>
-<ul>
-  <li><strong>Standard VAT Rate:</strong> 16% (applies to most taxable goods and services)</li>
-  <li><strong>Zero-rated items:</strong> exports, certain basic foodstuffs</li>
-  <li><strong>Exempt items:</strong> education, healthcare, residential rent</li>
-  <li><strong>To remove VAT:</strong> divide the gross price by 1.16</li>
-  <li><strong>To calculate VAT directly:</strong> multiply the net price by 0.16</li>
-</ul>
-<p>
-  Need to check your income tax for 2025? 
-  Use our <a href="index.html#paye-section">Kenya PAYE Tax Calculator</a> for instant results.
-</p>
+  <div id="vatResults" 
+     style="margin-top: 20px; display: none; 
+            background-color:#e8f4ff; border:1px solid #bcd7f0; 
+            border-radius:10px; padding:20px;">
+  <p><strong>VAT:</strong> Ksh <span id="vatOnly"></span></p>
+  <p><strong>Net Amount:</strong> Ksh <span id="netAmount"></span></p>
+  <p><strong>Total Amount:</strong> Ksh <span id="grossAmount"></span></p>
 
+  <p style="font-size: 13px; color: #444; margin-top: 12px;">
+    <em>Note: VAT rates and regulations are subject to periodic review and amendments by the Kenya Revenue Authority (KRA). 
+    This calculation is provided for informational purposes only and may not reflect the most current statutory requirements.</em>
+  </p>
+</div>
 
-    </section>
-  </main>
+<!-- SEO Section -->
+<section class="paye-seo" style="margin-top: 40px;">
+  <h3>How to Calculate VAT in Kenya (2025 Guide)</h3>
+  <p>
+    In Kenya, the current <strong>Value Added Tax (VAT)</strong> regime is governed by the VAT Act, 2013
+    (as amended). The standard VAT rate is <strong>16%</strong>, which applies to most taxable goods and services.
+    There is also a <strong>0% zero-rated VAT</strong> for specific supplies such as exports and essential goods,
+    and <strong>exempt supplies</strong> like education, healthcare, and residential rent where VAT is not charged.
+    As of July 2023, the <strong>8% VAT on petroleum products was abolished</strong> under the Finance Act, 2023.
+  </p>
+  <ul>
+    <li><strong>Standard VAT Rate:</strong> 16% (applies to most goods and services)</li>
+    <li><strong>Zero-rated items:</strong> exports, certain foodstuffs, and essential supplies</li>
+    <li><strong>Exempt items:</strong> education, healthcare, financial services, residential rent</li>
+    <li><strong>To add VAT:</strong> multiply the net price by the VAT rate, then add it to the net amount</li>
+    <li><strong>To remove VAT:</strong> divide the gross price by (1 + VAT rate) to get the net value</li>
+  </ul>
+  <p>
+    This calculator helps you understand VAT breakdowns instantly and is ideal for 
+    <strong>business owners, freelancers, importers, and consumers in Kenya</strong>.
+  </p>
+</section>
+
+</main>
+
 <section class="affiliate">
-  <h2>Everything You Need to Know About VAT in Kenya</h2>
+  <h2>Everything You Need to Know About VAT in Kenya (2025 Guide)</h2>
+
+  <p>
+    Value Added Tax (VAT) in Kenya is governed by the <strong>VAT Act, 2013</strong> (as amended) and administered by the 
+    <strong>Kenya Revenue Authority (KRA)</strong>. It is an indirect consumption tax charged on the supply 
+    of taxable goods and services in Kenya, as well as on imports. VAT is collected by VAT-registered 
+    businesses who act as tax agents on behalf of the Government. Our free <strong>Kenya VAT Calculator 2025</strong> 
+    helps you instantly <strong>add VAT to a net price</strong> or <strong>remove VAT from a gross price</strong>, 
+    giving accurate results in seconds.
+  </p>
 
   <details>
-    <summary>What Is VAT?</summary>
+    <summary>What Is VAT and How Does It Work?</summary>
     <div class="faq-answer">
-    <p>VAT (Value Added Tax) is a consumption tax placed on a product whenever value is added at each stage of the supply chain. In Kenya, it is governed by the VAT Act 2013.</p>
+      <p>
+        VAT is a consumption tax applied whenever value is added along the supply chain. 
+        It operates under the <strong>Input Tax vs Output Tax</strong> system:
+      </p>
+      <ul>
+        <li><strong>Input Tax:</strong> VAT paid on purchases or imports for business use.</li>
+        <li><strong>Output Tax:</strong> VAT charged on sales of taxable goods and services.</li>
+        <li><strong>Tax Payable:</strong> Output Tax – Input Tax.</li>
+      </ul>
+      <p>
+        Example: If you purchase goods worth Ksh 10,000 + 16% VAT (Ksh 1,600), and sell them later, 
+        you can offset the input VAT you paid against the VAT you collect on sales. 
+      </p>
     </div>
   </details>
 
   <details>
-    <summary>What Are the Current VAT Rates?</summary>
+    <summary>What Are the Current VAT Rates in Kenya?</summary>
     <div class="faq-answer">
-    <p>As of 2025, the standard VAT rate in Kenya is 16%. Some goods and services may be zero-rated or exempt based on the tax classification.</p>
+      <ul>
+        <li><strong>16% (Standard Rate):</strong> Applies to most taxable goods and services.</li>
+        <li><strong>0% (Zero-rated):</strong> Exports and specific essential supplies (e.g. some foodstuffs). Input VAT is claimable.</li>
+        <li><strong>Exempt:</strong> Education, healthcare, residential rent, financial services, and others. Input VAT cannot be claimed.</li>
+      </ul>
+      <p>
+        Note: The <strong>8% VAT on petroleum products was abolished in July 2023</strong> under the Finance Act, 2023. 
+        Our VAT Calculator supports 16%, 0%, and exempt classifications.
+      </p>
     </div>
   </details>
 
   <details>
-    <summary>How to Use the VAT Calculator</summary>
+    <summary>Who Should Register and Charge VAT?</summary>
     <div class="faq-answer">
-    <ul>
-      <li>Enter the net or gross amount</li>
-      <li>Select whether to add or remove VAT</li>
-      <li>Click Calculate to get the result instantly</li>
-    </ul>
-    <p>The calculator computes the VAT and final amounts based on your selection.</p>
+      <p>
+        Any business with an annual taxable turnover of <strong>Ksh 5 million or more</strong> must register for VAT. 
+        Voluntary registration is allowed for smaller businesses if they wish to claim input VAT.
+      </p>
+      <p>
+        Once registered, businesses must:
+      </p>
+      <ul>
+        <li>Install and use an <strong>Electronic Tax Register (ETR)</strong> integrated with KRA systems.</li>
+        <li>Issue <strong>Electronic Tax Invoices (ETI)</strong> for every transaction.</li>
+        <li>File <strong>monthly VAT returns</strong> and remit tax by the <strong>20th of the following month</strong>.</li>
+      </ul>
     </div>
   </details>
 
   <details>
-    <summary>Who Should Charge VAT?</summary>
+    <summary>How Do I Register for VAT in Kenya?</summary>
     <div class="faq-answer">
-    <p>Businesses registered for VAT in Kenya (with annual turnover of Ksh 5 million and above) are required to charge VAT on taxable goods and services.</p>
+      <p>
+        VAT registration is done online via the <strong>KRA iTax portal</strong>. Log in with your 
+        <strong>KRA PIN</strong>, apply for the VAT obligation, and once approved, you’ll receive confirmation 
+        of your VAT status. After registration:
+      </p>
+      <ul>
+        <li>You must charge VAT on taxable supplies.</li>
+        <li>You must issue <strong>KRA-compliant electronic invoices</strong>.</li>
+        <li>You must file VAT returns monthly, even if there are no sales (nil returns).</li>
+      </ul>
     </div>
   </details>
 
   <details>
-    <summary>How to Register for VAT</summary>
+    <summary>When Is VAT Due?</summary>
     <div class="faq-answer">
-    <p>Visit the KRA iTax portal, log in using your PIN, and apply for VAT registration. Once approved, you're expected to file monthly VAT returns and remit collections to KRA.</p>
+      <p>
+        VAT returns and payments are due by the <strong>20th day of the following month</strong>. 
+        Late filing attracts penalties and interest, so it’s important to file on time via iTax.
+      </p>
     </div>
   </details>
+
+  <details>
+    <summary>How Do I Use the VAT Calculator?</summary>
+    <div class="faq-answer">
+      <ul>
+        <li>Enter the amount (net or gross).</li>
+        <li>Select whether to <strong>add</strong> or <strong>remove</strong> VAT.</li>
+        <li>Choose the VAT type: 16%, 0%, or exempt.</li>
+        <li>Click <strong>Calculate</strong> for instant results.</li>
+      </ul>
+      <p>
+        This tool is ideal for quotations and quick checks. For official filing and reporting, use the 
+        <strong>KRA iTax system</strong> which applies the full input-output VAT rules.
+      </p>
+    </div>
+  </details>
+
   <a href="index.html#loan-calculator" class="cta-button">Try Our Free Loan Calculator Now</a>
+</section>
 
   <div style="text-align: center; margin-top: 30px;">
   <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
   <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloancalculator.co.ke" target="_blank" title="Share on WhatsApp">
+    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloan.co.ke" target="_blank" title="Share on WhatsApp">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloancalculator.co.ke" target="_blank" title="Share on Facebook">
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloancalculator.co.ke" target="_blank" title="Share on LinkedIn">
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloancalculator.co.ke" target="_blank" title="Share on X (Twitter)">
+    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
     </a>
   </div>
@@ -718,72 +856,70 @@ overlay.addEventListener("click", toggleMobileMenu);
   );
 });
 
-    function calculateVAT() {
-      const raw = document.getElementById("vatAmount").value.replace(/,/g, '');
-      const amount = parseFloat(raw);
-      const mode = document.getElementById("vatMode").value;
+   function calculateVAT() {
+  const raw = document.getElementById("vatAmount").value.replace(/,/g, '');
+  const amount = parseFloat(raw);
+  const mode = document.getElementById("vatMode").value;
+  const vatType = document.getElementById("vatType").value;
 
-      if (!amount || amount <= 0) {
-        alert("Please enter a valid amount");
-        return;
-      }
+  if (!amount || amount <= 0) {
+    alert("Please enter a valid amount");
+    return;
+  }
 
-      let vat = 0, net = 0, gross = 0;
+  let vatRate = 0;
+  let vat = 0, net = 0, gross = 0, explanation = "";
 
-      if (mode === 'add') {
-        vat = amount * 0.16;
-        net = amount;
-        gross = amount + vat;
-      } else {
-        gross = amount;
-        net = amount / 1.16;
-        vat = gross - net;
-      }
+  // Set VAT rate based on selected type
+  if (vatType === "16") {
+    vatRate = 0.16;
+  } else if (vatType === "0") {
+    vatRate = 0; // zero-rated
+  } else if (vatType === "exempt") {
+    vatRate = null; // exempt → no VAT at all
+  }
 
-      document.getElementById("vatResults").innerHTML = `
-  <table>
-    <tr><th>VAT (16%)</th><td>Ksh ${vat.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-    <tr><th>Net Amount</th><td>Ksh ${net.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-    <tr><th>Total Amount</th><td>Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-  </table>
-  <div id="vatExplanation" style="margin-top:15px; font-size:15px; color:#444;"></div>
-<div style="margin-top:15px;">
-  <button onclick="downloadPDF()" class="read-more">Download PDF</button>
-  <button onclick="resetVAT()" class="read-more" style="margin-right:10px;">Reset & Clear</button>
-</div>
+  if (vatType === "exempt") {
+    net = amount;
+    gross = amount;
+    vat = 0;
+    explanation = `This item/service is <strong>VAT Exempt</strong>, so no VAT is charged. The amount remains Ksh ${net.toLocaleString("en-KE", { minimumFractionDigits: 2 })}.`;
+  } else if (mode === 'add') {
+    vat = amount * vatRate;
+    net = amount;
+    gross = amount + vat;
+    explanation = `This means you're adding ${vatRate * 100}% VAT to Ksh ${net.toLocaleString("en-KE", { minimumFractionDigits: 2 })}, making the total Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}.`;
+  } else {
+    gross = amount;
+    net = vatRate > 0 ? amount / (1 + vatRate) : amount;
+    vat = gross - net;
+    explanation = vatRate > 0 
+      ? `This means the original price before VAT was Ksh ${net.toLocaleString("en-KE", { minimumFractionDigits: 2 })}, and the VAT removed is Ksh ${vat.toLocaleString("en-KE", { minimumFractionDigits: 2 })}.`
+      : `Since this is zero-rated, the entire amount Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })} is treated as net, with no VAT charged.`;
+  }
 
-`;
-const explanation = mode === "add"
-  ? `This means you're adding 16% VAT to Ksh ${net.toLocaleString("en-KE", { minimumFractionDigits: 2 })}, making the total Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}.`
-  : `This means the original price before VAT was Ksh ${net.toLocaleString("en-KE", { minimumFractionDigits: 2 })}, and the VAT removed is Ksh ${vat.toLocaleString("en-KE", { minimumFractionDigits: 2 })}.`;
+  document.getElementById("vatResults").innerHTML = `
+    <table>
+      <tr><th>VAT Rate</th><td>${vatType === "exempt" ? "Exempt" : (vatRate * 100) + "%"}</td></tr>
+      <tr><th>VAT</th><td>Ksh ${vat.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+      <tr><th>Net Amount</th><td>Ksh ${net.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+      <tr><th>Total Amount</th><td>Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+    </table>
+    <div id="vatExplanation" style="margin-top:15px; font-size:15px; color:#444;">${explanation}</div>
+    <div style="margin-top:15px;">
+      <button onclick="downloadPDF()" class="read-more">Download PDF</button>
+      <button onclick="resetVAT()" class="read-more" style="margin-right:10px;">Reset & Clear</button>
+    </div>
+  `;
 
-document.getElementById("vatExplanation").innerText = explanation;
-
-document.getElementById("vatResults").style.display = "block";
-setTimeout(() => {
-  document.getElementById("vatResults").scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-}, 150);
-
-}
-  document.querySelectorAll(".affiliate details summary").forEach(summary => {
-    summary.addEventListener("click", function (e) {
-      const current = this.parentElement;
-      const allDetails = document.querySelectorAll(".affiliate details");
-
-      allDetails.forEach(detail => {
-        if (detail !== current) {
-          detail.removeAttribute("open");
-        }
-      });
-
-      setTimeout(() => {
-        current.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 250);
+  document.getElementById("vatResults").style.display = "block";
+  setTimeout(() => {
+    document.getElementById("vatResults").scrollIntoView({
+      behavior: "smooth",
+      block: "start"
     });
-  });
+  }, 150);
+}
 
  function resetVAT() {
   document.getElementById("vatAmount").value = "";
@@ -827,20 +963,17 @@ function downloadPDF() {
   doc.setDrawColor(41, 128, 185);
   doc.line(14, 38, 196, 38);
 
-  // —— EXTRACT VALUES ——
-  const vatStr = document.querySelector("#vatResults td:nth-child(2)").innerText;
-  const netStr = document.querySelector("#vatResults tr:nth-child(2) td:nth-child(2)").innerText;
-  const totalStr = document.querySelector("#vatResults tr:nth-child(3) td:nth-child(2)").innerText;
+  // —— EXTRACT VALUES FROM RESULTS ——
+  const rows = document.querySelectorAll("#vatResults table tr");
+  const vatRate = rows[0].querySelector("td").innerText;
+  const vatStr = rows[1].querySelector("td").innerText;
+  const netStr = rows[2].querySelector("td").innerText;
+  const totalStr = rows[3].querySelector("td").innerText;
 
-  // Parse numeric values (remove commas and symbols)
-  const parseKES = (s) => parseFloat(s.replace(/[^\d.-]/g, ""));
-  const netVal = parseKES(netStr);
-  const vatVal = parseKES(vatStr);
-  const totalVal = parseKES(totalStr);
-
-  // —— TABLE ——
+  // —— TABLE DATA ——
   const tableData = [
-    ["VAT (16%)", vatStr],
+    ["VAT Rate", vatRate],
+    ["VAT", vatStr],
     ["Net Amount", netStr],
     ["Total Amount", totalStr]
   ];
@@ -856,22 +989,23 @@ function downloadPDF() {
   });
 
   // —— DETAILED EXPLANATION ——
-  const explanation = 
-    `The VAT (16%) is calculated as Net Amount × 0.16 = Ksh ${vatVal.toLocaleString("en-KE", { minimumFractionDigits: 2 })}; ` +
-    `adding that to the Net Amount gives a Total of Ksh ${totalVal.toLocaleString("en-KE", { minimumFractionDigits: 2 })}.`;
+  const explanation = document.getElementById("vatExplanation")?.innerText || "";
 
-  doc.setFont("times", "bold");
-  doc.setFontSize(14);
-  doc.text("Detailed Explanation", 14, doc.lastAutoTable.finalY + 10);
+  if (explanation) {
+    doc.setFont("times", "bold");
+    doc.setFontSize(14);
+    doc.text("Detailed Explanation", 14, doc.lastAutoTable.finalY + 10);
 
-  doc.setFont("times", "normal");
-  doc.setFontSize(11);
-  doc.text(doc.splitTextToSize(explanation, 180), 14, doc.lastAutoTable.finalY + 16);
+    doc.setFont("times", "normal");
+    doc.setFontSize(11);
+    doc.text(doc.splitTextToSize(explanation, 180), 14, doc.lastAutoTable.finalY + 16);
+  }
 
   // —— FOOTER ——
   const pageHeight = doc.internal.pageSize.height;
   doc.setFont("times", "italic");
   doc.setFontSize(10);
+  doc.text("Note: VAT rates and regulations may change as determined by the Kenya Revenue Authority (KRA).", 14, pageHeight - 18);
   doc.text("Confidential – For Client Use Only", 14, pageHeight - 12);
   doc.text("Made by JazaLoan.co.ke", 105, pageHeight - 12, { align: "center" });
   doc.text("Page 1 of 1", 196, pageHeight - 12, { align: "right" });
@@ -879,6 +1013,7 @@ function downloadPDF() {
   // —— SAVE PDF ——
   doc.save("VAT_Calculation_Report.pdf");
 }
+
 
 </script>
 
@@ -912,5 +1047,3 @@ function downloadPDF() {
     
 </body>
 </html>
-
-
