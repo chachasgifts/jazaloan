@@ -1036,7 +1036,24 @@ function downloadPDF() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   </script>
-  
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const allDetails = document.querySelectorAll(".affiliate details");
+
+  allDetails.forEach((detail) => {
+    detail.addEventListener("toggle", function () {
+      if (this.open) {
+        allDetails.forEach((other) => {
+          if (other !== this) {
+            other.removeAttribute("open"); // close others
+          }
+        });
+      }
+    });
+  });
+});
+</script>
+
   <footer>
     <div class="footer-content">
       <span><strong>JazaLoan</strong></span>
