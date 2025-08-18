@@ -3,30 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>M‑Shwari Loan Calculator - JazaLoan Kenya</title>
-  <meta name="description" content="Use the M‑Shwari Loan Calculator to instantly estimate disbursement, facility fees, excise duty, and repayment due date. Trusted by Kenyan borrowers.">
-  <!-- Open Graph -->
-<meta property="og:title" content="M‑Shwari Loan Calculator Kenya" />
-<meta property="og:description" content="Accurate M‑Shwari loan breakdown for Kenyan borrowers. Calculate fees, disbursed amount, and due date easily." />
-<meta property="og:url" content="https://jazaloancalculator.co.ke/mshwari-loan-calculator" />
-<meta property="og:type" content="website" />
+  <title>M-Shwari Loan Calculator - JazaLoan Kenya</title>
+  <meta name="description" content="Use the M-Shwari Loan Calculator to instantly estimate disbursement, facility fees, excise duty, and repayment due date. Trusted by Kenyan borrowers.">
 
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="M‑Shwari Loan Calculator Kenya" />
-<meta name="twitter:description" content="Free Kenyan M‑Shwari loan calculator. Instantly view disbursed amount, facility fees, excise duty and due date." />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="Images/favicon.png">
+  <link rel="icon" type="image/x-icon" href="Images/favicon.ico">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="M-Shwari Loan Calculator Kenya" />
+  <meta property="og:description" content="Accurate M-Shwari loan breakdown for Kenyan borrowers. Calculate fees, disbursed amount, and due date easily." />
+  <meta property="og:url" content="https://jazaloancalculator.co.ke/mshwari-loan-calculator" />
+  <meta property="og:type" content="website" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="M-Shwari Loan Calculator Kenya" />
+  <meta name="twitter:description" content="Free Kenyan M-Shwari loan calculator. Instantly view disbursed amount, facility fees, excise duty and due date." />
+
 <link rel="icon" type="image/png" href="Images/favicon.png" sizes="32x32">
 <link rel="icon" type="image/x-icon" href="Images/favicon.ico">
 <link rel="icon" type="image/png" href="Images/favicon-96x96.png" sizes="96x96">
 <link rel="apple-touch-icon" sizes="180x180" href="Images/apple-touch-icon.png">
 <link rel="manifest" href="Images/site.webmanifest">
 <link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
-  
+
   <style>
-  
-html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-*, *::before, *::after { box-sizing: border-box; }                   
-img, svg, video { max-width: 100%; height: auto; display: block; }    
+    /* --- Mobile-safe defaults (no layout change on desktop) --- */
+html { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; } /* stop iOS auto text zoom */
+*, *::before, *::after { box-sizing: border-box; }                    /* padding won't cause overflow */
+img, svg, video { max-width: 100%; height: auto; display: block; }    /* media never wider than screen */
 
 .header-content { width: 100%; }
 .container { width: 100%; } 
@@ -40,6 +46,7 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
       margin: 0;
       padding: 0;
     }
+/* ————— Sticky Shrinking Header ————— */
 .site-header {
   position: sticky;
   top: 0;
@@ -60,6 +67,7 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
   padding: 4px 8px;
 }
 
+/* ————— Header / Logo / Nav ————— */
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -99,6 +107,8 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
   transition: width 0.3s ease;
 }
 .navbar a:hover::after { width: 100%; }
+
+/* ————— Mobile Nav + Hamburger ————— */
 .hamburger {
   display: none;
   flex-direction: column;
@@ -138,10 +148,10 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
   box-shadow: -2px 0 8px rgba(0,0,0,0.1);
   transition: transform 0.3s ease;
   z-index: 999;
-  transform: translateX(100%);  
+  transform: translateX(100%);   /* hidden off-canvas without affecting layout width */
 }
 .mobile-nav.show {
-  transform: translateX(0);  
+  transform: translateX(0);      /* slide in */
 }
 
 .mobile-nav a {
@@ -163,10 +173,12 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
 }
 
 @media (max-width: 768px) {
+  /* Show hamburger, hide desktop navbar */
   .hamburger { display: flex; }
   .desktop-only, 
-  .navbar { display: none; }
+  .navbar { display: none !important; }
 
+  /* Keep logo left, hamburger right */
   .header-content {
     display: flex;
     flex-direction: row;
@@ -174,6 +186,8 @@ img, svg, video { max-width: 100%; height: auto; display: block; }
     align-items: center;
     width: 100%;
   }
+
+  /* Make sure logo doesn't auto-center */
   .logo {
     margin-left: 0;
     display: block;
@@ -518,7 +532,7 @@ body.fade-in {
 }
 
   </style>
-  <link rel="canonical" href="https://jazaloancalculator.co.ke/mshwari-loan-calculator" />
+  <link rel="canonical" href="https://jazaloan.co.ke/mshwari-loan-calculator" />
 </head>
 <body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -536,9 +550,9 @@ body.fade-in {
     <!-- Desktop Nav -->
     <nav class="navbar desktop-only" id="mainNav">
       <a href="index.html">Home</a>
-      <a href="index.html#paye-section">PAYE Calculator</a>
       <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
       <a href="budgeting-calculator.html">Budgeting Calculator</a>
+      <a href="best-loans-by-salary.html">Loans by Salary</a>
       <a href="compare-loans.html">Compare Loans</a>
     </nav>
   </div>
@@ -546,9 +560,9 @@ body.fade-in {
   <!-- Mobile Nav -->
   <nav class="mobile-nav" id="mobileNav">
     <a href="index.html">Home</a>
-    <a href="index.html#paye-section">PAYE Calculator</a>
     <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
     <a href="compare-loans.html">Compare Loans</a>
   </nav>
   <div id="overlay" class="mobile-overlay"></div>
@@ -563,116 +577,175 @@ body.fade-in {
     This free online calculator uses the latest M-Shwari terms in Kenya to give you accurate results, 
     helping you plan and repay on time. Mobile-friendly, fast, and easy to use.
   </p>
-  <h2 style="text-align: center; color: #0b5e2b; margin-bottom: 15px;">Enter Your M‑Shwari Loan Details</h2>
+  
+ <h2 style="text-align: center; color: #0b5e2b; margin-bottom: 15px;">Enter Your M-Shwari Loan Details</h2>
 
-  <div style="display: flex; flex-direction: column; gap: 15px;">
-    <div>
-      <label for="mshwariAmount">Loan Amount (Ksh):</label>
-      <input
-  type="text"
-  id="mshwariAmount"
-  class="input"
-  placeholder="e.g. 5,000"
-  oninput="formatAmountInput(this)"
-/>
-
-    </div>
-    <div>
-      <label for="loanDate">Application Date:</label>
-      <input type="date" id="loanDate" />
-    </div>
-
-      <button onclick="calculateMshwariLoan()" class="btn">Calculate</button>
+<div style="display: flex; flex-direction: column; gap: 15px;">
+  <div>
+    <label for="mshwariAmount">Loan Amount (Ksh):</label>
+    <input
+      type="text"
+      id="mshwariAmount"
+      class="input"
+      placeholder="e.g. 5,000"
+      oninput="formatAmountInput(this)"
+    />
+  </div>
+  <div>
+    <label for="loanDate">Application Date:</label>
+    <input type="date" id="loanDate" />
   </div>
 
+  <button onclick="calculateMshwariLoan()" class="btn">Calculate</button>
+</div>
 
-<div id="mshwariResults" style="display:none; margin-top: 20px; scroll-margin-top: 100px;">
+<div id="mshwariResults" style="display:none; margin-top: 20px; scroll-margin-top: 100px; background-color:#e8f4ff; border:1px solid #bcd7f0; border-radius:10px; padding:20px;">
   <h3 style="color: #0b5e2b; font-size: 22px; margin-bottom: 15px;">
     Loan Repayment Breakdown
   </h3>
   <p>
     This breakdown includes your disbursed loan amount, facility fee, excise duty, and exact due date—
-    calculated in line with <strong>M-Shwari’s current terms</strong>.
+    calculated in line with <strong>M-Shwari’s current terms (2025)</strong>.
   </p>
 
   <p>M-PESA Deposited Amount: <strong>Ksh <span id="mpesaDeposited"></span></strong></p>
-  <p>Facility Fee (7.5%): <strong>Ksh <span id="facilityFee"></span></strong></p>
-  <p>Excise Duty on Fee (15%): <strong>Ksh <span id="exciseDuty"></span></strong></p>
+  <p>Facility Fee (7.5% of Loan): <strong>Ksh <span id="facilityFee"></span></strong></p>
+  <p>Excise Duty (1.5% of Loan): <strong>Ksh <span id="exciseDuty"></span></strong></p>
   <p>Total Repayment Amount: <strong>Ksh <span id="repaymentTotal"></span></strong></p>
   <p>M-Shwari Due Date (30 Days): <strong><span id="dueDate"></span></strong></p>
 
-  <div style="text-align: center; margin-top: 10px;">
-    <button 
-      onclick="downloadMshwariResults()" 
-      id="downloadBtn" 
-      style="display: none; background-color: #03457b; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
-      ⬇️ Download Breakdown (PDF)
-    </button>
+  <p style="font-size: 13px; color: #444; margin-top: 12px;">
+    <em>Note: Loan repayment is inclusive of a 1.5% excise duty, deducted upfront as per Safaricom/NCBA terms.</em>
+  </p>
+</div>
 
-  <div style="text-align: center; margin-top: 20px;">
-    <button 
-      onclick="resetMshwariCalculator()" 
-      id="resetBtn" 
-      style="display: none; background-color: #038531; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
-      🔄 Reset & Start Again
-    </button>
-  </div>
-  </main>
+<div style="text-align: center; margin-top: 10px;">
+  <button 
+    onclick="downloadMshwariResults()" 
+    id="downloadBtn" 
+    style="display: none; background-color: #03457b; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
+    ⬇️ Download Breakdown (PDF)
+  </button>
+</div>
 
-    <div style="margin: 40px auto; max-width: 728px; text-align: center; border: 1px dashed #ccc; padding: 20px;">
-      <em>Ad or affiliate link </em>
-    </div>
+<div style="text-align: center; margin-top: 20px;">
+  <button 
+    onclick="resetMshwariCalculator()" 
+    id="resetBtn" 
+    style="display: none; background-color: #038531; color: white; padding: 10px 20px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: transform 0.3s ease;">
+    🔄 Reset & Start Again
+  </button>
+</div>
+</main>
 
-   <div class="about" style="background-color: #ffffff; color: #1a202c; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; max-width: 900px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-  
+ <div style="margin: 40px auto; max-width: 728px; text-align: center; border: 1px dashed #ccc; padding: 20px;">
+  <em>Ad or affiliate link</em>
+</div>
+
+<div class="about" style="background-color: #ffffff; color: #1a202c; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; max-width: 900px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+
   <h2 style="color: #0b5e2b; font-size: 26px; margin-bottom: 15px;">
-    Estimate Your M-Shwari Loan in Seconds
+    M-Shwari Loan Calculator – Estimate Your Loan in Seconds
   </h2>
 
   <p style="font-size: 16px; line-height: 1.7; margin-bottom: 15px;">
-    The <strong>M-Shwari Loan Calculator</strong> gives you an instant, transparent breakdown of your loan cost before you apply.  
-    It accurately factors in the <strong>7.5% facility fee</strong> and the <strong>15% excise duty</strong> on that fee—so you’ll know exactly:
+    The <strong>M-Shwari Loan Calculator</strong> gives you an instant, transparent breakdown of your borrowing cost before you apply.  
+    It automatically factors in the <strong>7.5% facility fee</strong> plus the <strong>1.5% excise duty</strong>—so you’ll always know:
   </p>
 
   <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.6;">
-    <li>✅ How much will be credited to your M-PESA account after deductions</li>
+    <li>✅ How much will be deposited into your M-PESA wallet</li>
     <li>✅ Your total repayment amount after 30 days</li>
-    <li>✅ The true cost of borrowing before you commit</li>
+    <li>✅ The true cost of borrowing with no hidden charges</li>
   </ul>
 
   <p style="background-color: #f9fafb; padding: 15px; border-radius: 8px; font-size: 15px; color: #2d3748; margin-bottom: 20px;">
-    <strong>Example:</strong> Borrowing <strong>Ksh 5,000</strong> will result in a net deposit of about  
-    <strong>Ksh 4,568.75</strong> after deductions, with a repayment of <strong>Ksh 5,000</strong> due in 30 days.
+    <strong>Example:</strong> Borrowing <strong>Ksh 5,000</strong> will result in about  
+    <strong>Ksh 4,925</strong> credited to your M-PESA account, with a repayment of <strong>Ksh 5,375</strong> due in 30 days.
   </p>
 
-  <h3 style="color: #0b5e2b; margin-top: 20px;">Why Kenyan Borrowers Love This Calculator</h3>
+  <h3 style="color: #0b5e2b; margin-top: 20px;">Why Kenyan Borrowers Use the M-Shwari Loan Calculator</h3>
   <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
-    <li>📊 Real-time, accurate loan estimates</li>
-    <li>📱 Designed specifically for Kenyan M-PESA users</li>
-    <li>💡 Helps you plan repayments and avoid hidden costs</li>
-    <li>🔍 100% free, fast, and easy to use—no sign-up required</li>
+    <li>📊 Real-time, accurate M-Shwari loan estimates</li>
+    <li>📱 Designed specifically for M-PESA users in Kenya</li>
+    <li>💡 Helps you plan repayments and avoid loan defaults</li>
+    <li>🔍 100% free, fast, and easy to use—no registration needed</li>
   </ul>
 
-  <p style="font-size: 15px; line-height: 1.6;">
-    Make your money work smarter.
-    <a href="budgeting-calculator.html" style="color: #3182ce; font-weight: 600; text-decoration: none;">Try our Budgeting Calculator →</a> and See how your budget really looks.
+  <h3 style="color: #0b5e2b; margin-top: 20px;">What is M-Shwari?</h3>
+  <p style="font-size: 15px; line-height: 1.6; margin-bottom: 15px;">
+    <strong>M-Shwari</strong> is a mobile savings and loan service offered through M-PESA and powered by NCBA Bank.  
+    It allows you to save as little as <strong>Ksh 1</strong>, earn interest on deposits, and borrow from <strong>Ksh 1,000</strong> instantly, depending on your limit.
   </p>
 
+  <h3 style="color: #0b5e2b; margin-top: 20px;">M-Shwari Loan Terms & Features</h3>
+  <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
+    <li>💰 Loan amounts range from <strong>Ksh 100</strong> to <strong>Ksh 50,000+</strong> depending on your eligibility.</li>
+    <li>📆 Repayment period: <strong>30 days</strong> fixed.</li>
+    <li>📌 Charges: <strong>7.5% facility fee</strong> + <strong>1.5% excise duty</strong>, deducted upfront.</li>
+    <li>⚡ Instant loan disbursement directly to your M-PESA wallet.</li>
+  </ul>
+
+  <h3 style="color: #0b5e2b; margin-top: 20px;">How to Qualify for an M-Shwari Loan</h3>
+  <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
+    <li>✔️ Be an active M-PESA user for at least 6 months</li>
+    <li>✔️ Maintain savings on your M-Shwari account</li>
+    <li>✔️ Regularly use Safaricom services such as calls, SMS, and data</li>
+  </ul>
+
+  <h3 style="color: #0b5e2b; margin-top: 20px;">How to Apply for an M-Shwari Loan</h3>
+  <ol style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
+    <li>Open the <strong>M-PESA menu</strong> on your phone</li>
+    <li>Select <strong>Loans and Savings</strong> → <strong>M-Shwari</strong> → <strong>Loan</strong></li>
+    <li>Enter your loan amount and M-PESA PIN</li>
+    <li>Funds are sent instantly to your M-PESA account</li>
+  </ol>
+
+  <h3 style="color: #0b5e2b; margin-top: 20px;">M-Shwari Savings Options</h3>
+  <p style="font-size: 15px; line-height: 1.6; margin-bottom: 15px;">
+    Beyond loans, M-Shwari also provides simple savings solutions that help you grow your money securely:
+  </p>
+  <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 20px;">
+    <li>📈 Earn up to <strong>6.3% annual interest</strong> on your savings balance</li>
+    <li>🔒 <strong>Lock Savings Account</strong>: Save from 1 to 12 months with fixed terms</li>
+    <li>💳 No charges on saving or withdrawing from M-Shwari accounts</li>
+  </ul>
+
+  <p style="font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+    The <strong>M-Shwari Lock Savings Account</strong> is ideal for those who want disciplined saving with guaranteed returns—perfect for school fees, business projects, or emergencies.
+  </p>
+
+  <h3 style="color: #0b5e2b; margin-top: 20px;">Final Word</h3>
+  <p style="font-size: 15px; line-height: 1.6; margin-bottom: 10px;">
+    With M-Shwari, you can save, borrow, and grow your money—all directly from your phone.  
+    Always repay on time to avoid penalties and to increase your loan limit.
+  </p>
+
+  <p style="font-size: 13px; color: #4a5568; margin-bottom: 20px;">
+    <em>Note: M-Shwari loan fees, limits, and terms are subject to change by Safaricom and NCBA Bank. This information is provided for educational purposes only.</em>
+  </p>
+
+  <p style="font-size: 15px; line-height: 1.6;">
+    Considering alternatives to M-Shwari?  
+    <a href="compare-loans.html" style="color: #3182ce; font-weight: 600; text-decoration: none;">
+      Compare mobile loan interest rates and repayment terms in Kenya
+    </a> before making a decision.
+  </p>
 </div>
 
     <div style="text-align: center; margin-top: 30px;">
   <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
   <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloancalculator.co.ke" target="_blank" title="Share on WhatsApp">
+    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloan.co.ke" target="_blank" title="Share on WhatsApp">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloancalculator.co.ke" target="_blank" title="Share on Facebook">
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloancalculator.co.ke" target="_blank" title="Share on LinkedIn">
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloancalculator.co.ke" target="_blank" title="Share on X (Twitter)">
+    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
     </a>
   </div>
@@ -682,66 +755,55 @@ body.fade-in {
 
 <section class="seo-section-light" style="background-color: #ffffff; padding: 50px 20px;">
   <div class="container" style="max-width: 1000px; margin: 0 auto;">
-    
-    <h2 style="color: #0b5e2b; font-size: 28px; text-align: center; margin-bottom: 25px; animation: fadeInUp 0.5s ease-in-out;">
+
+    <h2 style="color: #0b5e2b; font-size: 28px; text-align: center; margin-bottom: 25px;">
       Everything You Need to Know About M-Shwari Loans in Kenya (2025 Guide)
     </h2>
 
-    <p style="font-size: 16px; line-height: 1.7; color: #333; animation: fadeInUp 0.6s ease-in-out;">
-      M-Shwari is a paperless banking service offered through M-PESA that gives you access to micro-savings and instant mobile loans. The <strong>M-Shwari loan calculator</strong> above allows you to preview deductions, facility fees, excise duty, and total repayment before applying. It’s free, instant, and built specifically for Kenyan borrowers looking for fast, affordable financing.
+    <p style="font-size: 16px; line-height: 1.7; color: #333;">
+      M-Shwari is a digital micro-banking service integrated into M-PESA, helping Kenyans save, earn interest, and access instant mobile loans. Use our <strong>M-Shwari loan calculator</strong> above to immediately see your net disbursement, borrowing cost (7.5% facility fee + 1.5% excise duty), repayment due, and more—all for free and with no sign-up.
     </p>
 
-    <div style="margin-top: 30px; animation: fadeInUp 0.7s ease-in-out;">
-      <h3 style="color: #0b5e2b;">Frequently Asked Questions About M-Shwari Loans</h3>
-      
-      <details class="faq-block" style="margin-top: 15px;">
-        <summary>How does the M-Shwari loan calculator work?</summary>
-        <p>The calculator uses the official 7.5% facility fee plus 15% excise duty on the fee to display the actual disbursed amount and total repayment. This ensures you understand the cost before applying.</p>
-      </details>
+    <h3 style="color: #0b5e2b; margin-top: 30px;"> Frequently Asked Questions (FAQs)</h3>
 
-      <details class="faq-block">
-        <summary>What is the interest rate for M-Shwari loans in 2025?</summary>
-        <p>M-Shwari charges a 7.5% facility fee per 30-day loan term, plus a 15% excise duty on that fee. This is equivalent to a higher annualized rate, so always calculate the real APR before borrowing.</p>
-      </details>
+    <details class="faq-block" style="margin-top: 15px;">
+      <summary>How is the net amount I receive calculated?</summary>
+      <p>Your loan amount is reduced upfront by a 1.5% excise duty, and you repay the full principal plus a 7.5% facility fee—both clearly shown in our calculator.</p>
+    </details>
 
-      <details class="faq-block">
-        <summary>Is the M-Shwari loan calculator free to use?</summary>
-        <p>Yes. It’s 100% free, requires no login or signup, and works instantly on mobile and desktop.</p>
-      </details>
+    <details class="faq-block">
+      <summary>How long do I have to repay an M-Shwari loan?</summary>
+      <p>You have 30 days to repay. Late payments may result in rollover fees, reduced future limits, or even CRB (credit bureau) implications.</p>
+    </details>
 
-      <details class="faq-block">
-        <summary>What are the requirements to qualify for an M-Shwari loan?</summary>
-        <p>You must be an active M-PESA user with a Safaricom SIM registered in your name, have a good repayment history, and meet Safaricom’s credit scoring criteria.</p>
-      </details>
+    <details class="faq-block">
+      <summary>What determines my M-Shwari loan limit?</summary>
+      <p>Your limit depends not only on how long you’ve been an M-PESA user but also your savings and transactions on M-Shwari. Regular saving and timely repayments increase your borrowing power. :contentReference[oaicite:0]{index=0}</p>
+    </details>
 
-      <details class="faq-block">
-        <summary>How long do I have to repay an M-Shwari loan?</summary>
-        <p>M-Shwari loans must be repaid within 30 days. Failure to repay on time may reduce your future loan limit or lead to CRB listing.</p>
-      </details>
+    <details class="faq-block">
+      <summary>Can I apply using a basic feature phone?</summary>
+      <p>Yes⁠—M-Shwari works using USSD through the M-PESA menu, so no smartphone is needed.</p>
+    </details>
 
-      <details class="faq-block">
-        <summary>How can I increase my M-Shwari loan limit?</summary>
-        <p>Increase your limit by saving regularly on M-Shwari, repaying loans on time, increasing your M-PESA transactions, and keeping your Safaricom line active.</p>
-      </details>
+    <details class="faq-block">
+      <summary>How do I lock savings on M-Shwari?</summary>
+      <p>Through the M-PESA menu, go to Loans & Savings → M-Shwari → Lock Savings. You can save without charges for a fixed period, and funds are released on maturity. :contentReference[oaicite:1]{index=1}</p>
+    </details>
 
-      <details class="faq-block">
-        <summary>Can I use M-Shwari without a smartphone?</summary>
-        <p>Yes. You can access M-Shwari loans and savings using any Safaricom line via the M-PESA menu on a basic phone.</p>
-      </details>
-    </div>
-
-    <div style="margin-top: 35px; animation: fadeInUp 0.8s ease-in-out; text-align:center; background:#f9fafb; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
-      <h3 style="color: #0b5e2b;">Tired of Paying More Than You Should?</h3>
-      <p style="margin-bottom: 20px; font-size:16px; color:#4a5568; line-height:1.6;">
-        Many Kenyan borrowers overpay on interest without realizing it. Our free calculator reveals the true cost of loans—whether reducing balance or flat rate—so you can make the smartest borrowing decision today.
+    <p style="margin-top: 35px; text-align: center; background: #f9fafb; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0;">
+      <h3 style="color: #0b5e2b; margin-bottom: 10px;">Want smarter borrowing?</h3>
+      <p style="margin-bottom: 20px; font-size: 16px; color: #4a5568; line-height: 1.6;">
+        Stop overpaying on loan costs. Our calculator shows you the real cost of M-Shwari and compares flat-rate versus reducing-balance loans—so you borrow wisely.
       </p>
-      <a href="index.html" class="cta-button" style="display:inline-block; padding:0.75rem 1.5rem; background-color:#3182ce; color:white; font-size:1rem; font-weight:600; text-decoration:none; border-radius:0.5rem; transition:background-color 0.3s ease;">
+      <a href="index.html" class="cta-button" style="display: inline-block; padding: 0.75rem 1.5rem; background-color: #3182ce; color: white; font-size: 1rem; font-weight: 600; text-decoration: none; border-radius: 0.5rem;">
         🔍 Try the Reducing/Flat Rate Loan Calculator Now
       </a>
-    </div>
+    </p>
 
   </div>
 </section>
+
 
 <button id="backToTop" title="Back to Top">⬆</button>
   <script>
@@ -895,9 +957,9 @@ function downloadMshwariResults() {
   const tableData = [
     ["Loan Amount", `Ksh ${amount.toLocaleString()}`],
     ["Loan Start Date", date],
-    ["M-PESA Deposited", `Ksh ${deposited.toLocaleString()}`],
-    ["Facility Fee (7.5%)", `Ksh ${fee.toLocaleString()}`],
-    ["Excise Duty on Fee (15%)", `Ksh ${duty.toLocaleString()}`],
+    ["M-PESA Deposited (Loan - Excise Duty)", `Ksh ${deposited.toLocaleString()}`],
+    ["Facility Fee (7.5% of Loan)", `Ksh ${fee.toLocaleString()}`],
+    ["Excise Duty (1.5% of Loan)", `Ksh ${duty.toLocaleString()}`],
     ["Total Repayment Amount", `Ksh ${total.toLocaleString()}`],
     ["Due Date (30 Days)", due]
   ];
@@ -911,35 +973,35 @@ function downloadMshwariResults() {
     alternateRowStyles: { fillColor: [240, 240, 240] }
   });
 
- // --- Summary Section ---
-const summaryY = doc.lastAutoTable.finalY + 12;
-doc.setFont("helvetica", "bold");
-doc.setFontSize(13);
-doc.setTextColor(40);
-doc.text("Loan Summary", 14, summaryY);
+  // --- Summary Section ---
+  const summaryY = doc.lastAutoTable.finalY + 12;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(40);
+  doc.text("Loan Summary", 14, summaryY);
 
-doc.setFont("helvetica", "normal");
-doc.setFontSize(11);
-doc.setTextColor(60);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(60);
 
-const summaryPoints = [
-  `Loan Amount: Ksh ${amount.toLocaleString()}`,
-  `Loan Start Date: ${date}`,
-  `Facility Fee: 7.5% of loan amount (Ksh ${fee.toLocaleString()})`,
-  `Excise Duty: 15% of facility fee (Ksh ${duty.toLocaleString()})`,
-  `Total Repayment: Ksh ${total.toLocaleString()}`,
-  `Due Date: ${due}`,
-  `Note: Ensure timely repayment to avoid penalties or negative credit reporting.`
-];
+  const summaryPoints = [
+    `Loan Amount: Ksh ${amount.toLocaleString()}`,
+    `Loan Start Date: ${date}`,
+    `Facility Fee: 7.5% of loan amount (Ksh ${fee.toLocaleString()})`,
+    `Excise Duty: 1.5% of loan amount (Ksh ${duty.toLocaleString()})`,
+    `M-PESA Deposited: Ksh ${deposited.toLocaleString()}`,
+    `Total Repayment: Ksh ${total.toLocaleString()}`,
+    `Due Date: ${due}`,
+    `Note: Loan repayment is inclusive of a 1.5% excise duty deducted upfront.`
+  ];
 
-// Bulleted style
-let bulletY = summaryY + 8;
-summaryPoints.forEach(point => {
-  doc.circle(12, bulletY - 2.5, 1, "F"); // small bullet
-  doc.text(point, 16, bulletY);
-  bulletY += 7;
-});
-
+  // Bulleted style
+  let bulletY = summaryY + 8;
+  summaryPoints.forEach(point => {
+    doc.circle(12, bulletY - 2.5, 1, "F"); // small bullet
+    doc.text(point, 16, bulletY);
+    bulletY += 7;
+  });
 
   // --- Footer ---
   const pageHeight = doc.internal.pageSize.height;
@@ -1045,8 +1107,3 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 </body>
 </html>
-
-
-
-
-
