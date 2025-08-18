@@ -7,13 +7,14 @@
   <meta name="description" content="Free KCB M-PESA Loan Calculator for 2025. Instantly calculate your repayment amount, interest, and fees based on current KCB M-PESA terms in Kenya. Mobile-friendly, accurate, and easy to use.">
   <meta name="keywords" content="KCB M-PESA loan calculator, KCB M-PESA interest rate, KCB M-PESA loan repayment, KCB loan Kenya, KCB M-PESA 2025">
   <meta name="author" content="JazaLoan">
- <link rel="icon" type="image/png" href="Images/favicon.png" sizes="32x32">
+
+<link rel="icon" type="image/png" href="Images/favicon.png" sizes="32x32">
 <link rel="icon" type="image/x-icon" href="Images/favicon.ico">
 <link rel="icon" type="image/png" href="Images/favicon-96x96.png" sizes="96x96">
 <link rel="apple-touch-icon" sizes="180x180" href="Images/apple-touch-icon.png">
 <link rel="manifest" href="Images/site.webmanifest">
 <link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
-  
+
   <style>
     html {
       scroll-behavior: smooth;
@@ -27,6 +28,7 @@
 .fade-in {
       animation: fadeIn 0.8s ease-in-out;
     }
+    /* ————— Sticky Shrinking Header ————— */
 .site-header {
   position: sticky;
   top: 0;
@@ -46,6 +48,8 @@
   font-size: 13px;
   padding: 4px 8px;
 }
+
+/* ————— Header / Logo / Nav ————— */
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -85,6 +89,8 @@
   transition: width 0.3s ease;
 }
 .navbar a:hover::after { width: 100%; }
+
+/* ————— Mobile Nav + Hamburger ————— */
 .hamburger {
   display: none;
   flex-direction: column;
@@ -149,11 +155,13 @@
   .hamburger { display: flex; }
   .desktop-only { display: none !important; }
 }
+/* Ensure header layout keeps logo left + hamburger right */
   .header-content {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* Logo on left, hamburger on right */
     align-items: center;
   }
+/* ————— Mobile-only Share (Bottom) ————— */
 .mobile-only-share {
   display: none;
 }
@@ -225,7 +233,7 @@
   transform: scale(1.15);
 }
 .site-header {
-  height: 100px; 
+  height: 100px; /* or however tall it is initially */
   transition: all 0.3s ease;
 }
 
@@ -234,6 +242,7 @@
   padding: 2px 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
+
     .container {
       max-width: 800px;
       margin: 30px auto;
@@ -349,7 +358,7 @@
   background: #f9f9f9;
   padding: 15px 20px;
   border-left: 6px solid transparent;
-  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1;
+  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1; /* Green → Blue */
   font-size: 1.05em;
   line-height: 1.6;
   border-radius: 6px;
@@ -357,7 +366,7 @@
 }
 .mshwari-btn {
   display: inline-block;
-  background-color: #007bff;
+  background-color: #007bff; /* Blue */
   color: white;
   padding: 12px 20px;
   border-radius: 5px;
@@ -367,7 +376,7 @@
   transition: transform 0.2s ease, background-color 0.3s ease;
 }
 .mshwari-btn:hover {
-  background-color: #0056b3;
+  background-color: #0056b3; /* Darker blue on hover */
   transform: scale(1.03);
 }
   .small-input {
@@ -406,19 +415,20 @@
 
  <nav class="navbar desktop-only" id="mainNav">
     <a href="index.html">Home</a>
-   <a href="index.html#paye-section">PAYE Calculator</a>
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
     <a href="index.html">Sacco Loan Calculator</a>
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
 </nav>
 
 <nav class="mobile-nav" id="mobileNav">
    <a href="index.html">Home</a>
-  <a href="index.html#paye-section">PAYE Calculator</a>
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
     <a href="index.html">Sacco Loan Calculator</a>
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
     <a href="compare-loans.html">Compare Loans</a>
+    <a href="best-loans-by-salary.html">Loans by Salary</a>
+    <a href="blog.html">Blogs</a>
 </nav>
 <div id="overlay" class="mobile-overlay"></div>
 </header>
@@ -428,111 +438,127 @@
  <main class="container" style="padding: 40px 20px;">
   <h1>KCB M-PESA Loan Calculator (2025)</h1>
   <p class="intro-text">
-    Easily calculate your KCB M-PESA loan repayments for 2025. This free tool shows your total repayment, interest, and fees 
-    instantly based on the latest KCB M-PESA terms in Kenya. Mobile-friendly, accurate, and designed to help you plan better.
+    Easily calculate your KCB M-PESA loan repayments for 2025. This free tool shows your total repayment, 
+    interest, and fees instantly based on the latest KCB M-PESA terms in Kenya. 
+    Mobile-friendly, accurate, and designed to help you plan better.
   </p>
 </main>
 
 <label for="loanAmount">Loan Amount (Ksh):</label>
 <input type="text" id="loanAmount" class="small-input" placeholder="e.g. 5,000" oninput="formatNumberInput(this)" />
+
 <label for="appDate">Application Date:</label>
 <input type="date" id="appDate" class="small-input" />
+
 <label for="feeRate">Facility Fee Rate (%):</label>
 <input type="text" id="feeRate" class="small-input" value="8.88" readonly autocomplete="off" />
-<p>Note: The default facility fee of 8.88% is the current official KCB M-PESA rate for one-month loans. Excise duty (1.5%) will also be deducted from the disbursed amount.</p>
+
+<p>
+  Note: The default facility fee of <strong>8.88%</strong> is the official KCB M-PESA rate. 
+  Some users may see <strong>8.93%</strong> when applying via the M-PESA app due to system rounding. 
+  Both rates are applied over a 30-day repayment period.
+</p>
 
 <button id="calculateBtn" onclick="calcKCB()">Calculate</button>
+
 <div id="kcbResult" style="display:none; margin-top:20px;"></div>
+
 <div id="downloadSection" style="display:none; margin-top:10px;">
   <button onclick="downloadKCB()">Download</button>
   <button onclick="resetKCB()">Reset</button>
 </div>
+
+<!-- Mshwari Calculator Link (Initially Hidden) -->
 <div id="mshwariLink" style="display:none; margin-top:15px; text-align:center; font-size: 15px; color: #2c3e50;">
   <p>
     Interested in checking your <strong>Mshwari loan</strong>? 
     <a href="mshwari-calculator.html" style="color:#007bff; text-decoration:underline;">Try the Mshwari Calculator here</a>.
   </p>
 </div>
-
-
 </div>
 
 <section class="affiliate">
-  <h2>Everything You Need to Know About KCB M‑PESA Loans in Kenya</h2>
+  <h2>Everything You Should Know About KCB M-PESA Loans in Kenya</h2>
 
   <details>
-    <summary>Key Features of KCB M‑PESA</summary>
-    <p>The KCB M‑PESA loan service allows users to access micro-credit straight from their mobile phones. The loan amounts range from Ksh 50 to Ksh 1,000,000 and are determined by your individual credit limit. Disbursement is instant and funds are sent directly to your M‑PESA wallet.</p>
-    <p>Loans must be repaid within 30 days. A facility fee of 7.35% is charged, and if not repaid on time, an additional penalty of the same rate may apply. Users can apply through the M‑PESA app or by dialing *844#.</p>
+    <summary>What Is KCB M-PESA?</summary>
+    <p>KCB M-PESA is a mobile loan service available to Safaricom subscribers through the M-PESA menu or app. It allows you to borrow instant credit starting from <strong>Ksh 1,000</strong> up to your approved limit. The money is first sent to your KCB M-PESA account, and you can transfer it to your main M-PESA wallet at no extra cost.</p>
   </details>
 
   <details>
-    <summary>Understanding the Fee Options</summary>
-    <p>The KCB M‑PESA calculator offers two options for estimating the cost of your loan:</p>
+    <summary>Loan Features</summary>
     <ul>
-      <li>7.35% Standard Rate – This is the basic fee applied without additional government charges.</li>
-      <li>9.06% Inclusive Rate – This includes the standard 7.35% plus the mandatory 20% excise duty on financial service fees in Kenya.</li>
-    </ul>
-    <p>Choosing the 9.06% rate gives a more accurate view of what you will actually repay.</p>
-  </details>
-
-  <details>
-    <summary>How the KCB M‑PESA Loan Is Calculated</summary>
-    <p>The loan calculator determines the repayment breakdown based on the amount borrowed and the selected fee rate. When you enter the amount and date, it calculates:</p>
-    <ul>
-      <li>The facility fee charged</li>
-      <li>The total repayment amount</li>
-      <li>The disbursed amount you receive after the fee is deducted</li>
-      <li>The repayment due date, which is set 30 days from the application date</li>
-    </ul>
-    <p>For example, if you borrow Ksh 10,000 at a rate of 7.35%, the facility fee will be Ksh 735, leaving you with Ksh 9,265 disbursed and Ksh 10,735 to repay.</p>
-  </details>
-
-  <details>
-    <summary>Eligibility Requirements</summary>
-    <p>To qualify for a KCB M‑PESA loan, users must:</p>
-    <ul>
-      <li>Have a registered Safaricom line active for at least 6 months</li>
-      <li>Be a frequent M‑PESA user</li>
-      <li>Maintain a good loan repayment and savings history</li>
-    </ul>
-    <p>Continued use and financial discipline can improve your loan limit over time.</p>
-  </details>
-
-  <details>
-    <summary>Tips to Improve Your Loan Limit</summary>
-    <p>Increasing your limit depends on your financial habits. Consider the following:</p>
-    <ul>
-      <li>Save regularly using the KCB M‑PESA savings feature</li>
-      <li>Repay your loans on or before the due date</li>
-      <li>Use M‑PESA often for transactions to build a strong financial profile</li>
+      <li>Borrow from <strong>Ksh 1,000</strong> and above, depending on your limit</li>
+      <li>Funds disbursed instantly to your KCB M-PESA account</li>
+      <li>Free transfers between KCB M-PESA and your M-PESA wallet</li>
+      <li>Repayment period: <strong>30 days</strong></li>
+      <li>You can take multiple loans as long as you are within your limit</li>
     </ul>
   </details>
 
   <details>
-    <summary>Benefits of Using This Calculator</summary>
-    <p>Our calculator is designed to help you plan your loan better:</p>
-    <ul>
-      <li>Gives real-time feedback based on your inputs</li>
-      <li>Works perfectly on mobile for quick checks</li>
-      <li>Allows comparison between standard and excise-inclusive fee options</li>
-    </ul>
-    <p>Use it before applying to understand your total loan cost clearly.</p>
-    <p><a href="compare-loans.html">Compare with other mobile loans</a></p>
+    <summary>Rates and Fees</summary>
+    <p>The KCB M-PESA loan attracts a facility fee of <strong>8.88%</strong> of the amount borrowed according to KCB’s official website. However, in practice, when applying through the M-PESA app or USSD (*844#), the system shows an effective rate of <strong>8.93%</strong>. The difference is minimal and comes from rounding in Safaricom’s platform.</p>
+    <p>Example: If you borrow Ksh 10,000, the official 8.88% fee would be Ksh 888, while the app may display Ksh 893. In both cases, the total repayment is due within 30 days.</p>
   </details>
+
+  <details>
+    <summary>How to Apply</summary>
+    <ol>
+      <li>Go to the <strong>M-PESA menu</strong> on your phone</li>
+      <li>Select <strong>Loans & Savings</strong></li>
+      <li>Choose <strong>KCB M-PESA</strong></li>
+      <li>Select <strong>Loans → Request Loan</strong></li>
+      <li>Enter the amount and your <strong>M-PESA PIN</strong></li>
+    </ol>
+    <p>The loan is credited to your KCB M-PESA account. You can then move the money to M-PESA at no cost.</p>
+  </details>
+
+  <details>
+    <summary>Eligibility</summary>
+    <ul>
+      <li>Active Safaricom line for at least 6 months</li>
+      <li>Regular use of M-PESA services</li>
+      <li>Good loan repayment history</li>
+      <li>Active savings with KCB M-PESA can improve your limit</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>Tips to Increase Your Limit</summary>
+    <ul>
+      <li>Repay loans on or before the due date</li>
+      <li>Save frequently using KCB M-PESA</li>
+      <li>Use M-PESA actively for transactions</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>Why Use Our KCB M-PESA Loan Calculator?</summary>
+    <ul>
+      <li>Quickly estimate your repayment at the official 8.88% rate</li>
+      <li>See your net disbursed amount instantly</li>
+      <li>Works seamlessly on mobile devices</li>
+      <li>Helps you plan your loan before applying</li>
+    </ul>
+    <p><a href="compare-loans.html">Compare KCB M-PESA with other mobile loans in Kenya</a></p>
+  </details>
+
+  <p class="disclaimer"><em>Disclaimer: This information is provided for educational purposes only. KCB officially lists the facility fee at 8.88%, but some users may see 8.93% when applying via M-PESA. Actual rates, fees, and terms are subject to change by KCB Bank and Safaricom. Always confirm the latest details directly from official channels before applying.</em></p>
+
   <div style="text-align: center; margin-top: 30px;">
   <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
   <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloancalculator.co.ke" target="_blank" title="Share on WhatsApp">
+    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloan.co.ke" target="_blank" title="Share on WhatsApp">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloancalculator.co.ke" target="_blank" title="Share on Facebook">
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloan.co.ke" target="_blank" title="Share on Facebook">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloancalculator.co.ke" target="_blank" title="Share on LinkedIn">
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloan.co.ke" target="_blank" title="Share on LinkedIn">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
     </a>
-    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloancalculator.co.ke" target="_blank" title="Share on X (Twitter)">
+    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloan.co.ke" target="_blank" title="Share on X (Twitter)">
       <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
     </a>
   </div>
@@ -562,6 +588,7 @@ function formatNumberInput(input) {
   }
 }
 
+// Formats input with Kenya-style commas
 function formatNumberInput(input) {
   let value = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
   if (value) {
@@ -575,17 +602,15 @@ function calcKCB() {
   const rawValue = document.getElementById("loanAmount").value.replace(/,/g, "");
   const amt = parseFloat(rawValue);
   const dt = document.getElementById("appDate").value;
-  const rate = parseFloat(document.getElementById("feeRate").value) / 100; // 8.88% official fee
 
   if (!(amt > 0) || !dt) {
     alert("Please enter a valid loan amount and application date.");
     return;
   }
 
-  const facilityFee = amt * rate;           // Facility Fee 8.88%
-  const exciseDuty = amt * 0.015;           // Excise Duty 1.5%
-  const disbursed = amt - exciseDuty;       // Amount disbursed
-  const totalRepayment = amt + facilityFee; // Total repayment
+  const rateOfficial = 8.88 / 100;
+  const facilityFee = amt * rateOfficial;
+  const totalRepayment = amt + facilityFee;
 
   const appDate = new Date(dt);
   const dueDate = new Date(appDate);
@@ -593,31 +618,32 @@ function calcKCB() {
   const dueStr = dueDate.toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const breakdown = `
-    <h3>Loan Breakdown</h3>
-    <p><strong>Facility Fee (8.88%):</strong> Ksh ${facilityFee.toLocaleString()}</p>
-    <p><strong>Excise Duty (1.5%):</strong> Ksh ${exciseDuty.toLocaleString()}</p>
-    <p><strong>Amount Disbursed to You:</strong> Ksh ${disbursed.toLocaleString()}</p>
-    <p><strong>Total Repayment Amount:</strong> Ksh ${totalRepayment.toLocaleString()}</p>
-    <p><strong>KCB M‑PESA Due Date:</strong> ${dueStr}</p>
+    <h3 id="loanBreakdownTitle">Loan Breakdown</h3>
+    <div style="margin-top:15px; padding:15px; border:1px solid #cce5ff; border-radius:8px; background:#e8f4ff;">
+      <p><strong>Facility Fee (8.88%):</strong> Ksh ${facilityFee.toLocaleString()}</p>
+      <p><strong>Total Repayment Amount:</strong> Ksh ${totalRepayment.toLocaleString()}</p>
+      <p><strong>Due Date:</strong> ${dueStr}</p>
+      <div style="margin-top:10px; font-size:14px; color:#555;">
+        <em>Note: The official KCB M-PESA facility fee is <strong>8.88%</strong>. 
+        In the M-PESA app you may occasionally see <strong>8.93%</strong> due to rounding differences.</em>
+      </div>
+    </div>
   `;
 
   const resultBox = document.getElementById("kcbResult");
   resultBox.innerHTML = breakdown;
   resultBox.style.display = 'block';
 
-  // Show Download and Reset buttons
   document.getElementById("downloadSection").style.display = 'block';
-  
 
-  // Smooth scroll to result
+  const loanBreakdownTitle = document.getElementById("loanBreakdownTitle");
   const yOffset = -100;
-  const y = resultBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
+  const y = loanBreakdownTitle.getBoundingClientRect().top + window.pageYOffset + yOffset;
   window.scrollTo({ top: y, behavior: 'smooth' });
 
-  // Show Mshwari link
-document.getElementById("mshwariLink").style.display = 'block';
-
+  document.getElementById("mshwariLink").style.display = 'block';
 }
+
 function resetKCB() {
   // Clear inputs
   document.getElementById("loanAmount").value = '';
@@ -687,7 +713,8 @@ function downloadKCB() {
     }
   });
 
-  const finalY = doc.lastAutoTable.finalY + 20; 
+  // Add a professional summary below the table
+  const finalY = doc.lastAutoTable.finalY + 20; // position below table
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text("Loan Summary Highlights:", 40, finalY);
@@ -775,7 +802,3 @@ overlay.addEventListener("click", toggleMobileMenu);
   
 </body>
 </html>
-
-
-
-
