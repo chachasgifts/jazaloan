@@ -3,19 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary SEO Tags -->
   <title>Compare Loans in Kenya | JazaLoan – Bank, SACCO & Mobile Lender Rates</title>
   <meta name="description" content="Easily compare loan options from banks, SACCOs, mobile lenders, and HELB in Kenya. JazaLoan lets you find the best interest rates and apply online in minutes." />
+
+  <!-- Keywords (optional for minor SEO impact, but can help contextual relevance) -->
   <meta name="keywords" content="loans in Kenya, compare loans Kenya, SACCO loans, bank loans Kenya, mobile loans Kenya, HELB loan comparison" />
+
+  <!-- Open Graph / Facebook -->
   <meta property="og:title" content="Compare Loans in Kenya | JazaLoan" />
   <meta property="og:description" content="Find and compare bank, SACCO, mobile, and HELB loans in Kenya. Apply quickly and get the best rates today." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.jazaloancalculator.com/" />
   <meta property="og:image" content="https://www.jazaloancalculator.com/images/loan-comparison.jpg" />
+
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Compare Loans in Kenya | JazaLoan" />
   <meta name="twitter:description" content="Compare bank, SACCO, mobile, and HELB loans in Kenya. Apply online and get the best rates instantly." />
   <meta name="twitter:image" content="https://www.jazaloancalculator.com/images/loan-comparison.jpg" />
+
+  <!-- Canonical URL -->
   <link rel="canonical" href="https://www.jazaloancalculator.com/" />
+
   <link rel="icon" type="image/png" href="Images/favicon.png" sizes="32x32">
 <link rel="icon" type="image/x-icon" href="Images/favicon.ico">
 <link rel="icon" type="image/png" href="Images/favicon-96x96.png" sizes="96x96">
@@ -440,6 +451,30 @@ footer a:hover {
   max-height: 1500px;
   opacity: 1;
 }
+  .mobile-faq-container { margin-top: 20px; }
+  .mobile-faq-question {
+    cursor: pointer;
+    padding: 12px 20px;
+    background-color: #e8f4ff; /* light blue background */
+    border: 1px solid #0b5e2b; /* blue border */
+    color: #0b5e2b; /* blue text */
+    font-weight: 600;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  .mobile-faq-question:hover {
+    background-color: #2e7d32; /* green hover */
+    color: #ffffff; /* white text on hover */
+  }
+  .mobile-faq-answer {
+    display: none;
+    padding: 12px 20px;
+    border-left: 4px solid #2e7d32; /* green accent */
+    background-color: #f0f9f4; /* very light green */
+    margin-bottom: 10px;
+    border-radius: 5px;
+  }
 
   </style>
   <script type="application/ld+json">
@@ -499,20 +534,19 @@ footer a:hover {
 
  <nav class="navbar desktop-only" id="mainNav">
     <a href="index.html">Home</a>
-   <a href="index.html#paye-section">PAYE Calculator</a>
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
     <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="vat-calculator.html">VAT Calculator</a>
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
 </nav>
 
 <nav class="mobile-nav" id="mobileNav">
    <a href="index.html">Home</a>
-  <a href="index.html#paye-section">PAYE Calculator</a>
     <a href="mshwari-calculator.html">Mshwari Calculator</a>
     <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+    <a href="vat-calculator.html">VAT Calculator</a>
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
     <a href="compare-loans.html">Compare Loans</a>
-    
 </nav>
 <div id="overlay" class="mobile-overlay"></div>
 </header>
@@ -527,140 +561,355 @@ footer a:hover {
       <div class="loan-card"><h3>HELB Student Loans</h3><p>Affordable education loans for university & college students.</p><a href="#helb-loans">See HELB Loan Options</a></div>
     </div>
 
-    <section id="bank-loans" class="results-section">
+   <section id="bank-loans" class="results-section">
   <div class="loan-info-box">
-    <h2>Bank Loan Comparison in Kenya</h2>
-    <p>Bank loans in Kenya are ideal for individuals with formal income or registered businesses. These loans typically use a reducing balance method, where interest reduces over time as the principal reduces. They are perfect for purposes like school fees, buying assets, or home construction.</p>
-    <p>Banks such as Equity, KCB, and Absa offer competitive loan products. When choosing a bank loan, evaluate the APR, fees (like processing or insurance), required collateral, and repayment flexibility. Ensure the lender is licensed by the CBK for consumer protection.</p>
-  
-       <div style="overflow-x: auto; margin-top: 20px;">
-  <table class="results-table">
-        <tr><th>Bank</th><th>Interest</th><th>Loan Type</th><th>Duration</th><th>Apply</th></tr>
-        <tr><td>Equity Bank</td><td>13.5%</td><td>Personal Loan</td><td>12–60 mo</td><td><a href="#">Apply</a></td></tr>
-        <tr><td>KCB</td><td>14%</td><td>Business Loan</td><td>6–72 mo</td><td><a href="#">Apply</a></td></tr>
-        <tr><td>Absa Bank</td><td>13%</td><td>Unsecured Loan</td><td>12–48 mo</td><td><a href="#">Apply</a></td></tr>
-        <tr><td>NCBA</td><td>12.8%</td><td>Asset Finance</td><td>12–60 mo</td><td><a href="#">Apply</a></td></tr>
-        <tr><td>Co-operative Bank</td><td>13.2%</td><td>Salary Loan</td><td>12–36 mo</td><td><a href="#">Apply</a></td></tr>
-        <tr><td>Stanbic Bank</td><td>13.8%</td><td>SME Loan</td><td>6–48 mo</td><td><a href="#">Apply</a></td></tr>
-      </table>
-      <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
-      </div>
-    </section>
+    <h2>Bank Loan Comparison in Kenya – Complete Guide</h2>
 
-    <section id="sacco-loans" class="results-section">
-      <div class="loan-info-box">
-  <h2>SACCO Loan Comparison</h2>
-  <p>SACCO loans in Kenya offer affordable financing options for members of Savings and Credit Cooperatives. These loans are often based on your savings and are commonly structured with fixed interest on a flat rate basis.</p>
-  <p>Popular SACCOs like Hazina, Stima, Mwalimu, and Kenya Police SACCO offer competitive personal, development, and emergency loan options with minimal collateral. SACCOs are member-owned and generally charge lower fees compared to banks or digital lenders.</p>
-  <p>When considering a SACCO loan, look at eligibility (often based on membership duration and savings multiplier), interest method (flat vs reducing), and processing timelines. These loans work well for teachers, civil servants, and members of established cooperatives.</p>
-
-  <div style="overflow-x: auto; margin-top: 20px;">
-  <table class="results-table">
-    <tr><th>SACCO</th><th>Interest</th><th>Type</th><th>Duration</th><th>Apply</th></tr>
-    <tr><td>Hazina</td><td>12%</td><td>Normal Loan</td><td>Up to 36 mo</td><td><a href="#">Apply</a></td></tr>
-    <tr><td>Stima</td><td>10%</td><td>Emergency Loan</td><td>12 mo</td><td><a href="#">Apply</a></td></tr>
-    <tr><td>Mwalimu</td><td>11%</td><td>School Fees</td><td>Up to 24 mo</td><td><a href="#">Apply</a></td></tr>
-    <tr><td>Kenya Police SACCO</td><td>13%</td><td>Development Loan</td><td>Up to 48 mo</td><td><a href="#">Apply</a></td></tr>
-  </table>
-
-  <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
-</div>
-
-    </section>
-
-    <section id="mobile-loans" class="results-section">
-  <div class="loan-info-box">
-    <h2>Mobile Loan Comparison</h2>
-    <p>Mobile loans in Kenya are fast and accessible short-term credit options available via smartphone apps or USSD. Platforms like M-Shwari, Branch, and Tala have made borrowing easier, especially for emergencies and small expenses.</p>
-    <p>These loans typically offer instant disbursement, no collateral, and flexible amounts ranging from a few hundred to several thousand shillings. However, they come with higher interest rates, often calculated daily or monthly.</p>
-    <p>Always check loan limits, daily rates, penalties for late repayment, and whether the provider is licensed by CBK. Mobile loans are ideal for salaried individuals needing emergency funds, but should be used responsibly.</p>
-
-    <div style="overflow-x: auto; margin-top: 20px;">
-  <table class="results-table">
-      <tr><th>Platform</th><th>Daily Rate</th><th>Limit</th><th>Apply</th></tr>
-      <tr><td>M-Shwari</td><td>0.167%</td><td>Up to Ksh 50K</td><td><a href="#">Apply</a></td></tr>
-      <tr><td>Branch</td><td>Varies</td><td>Ksh 250 – 70K</td><td><a href="#">Apply</a></td></tr>
-      <tr><td>Tala</td><td>Varies</td><td>Ksh 500 – 50K</td><td><a href="#">Apply</a></td></tr>
-      <tr><td>Zenka</td><td>Varies</td><td>Ksh 500 – 30K</td><td><a href="#">Apply</a></td></tr>
-      <tr><td>Timiza</td><td>Varies</td><td>Ksh 500 – 150K</td><td><a href="#">Apply</a></td></tr>
-    </table>
-
-    <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
-  </div>
-</section>
-
-<section id="credit-loans" class="results-section">
-  <div class="loan-info-box">
-    <h2>Credit Lender Comparison</h2>
-    <p>Credit lenders in Kenya, especially fintech-based apps, provide unsecured short-term loans through mobile platforms. These digital lenders often cater to users who may not qualify for traditional bank credit, using alternative data for risk assessment.</p>
-    <p>Lenders like Asante, Okash, and Umba offer loan limits ranging from Ksh 500 to Ksh 60,000 with flexible terms. Most loans are processed instantly and do not require physical paperwork or collateral.</p>
-    <p>Before applying, review their terms carefully: check loan tenure, total repayment, fees, and whether they report to credit bureaus. Use credit lenders responsibly for bridging gaps, and avoid rolling over multiple loans.</p>
-
-    <div style="overflow-x: auto; margin-top: 20px;">
-  <table class="results-table">
-      <tr><th>Lender</th><th>Terms</th><th>Limit</th><th>Apply</th></tr>
-      <tr><td>Asante</td><td>Flexible, App-based</td><td>Ksh 500 – 50K</td><td><a href="#">Apply</a></td></tr>
-      <tr><td>Okash</td><td>Short Term</td><td>Ksh 500 – 40K</td><td><a href="#">Apply</a></td></tr>
-      <tr><td>Umba</td><td>Mobile Credit</td><td>Ksh 500 – 60K</td><td><a href="#">Apply</a></td></tr>
-    </table>
-
-    <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
-  </div>
-</section>
-
-<section id="helb-loans" class="results-section">
-  <div class="loan-info-box">
-    <h2>HELB Loan Info</h2>
-    <p>HELB (Higher Education Loans Board) loans in Kenya are designed to support students in universities, TVET institutions, and colleges by offering affordable financing for tuition, accommodation, and other education-related expenses.</p>
-    <p>HELB loans are funded by the government and provide low fixed interest rates, long repayment grace periods, and accessible online application. Beneficiaries begin repayment after completing their studies, making HELB a key resource for students without financial sponsors.</p>
-    <p>There are various categories of HELB loans including undergraduate loans, TVET loans, and postgraduate loans. It’s important to apply early, keep your records updated, and repay on time to avoid penalties and maintain good standing.</p>
-
-    <div style="overflow-x: auto; margin-top: 20px;">
-  <table class="results-table">
-      <tr><th>Type</th><th>Interest</th><th>Grace Period</th><th>Apply</th></tr>
-      <tr><td>Undergrad</td><td>4%</td><td>12 months</td><td><a href="#">Apply</a></td></tr>
-      <tr><td>TVET</td><td>4%</td><td>12 months</td><td><a href="#">Apply</a></td></tr>
-    </table>
-
-    <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a></p>
-  </div>
-</section>
-
-    <section style="margin-top: 50px;">
-  <div class="loan-info-box">
-    <h2 style="text-align:center;">How to Choose the Best Loan in Kenya</h2>
-    <p style="text-align:center; max-width: 750px; margin: 0 auto 20px; color: #444;">
-      Choosing the right loan is crucial to ensure affordability and long-term financial stability. Whether applying for a personal, mobile, SACCO, or student loan, understanding the full cost and terms helps avoid debt stress.
+    <p>
+      <strong>Bank loans in Kenya</strong> are a popular and reliable financing option for individuals, salaried employees, 
+      and businesses. They are often used for paying school fees, buying property or vehicles, home construction, and 
+      funding business growth. Compared to mobile loans or digital lenders, bank loans typically offer higher loan limits, 
+      longer repayment periods, and lower interest rates for qualified borrowers.
     </p>
-    <ul style="max-width: 750px; margin: 20px auto; line-height: 1.8; font-size: 15px; color: #333;">
-      <li><strong>Compare APR (Annual Percentage Rate):</strong> This reflects the true cost of the loan including interest and fees. A lower APR is generally better.</li>
-      <li><strong>Loan Tenure:</strong> Shorter terms mean faster repayment but higher monthly costs; longer terms reduce monthly payments but increase total interest.</li>
-      <li><strong>Hidden Charges:</strong> Look for processing fees, insurance costs, penalties, and late payment charges. These vary between banks and mobile lenders.</li>
-      <li><strong>Check Eligibility:</strong> Ensure you meet salary or savings requirements before applying to avoid rejection and CRB listings.</li>
-      <li><strong>Use Comparison Tools:</strong> JazaLoan calculators help you preview monthly installments and total interest before you commit.</li>
+
+    <h3>Understanding Bank Loan Types in Kenya</h3>
+    <p>Kenyan banks offer various loan products tailored to different needs:</p>
+    <ul>
+      <li><strong>Personal Loans:</strong> For household expenses, school fees, or unexpected personal needs.</li>
+      <li><strong>Salary Loans:</strong> Short-term loans secured against monthly salary, usually with lower interest rates.</li>
+      <li><strong>Business Loans:</strong> For small and medium-sized enterprises (SMEs) to fund working capital, inventory, or expansion.</li>
+      <li><strong>Asset Finance Loans:</strong> For buying vehicles, machinery, or equipment, often requiring collateral.</li>
+      <li><strong>Mortgage/Home Loans:</strong> Long-term financing for property purchase or construction.</li>
     </ul>
-    <div style="text-align:center;">
-      <a href="index.html#loan" class="calculator-link-box">Try JazaLoan Calculator</a>
+
+    <h3>How Banks Calculate Loan Repayments</h3>
+    <p>
+      Understanding how banks calculate repayments is crucial for budgeting and avoiding financial stress. 
+      Banks use different interest calculation methods and repayment structures depending on the loan type.
+    </p>
+
+    <ul>
+      <li><strong>Reducing Balance Method:</strong> Interest is charged on the outstanding loan balance only. Monthly interest decreases as the principal is repaid. Commonly used by banks like <strong>Equity Bank, KCB, Absa, NCBA, and Co-operative Bank</strong>.</li>
+      <li><strong>Flat Rate Method:</strong> Interest is charged on the original loan amount throughout the loan term. While easy to calculate, it often results in a higher total cost than reducing balance.</li>
+      <li><strong>Fixed Principal Method:</strong> The principal repayment is constant, while interest reduces as the balance reduces. Early installments are higher but decline over time.</li>
+      <li><strong>Equal Installments (Amortized Loans):</strong> Monthly payments remain constant, combining principal and interest. Early payments have a higher interest portion, later payments more principal.</li>
+    </ul>
+
+    <h3>Loan Repayment Methods Compared</h3>
+    <p>Each repayment method has advantages and disadvantages. Choosing the right one depends on your financial situation and goals.</p>
+
+    <div style="overflow-x:auto; margin: 20px 0;">
+      <table class="results-table">
+        <tr>
+          <th>Method</th>
+          <th>How It Works</th>
+          <th>Advantages</th>
+          <th>Disadvantages</th>
+          <th>Common Usage</th>
+        </tr>
+        <tr>
+          <td><strong>Reducing Balance</strong></td>
+          <td>Interest charged only on outstanding loan balance</td>
+          <td>Less total interest, fairer to borrower, faster principal reduction</td>
+          <td>Higher initial installments than flat rate</td>
+          <td>Most bank loans (personal, business, mortgages)</td>
+        </tr>
+        <tr>
+          <td><strong>Flat Rate</strong></td>
+          <td>Interest charged on original loan amount throughout</td>
+          <td>Simple and predictable</td>
+          <td>Higher overall cost, less fair to borrower</td>
+          <td>Hire purchase, informal lending</td>
+        </tr>
+        <tr>
+          <td><strong>Fixed Principal</strong></td>
+          <td>Same principal monthly, interest decreases</td>
+          <td>Quick principal reduction, less interest over time</td>
+          <td>High early installments can strain cash flow</td>
+          <td>Business loans, asset financing</td>
+        </tr>
+        <tr>
+          <td><strong>Equal Installments</strong></td>
+          <td>Monthly repayment constant (principal + interest)</td>
+          <td>Predictable, easy budgeting</td>
+          <td>More interest paid in early months</td>
+          <td>Retail bank loans (salary, personal loans)</td>
+        </tr>
+      </table>
+    </div>
+
+    <h3>Example: How Reducing Balance Works</h3>
+    <p>
+      Suppose you take a <strong>KES 500,000 personal loan</strong> from <strong>Equity Bank</strong> at 13% annual interest 
+      on a reducing balance for 24 months. In the first month, interest is calculated on the full KES 500,000. After your first repayment, 
+      the principal decreases, so the next month’s interest is lower. This approach lowers your total cost compared to flat rate loans.
+    </p>
+
+    <p>
+      If the loan used <strong>fixed principal</strong>, monthly principal repayments would stay the same (KES 20,833), with reducing interest. 
+      Equal installments would maintain the same total monthly payment, but the interest portion declines over time while the principal portion increases.
+    </p>
+
+    <h3>Key Factors to Consider Before Taking a Bank Loan</h3>
+    <ul>
+      <li><strong>Annual Percentage Rate (APR):</strong> The total cost including interest, fees, and insurance.</li>
+      <li><strong>Loan Tenure:</strong> Longer terms reduce monthly payments but increase total interest paid.</li>
+      <li><strong>Collateral Requirements:</strong> Secured vs unsecured loans.</li>
+      <li><strong>Eligibility Criteria:</strong> Proof of income, bank statements, employment history, or audited accounts.</li>
+      <li><strong>Flexibility:</strong> Check for prepayment or lump-sum repayment options without penalties.</li>
+      <li><strong>Hidden Charges:</strong> Ensure all fees, insurance, and processing charges are disclosed.</li>
+    </ul>
+
+    <h3>How to Use a Bank Loan Calculator in Kenya</h3>
+    <p>
+      Planning your loan repayment is crucial for avoiding financial strain. Our <strong>bank loan calculator Kenya</strong> allows you to:
+    </p>
+    <ul>
+      <li>Estimate monthly installments for personal, salary, business, or mortgage loans</li>
+      <li>Compare different banks’ interest rates and repayment methods</li>
+      <li>Download a detailed PDF schedule for budgeting and record-keeping</li>
+      <li>Check affordability before applying to prevent overborrowing</li>
+    </ul>
+
+    <p>
+      Using our calculator helps you select the right loan amount, choose a suitable repayment method, and plan your finances responsibly. 
+      It’s ideal for anyone seeking <strong>personal loans in Kenya</strong>, <strong>business loans</strong>, or <strong>home financing options</strong>.
+    </p>
+
+    <p>
+      <a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate repayment</a>
+    </p>
+  </div>
+</section>
+
+
+  <section id="sacco-loans" class="results-section">
+  <div class="loan-info-box">
+    <h2>SACCO Loans in Kenya – Complete Guide to Compare and Calculate Repayments</h2>
+    
+    <p><strong>SACCO loans in Kenya</strong> provide affordable financial solutions for members of Savings and Credit Cooperatives (SACCOs). These loans are designed to support personal needs, emergencies, education, and development projects. Unlike traditional bank loans, SACCO loans often come with lower interest rates, flexible repayment terms, and quicker processing.</p>
+    
+    <h3>Understanding SACCO Loan Types</h3>
+    <p>When exploring SACCO loans, it is important to understand the main types available:</p>
+    <ul>
+      <li><strong>Personal SACCO Loans:</strong> Ideal for day-to-day expenses, household needs, or small purchases. These loans usually have shorter repayment periods and lower interest rates.</li>
+      <li><strong>Emergency SACCO Loans:</strong> Designed for urgent financial needs such as medical bills, unexpected repairs, or unforeseen expenses. Approval is usually faster, and eligibility often depends on your savings balance.</li>
+      <li><strong>School Fees Loans:</strong> Specifically for parents or guardians to pay school fees for children. Some SACCOs allow flexible repayment terms to match school calendars.</li>
+      <li><strong>Development Loans:</strong> Meant for investment purposes or business growth. These loans often have longer repayment periods and require higher savings or collateral within the SACCO.</li>
+    </ul>
+    
+    <h3>Common SACCO Loan Terms Explained</h3>
+    <p>Many borrowers find SACCO terminology confusing. Here are key terms simplified:</p>
+    <ul>
+      <li><strong>Membership Duration:</strong> The length of time you have been a SACCO member. Longer membership often increases loan eligibility.</li>
+      <li><strong>Savings Multiplier:</strong> Some SACCOs calculate your maximum loan based on a multiple of your accumulated savings. For example, a 3x multiplier means if you have saved Ksh 50,000, you may be eligible for a loan up to Ksh 150,000.</li>
+      <li><strong>Flat Rate Interest:</strong> Interest is calculated on the original loan amount throughout the repayment period. Monthly interest remains the same.</li>
+      <li><strong>Reducing Balance Interest:</strong> Interest is calculated on the remaining loan balance. Monthly interest decreases as you repay the principal, which can save you money over time.</li>
+      <li><strong>Loan Tenure/Duration:</strong> The period within which you must repay the loan. SACCO loan tenures vary from a few months for personal loans to several years for development loans.</li>
+      <li><strong>Processing Fees:</strong> A one-time fee charged by the SACCO to process your loan application. These are usually lower than bank fees.</li>
+    </ul>
+    
+    <h3>Eligibility Criteria for SACCO Loans in Kenya</h3>
+    <p>Each SACCO sets its own eligibility rules. Typical factors include:</p>
+    <ul>
+      <li>Minimum membership duration (often 6–12 months)</li>
+      <li>Regular savings contribution history</li>
+      <li>Good repayment record for previous loans</li>
+      <li>Employment status or membership in a specific profession (e.g., teachers, police officers)</li>
+    </ul>
+    
+    <h3>Why Choose a SACCO Loan Over a Bank Loan?</h3>
+    <p>SACCO loans are increasingly popular in Kenya because they offer:</p>
+    <ul>
+      <li>Lower interest rates compared to commercial banks</li>
+      <li>Flexible repayment options aligned with members’ salaries</li>
+      <li>Faster loan processing and approval</li>
+      <li>Loans that are secured primarily by your savings, often requiring minimal collateral</li>
+      <li>Support for personal, business, educational, or emergency needs</li>
+    </ul>
+    
+    <h3>How to Calculate Your SACCO Loan Repayment</h3>
+    <p>Planning your SACCO loan repayment is essential to avoid financial stress. Our <strong>SACCO loan repayment calculator</strong> allows you to:</p>
+    <ul>
+      <li>Estimate monthly installments for personal, emergency, school fees, or development loans</li>
+      <li>Compare different SACCO loan options in Kenya</li>
+      <li>Download a detailed PDF repayment schedule for record-keeping and budgeting</li>
+    </ul>
+    
+    <p>Using our calculator helps you select the right SACCO loan amount, understand how interest is calculated, and plan repayments effectively. Accurate calculations ensure you never overborrow and can meet your financial commitments comfortably.</p>
+    
+    <p><a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">→ Calculate your SACCO loan repayment now</a></p>
+    
+    <p>Whether you are seeking a <strong>personal SACCO loan</strong>, <strong>emergency SACCO loan</strong>, or a <strong>development loan in Kenya</strong>, understanding the terms, interest rates, and repayment schedules is crucial. Start by using our calculator to plan wisely and make informed borrowing decisions.</p>
+  </div>
+</section>
+
+  <section id="mobile-loans" class="results-section">
+  <div class="loan-info-box">
+    <h2>Mobile Loans in Kenya – Instant and Convenient Short-Term Credit</h2>
+
+    <p>
+      <strong>Mobile loans in Kenya</strong> are fast, accessible, and convenient short-term credit options delivered via smartphone apps or USSD codes. Popular platforms such as <strong>M-Shwari, KCB M-Pesa, Branch, Tala, Zenka, and Timiza</strong> have revolutionized borrowing, making it easier for salaried individuals, small business owners, and students to access emergency funds or cover everyday expenses.
+    </p>
+
+    <h3>Key Features of Mobile Loans</h3>
+    <ul>
+      <li><strong>Instant Disbursement:</strong> Funds are usually credited within minutes to your mobile wallet, allowing quick access to cash for emergencies.</li>
+      <li><strong>No Collateral Required:</strong> Most mobile loans are unsecured, though borrowing limits depend on your transaction and repayment history.</li>
+      <li><strong>Flexible Loan Amounts:</strong> Loans range from a few hundred shillings to over KES 150,000 depending on the platform and your credit history.</li>
+      <li><strong>Short-Term Repayment:</strong> Most mobile loans are due within 7–90 days, though some platforms offer installment options.</li>
+      <li><strong>Higher Interest Rates:</strong> Interest is often calculated daily or monthly. Borrow only what you can repay on time to avoid penalties.</li>
+    </ul>
+
+    <h3>Understanding Mobile Loan Terms</h3>
+    <ul>
+      <li><strong>Daily Interest Rate:</strong> The percentage charged each day on the outstanding balance. Small daily rates can accumulate if repayment is delayed.</li>
+      <li><strong>Loan Limit:</strong> Maximum amount you can borrow. Limits usually increase with timely repayment history.</li>
+      <li><strong>Late Payment Penalties:</strong> Fees for overdue repayment, which can affect credit scoring and future loan eligibility.</li>
+      <li><strong>Credit Scoring:</strong> Platforms assess your mobile money usage, savings, and repayment record to determine eligibility and limits.</li>
+      <li><strong>Licensing:</strong> Ensure your lender is licensed by the <strong>Central Bank of Kenya (CBK)</strong> for safe and legal borrowing.</li>
+    </ul>
+
+    <h3>Advantages of Mobile Loans in Kenya</h3>
+    <ul>
+      <li>Quick access to funds without visiting a bank branch</li>
+      <li>Minimal documentation required</li>
+      <li>Ideal for emergencies, school fees, medical bills, or business cash flow needs</li>
+      <li>Helps build a credit history with responsible repayment</li>
+    </ul>
+
+    <h3>Risks and Cautions</h3>
+    <ul>
+      <li>Higher interest rates compared to traditional bank loans</li>
+      <li>Potential for debt accumulation if overborrowed or repayment is delayed</li>
+      <li>Check fees, repayment deadlines, and penalties carefully</li>
+    </ul>
+
+    <h3>Plan Your Mobile Loan Repayments</h3>
+    <p>
+      Responsible borrowing begins with accurate repayment planning. Use our calculators to:
+    </p>
+    <ul>
+      <li>Estimate monthly or daily repayments</li>
+      <li>Compare different mobile loan platforms</li>
+      <li>Download a detailed PDF schedule for budgeting</li>
+      <li>Avoid overborrowing and late penalties</li>
+    </ul>
+
+    <p>
+      Access our dedicated calculators for the most popular mobile loans in Kenya:
+    </p>
+    <ul>
+      <li>
+        <a href="kcb-mpesa-loan.html" style="color:#2e7d32; font-weight: bold;">
+          → KCB M-Pesa Loan Calculator – Estimate repayment amounts, check interest, and download a PDF schedule
+        </a>
+      </li>
+      <li>
+        <a href="mshwari-calculator.html" style="color:#2e7d32; font-weight: bold;">
+          → M-Shwari Loan Calculator – Plan your loan, calculate interest, and generate a repayment PDF instantly
+        </a>
+      </li>
+    </ul>
+
+    <h3>Frequently Asked Questions About Mobile Loans in Kenya</h3>
+<div class="mobile-faq-container">
+  <div class="mobile-faq-item">
+    <h4 class="mobile-faq-question">1. Which mobile loan has the lowest interest rate in Kenya?</h4>
+    <div class="mobile-faq-answer">
+      <p>Interest rates vary by platform and user profile. Generally, KCB M-Pesa and M-Shwari offer competitive rates for first-time borrowers, while Tala and Branch rates may be higher but provide flexible repayment options.</p>
+    </div>
+  </div>
+
+  <div class="mobile-faq-item">
+    <h4 class="mobile-faq-question">2. How is M-Shwari loan interest calculated?</h4>
+    <div class="mobile-faq-answer">
+      <p>M-Shwari loans use a monthly interest rate, typically around 7.5%–13% depending on your borrowing history. Interest is applied to the principal amount for the loan duration, and early repayment reduces total interest paid.</p>
+    </div>
+  </div>
+
+  <div class="mobile-faq-item">
+    <h4 class="mobile-faq-question">3. Can I get a mobile loan without a bank account?</h4>
+    <div class="mobile-faq-answer">
+      <p>Yes. Mobile loans like M-Shwari and KCB M-Pesa are integrated with mobile wallets and USSD, so a bank account is not always required. However, having an M-Pesa or mobile money account is mandatory.</p>
+    </div>
+  </div>
+
+  <div class="mobile-faq-item">
+    <h4 class="mobile-faq-question">4. How can I avoid overborrowing on mobile loans?</h4>
+    <div class="mobile-faq-answer">
+      <p>Always calculate your repayment using our <strong>mobile loan calculators</strong>, borrow only amounts you can repay on time, and avoid taking multiple loans simultaneously.</p>
+    </div>
+  </div>
+
+  <div class="mobile-faq-item">
+    <h4 class="mobile-faq-question">5. Are mobile loans safe in Kenya?</h4>
+    <div class="mobile-faq-answer">
+      <p>Mobile loans licensed by the Central Bank of Kenya (CBK) are safe. Avoid unlicensed lenders, always read terms carefully, and monitor your repayment schedule.</p>
+    </div>
+  </div>
+
+  <div class="mobile-faq-item">
+    <h4 class="mobile-faq-question">6. What happens if I delay repayment?</h4>
+    <div class="mobile-faq-answer">
+      <p>Late repayments incur penalties, higher interest, and can affect your credit score. Consistently late payments may reduce future borrowing limits on platforms like M-Shwari and KCB M-Pesa.</p>
+    </div>
+  </div>
+
+  <div class="mobile-faq-item">
+    <h4 class="mobile-faq-question">7. Can I repay a mobile loan early?</h4>
+    <div class="mobile-faq-answer">
+      <p>Most platforms allow early repayment without penalties. Early repayment reduces interest paid and helps build a positive credit history for higher loan limits in the future.</p>
+    </div>
+
+    </div>
+  </div>
+</section>
+
+   <section style="margin-top: 50px;">
+  <div class="loan-info-box">
+    <h2 style="text-align:center; color:#0b5e2b;">How to Choose the Best Loan in Kenya</h2>
+    <p style="text-align:center; max-width: 750px; margin: 0 auto 20px; color: #444; font-size:16px;">
+      Choosing the right loan in Kenya is essential for maintaining financial health and avoiding unnecessary debt. Whether you are applying for a <strong>personal loan</strong>, <strong>mobile loan</strong>, <strong>SACCO loan</strong>, <strong>student loan</strong>, or <strong>business loan</strong>, understanding the interest rates, repayment terms, and lender policies ensures affordability and long-term financial stability.
+    </p>
+
+    <ul style="max-width: 750px; margin: 20px auto; line-height: 1.8; font-size: 15px; color: #333;">
+      <li><strong>Compare APR (Annual Percentage Rate):</strong> The APR reflects the total cost of the loan, including interest, processing fees, insurance, and other charges. Comparing APRs across banks, SACCOs, and mobile lenders helps you identify the most cost-effective option for your needs.</li>
+      <li><strong>Understand Loan Tenure:</strong> Loan duration directly affects affordability. Short-term loans may have higher monthly installments but reduce total interest paid. Long-term loans lower monthly payments but increase total interest. Choose a tenure that matches your income and repayment capacity.</li>
+      <li><strong>Watch for Hidden Charges:</strong> Some lenders include extra costs like processing fees, insurance, commitment fees, and penalties for late repayment. Checking the fine print protects you from surprises and ensures you borrow responsibly.</li>
+      <li><strong>Check Eligibility Requirements:</strong> Banks, SACCOs, and mobile lenders may require proof of income, bank statements, CRB clearance, or membership duration. Meeting these requirements avoids loan rejection and maintains a positive credit history.</li>
+      <li><strong>Use Online Loan Comparison and Calculators:</strong> Tools like the <strong>JazaLoan loan calculators</strong> allow you to simulate monthly repayments, total interest, and different loan scenarios. They help you make informed decisions before committing to a loan.</li>
+      <li><strong>Assess Your Repayment Capacity:</strong> Only borrow what you can comfortably repay on time. Consider your monthly income, expenses, and other financial obligations to avoid over-indebtedness.</li>
+      <li><strong>Consider Loan Purpose:</strong> Personal loans, SACCO loans, and student loans are designed for specific needs. Choose a loan type aligned with your goal—whether it is paying school fees, consolidating debt, emergency cash, or business expansion.</li>
+      <li><strong>Check Lender Reputation and Licensing:</strong> Ensure the bank, SACCO, or mobile loan provider is licensed by the Central Bank of Kenya (CBK) or relevant authority. Avoid unlicensed lenders to protect your funds and credit rating.</li>
+    </ul>
+
+    <div style="text-align:center; margin-top:20px;">
+      <a href="index.html#loan" class="calculator-link-box" style="background-color:#2e7d32; color:#fff; padding:12px 25px; border-radius:8px; text-decoration:none; font-weight:600; transition:background 0.3s;">Try JazaLoan Calculator →</a>
     </div>
   </div>
 </div>
 <div class="loan-warning-wrapper">
-  <button class="toggle-warning">📌 Common Mistakes to Avoid When Borrowing</button>
-  <div class="loan-warning-box" hidden>
+  <button class="toggle-warning" style="background-color:#0b5e2b; color:#fff; padding:12px 20px; border:none; border-radius:8px; cursor:pointer; font-weight:600; margin-bottom:10px;">
+    📌 Common Mistakes to Avoid When Borrowing in Kenya
+  </button>
+  <div class="loan-warning-box" hidden style="padding:15px; border:1px solid #2e7d32; border-radius:8px; background-color:#f0f9f4; line-height:1.8; font-size:15px; color:#333;">
     <p>
-      Kenyan borrowers often fall into debt traps by making avoidable mistakes. From overborrowing to missing CRB implications, here’s what to avoid when taking loans from mobile apps, banks, or SACCOs.
+      Borrowing responsibly is key to financial stability in Kenya. Whether you are taking a <strong>mobile loan</strong>, <strong>SACCO loan</strong>, or <strong>bank loan</strong>, avoiding these common mistakes helps protect your credit rating, reduce unnecessary fees, and manage debt effectively.
     </p>
+
     <ul style="line-height: 1.8; font-size: 15px; color: #333;">
-  <li><span style="font-weight: 600; color: #2c3e50;">Overborrowing:</span> Applying for higher amounts than you can afford increases your CRB risk.</li>
-  <li><span style="font-weight: 600; color: #2c3e50;">Skipping the APR:</span> Focus on APR, not just monthly interest, to understand real cost.</li>
-  <li><span style="font-weight: 600; color: #2c3e50;">Mobile Loan Overuse:</span> Taking too many quick mobile loans can lead to payment overlap.</li>
-  <li><span style="font-weight: 600; color: #2c3e50;">No Lender Comparison:</span> Not comparing banks, SACCOs, and apps may cost you more in fees.</li>
-  <li><span style="font-weight: 600; color: #2c3e50;">Late Repayments:</span> This lowers your credit score and may attract higher penalties.</li>
-  <li><span style="font-weight: 600; color: #2c3e50;">Signing blind contracts:</span> Always read loan agreements for penalties and rollover traps.</li>
-</ul>
+      <li><span style="font-weight:600; color:#2e7d32;">Overborrowing:</span> Applying for more than you can repay increases your CRB risk and may trap you in long-term debt. Borrowing within your means helps maintain a healthy credit score.</li>
+      <li><span style="font-weight:600; color:#2e7d32;">Ignoring APR:</span> Focusing only on monthly interest can be misleading. Always check the <strong>Annual Percentage Rate (APR)</strong> to understand the total cost of the loan, including fees and insurance.</li>
+      <li><span style="font-weight:600; color:#2e7d32;">Excessive Mobile Loan Use:</span> Repeated borrowing from platforms like M-Shwari, KCB M-Pesa, Branch, or Tala can lead to overlapping repayments and financial stress. Responsible usage improves your eligibility for higher limits.</li>
+      <li><span style="font-weight:600; color:#2e7d32;">Skipping Lender Comparison:</span> Not comparing banks, SACCOs, and mobile lenders may cost you more in interest and fees. Use online comparison tools and calculators to find the best loan for your needs.</li>
+      <li><span style="font-weight:600; color:#2e7d32;">Late Repayments:</span> Delaying payments lowers your credit score, attracts penalties, and can limit future borrowing. Timely repayment builds a positive borrowing history.</li>
+      <li><span style="font-weight:600; color:#2e7d32;">Signing Contracts Blindly:</span> Always read loan agreements carefully. Hidden rollover fees, penalties, or early repayment restrictions can increase costs and risk financial strain.</li>
+    </ul>
 
     <p>
-      ✅ <strong>Tip:</strong> Use <a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">JazaLoan Calculator</a> to estimate repayments and avoid surprises.
+      ✅ <strong>Benefit:</strong> Avoiding these mistakes ensures you maintain a strong <strong>credit score in Kenya</strong>, reduce debt stress, save on interest and fees, and qualify for better loan offers in the future.  
+      Use the <a href="index.html#loan" style="color:#2e7d32; font-weight: bold;">JazaLoan Calculator</a> to estimate repayments, compare lenders, and plan your finances responsibly.
     </p>
   </div>
 </div>
@@ -757,6 +1006,36 @@ overlay.addEventListener("click", toggleMobileMenu);
   });
 </script>
 
+<script>
+  const mobileFaqItems = document.querySelectorAll('.mobile-faq-item');
+  const offset = 100; // Adjust this based on your header height
+
+  mobileFaqItems.forEach(item => {
+    const question = item.querySelector('.mobile-faq-question');
+    const answer = item.querySelector('.mobile-faq-answer');
+
+    question.addEventListener('click', () => {
+      // Close all other answers
+      mobileFaqItems.forEach(i => {
+        if(i !== item) i.querySelector('.mobile-faq-answer').style.display = 'none';
+      });
+
+      // Toggle current answer
+      const isVisible = answer.style.display === 'block';
+      answer.style.display = isVisible ? 'none' : 'block';
+
+      // Smooth scroll only if opening
+      if(!isVisible) {
+        const rect = item.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const top = rect.top + scrollTop - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    });
+  });
+</script>
+
+
 <footer>
   <div class="footer-content">
     <span><strong>JazaLoan</strong></span>
@@ -782,5 +1061,3 @@ overlay.addEventListener("click", toggleMobileMenu);
 
 </body>
 </html>
-
-
