@@ -455,14 +455,14 @@
 }
 .dropdown-content {
   display: none;
-  position: absolute;
+  position: fixed;
+  top: 80px;   
   background-color: #fff;
   min-width: 180px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-  z-index: 1;
+  z-index: 1101;
   border-radius: 6px;
   padding: 10px 0;
-  top: calc(100% + 2px);
   animation: slideDown 0.25s ease forwards;
 }
 .dropdown-content a {
@@ -1956,6 +1956,7 @@ document.querySelectorAll("#mobileNav a").forEach(link => {
 
 </body>
 </html>
+
 
 
 
