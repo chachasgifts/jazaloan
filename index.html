@@ -104,16 +104,7 @@
     th {
       background-color: #bdc3c7;
     }
-    #download-btn, #payslip-btn {
-      background-color: #2980b9;
-      margin-top: 10px;
-      transition: transform 0.2s ease, background-color 0.3s ease;
-    }
-    #download-btn:hover, #payslip-btn:hover {
-      background-color: #1f6392;
-      transform: scale(1.03);
-    }
-
+ 
 .site-header {
   position: sticky;
   top: 0;
@@ -725,7 +716,7 @@
     <div class="dropdown">
       <a href="#">Tax Calculators ▾</a>
       <div class="dropdown-content">
-        <a href="#paye-section">PAYE Calculator</a>
+        <a href="paye-calculator.html">PAYE Calculator</a>
         <a href="vat-calculator.html">VAT Calculator</a>
       </div>
     </div>
@@ -739,7 +730,7 @@
 <nav class="mobile-nav" id="mobileNav">
   <a href="mshwari-calculator.html">Mshwari Calculator</a>
   <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
-  <a href="#paye-section">PAYE Calculator</a>
+  <a href="paye-calculator.html">PAYE Calculator</a>
   <a href="vat-calculator.html">VAT Calculator</a>
   <a href="jumia-calculator.html">Jumia Calculator</a>
   <a href="budgeting-calculator.html">Budgeting Calculator</a>
@@ -875,132 +866,16 @@
 </section>
   </div>
   
-<section id="paye-area" style="padding:25px 20px; margin-top:40px; max-width:800px; background:#f9f9f9; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.05); margin-left:auto; margin-right:auto;">
-  <div id="paye-section" class="paye-section">
-
-    <!-- Updated SEO heading -->
-    <h2>Kenya Net Salary & PAYE Calculator (2025)</h2>
-
-    <!-- Gross Salary Input -->
-    <label for="gross">Gross Monthly Salary (Ksh):</label>
-    <input type="text" id="gross" placeholder="e.g. 50,000" oninput="formatGrossInput(this)" />
-
-    <!-- New Allowances Input -->
-    <label for="allowances" style="margin-top:10px; display:block;">Monthly Allowances / Benefits (Ksh):</label>
-    <input type="text" id="allowances" placeholder="e.g. 10,000" oninput="formatGrossInput(this)" />
-
-    <!-- Calculate Button -->
-    <button onclick="calculatePAYE()">Calculate Net Salary</button>
-
-    <!-- Results Area -->
-    <div id="payeResults" style="margin-top: 15px;"></div>
-    <button id="payslip-btn" style="display:none;margin-top:15px;" onclick="downloadPayslip()">Download Payslip PDF</button>
-    <button id="paye-reset-btn" style="display:none;margin-top:15px;" onclick="resetPAYEInputs()">Reset & Start Again</button>
-
-    <p id="budgetCta" style="display:none; margin-top:8px; font-size:0.9rem; color:#2c3e50;">
-      Ready to make the most of your <strong>net salary</strong>? Try our
-      <a href="budgeting-calculator.html" style="color:#2980b9; text-decoration:underline;">Budget Calculator</a>
-    </p>
-
-  </div>
-
-  <div>
-    <h3>Kenya Net Salary & PAYE Calculator – Updated 2025 Tax Deductions</h3>
-<p>
-  Use our free <strong>Kenya Net Salary Calculator (2025)</strong> to find out your <strong>take-home pay after tax</strong>. 
-  This updated tool applies the latest <strong>KRA PAYE tax bands</strong>, <strong>SHIF rates</strong>, <strong>NSSF contributions</strong>, 
-  and the <strong>housing levy</strong> in line with the Finance Act 2025. Perfect for employees, HR professionals, freelancers, and job seekers, it shows a clear monthly payslip breakdown.
-</p>
-<p>
-  Whether you are negotiating a new job, verifying payroll accuracy, or planning your budget, this <strong>Kenya salary calculator 2025</strong> 
-  shows exactly how your <strong>gross salary plus allowances</strong> is taxed and what your final <strong>net pay in Kenya</strong> will be.
-</p>
-
-<h4>What this 2025 Net Pay Calculator includes:</h4>
-<ul>
-  <li>Gross monthly salary (basic pay before deductions)</li>
-  <li>Optional allowances and taxable benefits</li>
-  <li><strong>SHIF (2.75% of gross salary)</strong> replacing NHIF</li>
-  <li><strong>Housing Levy (1.5% of gross pay)</strong></li>
-  <li><strong>NSSF Tier I & Tier II contributions</strong></li>
-  <li><strong>PAYE tax bands (Finance Act 2025)</strong></li>
-  <li><strong>Personal relief (Ksh 2,400)</strong> applied monthly</li>
-  <li>Final <strong>net salary / take-home pay</strong></li>
-  <li>Option to <strong>download a payslip PDF</strong> with full breakdown</li>
-</ul>
-
-<div class="faq-item">
-  <button class="faq-question">What is PAYE in Kenya (2025)?</button>
-  <div class="faq-answer">
-    <p><strong>PAYE (Pay As You Earn)</strong> is the income tax deducted directly from an employee’s salary and paid to the <strong>Kenya Revenue Authority (KRA)</strong>. 
-    In 2025, PAYE applies progressively on monthly earnings above Ksh 24,000.</p>
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-question">How does the Net Salary Calculator work?</button>
-  <div class="faq-answer">
-    <p>Our <strong>Kenya take-home pay calculator</strong> applies the latest <strong>P.A.Y.E. tax brackets</strong>, SHIF, NSSF, and housing levy automatically. 
-    It instantly shows your total deductions and your <strong>net salary after tax</strong>.</p>
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-question">What are the new 2025 PAYE tax rates in Kenya?</button>
-  <div class="faq-answer">
-    <p>According to the Finance Act 2025, the PAYE income tax bands remain progressive: 10% on the first Ksh 24,000, 
-    25% up to Ksh 32,333, 30% up to Ksh 500,000, 32.5% up to Ksh 800,000, and 35% above that. 
-    The calculator applies these automatically after allowable deductions.</p>
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-question">What is SHIF and how is it deducted?</button>
-  <div class="faq-answer">
-    <p>The <strong>Social Health Insurance Fund (SHIF)</strong> replaced NHIF in 2024. 
-    From 2025, SHIF is charged at <strong>2.75% of gross pay</strong> without a maximum cap. 
-    This deduction is factored into your payslip automatically.</p>
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-question">Are NSSF contributions mandatory in 2025?</button>
-  <div class="faq-answer">
-    <p>Yes. Both <strong>NSSF Tier I (up to Ksh 7,000)</strong> and <strong>Tier II (up to Ksh 36,000)</strong> contributions remain mandatory for formal employees. 
-    These pension deductions are included in the calculator before computing PAYE.</p>
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-question">Can job seekers use this salary calculator?</button>
-  <div class="faq-answer">
-    <p>Absolutely. If you’re comparing job offers in Kenya, our <strong>gross to net salary calculator</strong> 
-    helps you know your real <strong>take-home pay</strong> before accepting an offer.</p>
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-question">Can I download a payslip with this tool?</button>
-  <div class="faq-answer">
-    <p>Yes. Once you calculate, simply click <strong>Download Payslip</strong> to get a PDF summary of your <strong>gross salary, deductions (PAYE, SHIF, NSSF, housing levy)</strong>, 
-    and your final <strong>net pay in Kenya</strong>.</p>
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-question">Is the calculator free and mobile-friendly?</button>
-  <div class="faq-answer">
-    <p>Yes. Our <strong>Kenya PAYE Calculator 2025</strong> is free, requires no sign-up, and works seamlessly on desktop and mobile devices.</p>
-  </div>
-</div>
-
-<p>
-  Planning to borrow? Try our <a href="compare-loans.html"><strong>Loan Comparison Tool Kenya</strong></a>. 
-  See how your <strong>net salary after deductions</strong> affects your borrowing capacity. 
-  Instantly compare <strong>bank loans</strong>, <strong>mobile loans</strong>, <strong>SACCO loans</strong>, and <strong>salary advances</strong> 
-  to make the most affordable choice for your income.
-</p>
-  </div>
+<section id="paye-teaser" style="margin: 40px auto; max-width: 900px; padding: 25px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.05); text-align: center;">
+  <h2 style="color: #2c3e50; margin-bottom: 15px;">💰 Kenya PAYE & Net Salary Calculator 2025</h2>
+  <p style="font-size: 1.05em; line-height: 1.6; color: #444; margin-bottom: 20px;">
+    Instantly find out your <strong>take-home pay after tax</strong> in Kenya. 
+    Updated with the latest <strong>KRA PAYE bands, SHIF, NSSF,</strong> and <strong>Housing Levy</strong> for 2025.
+  </p>
+  <a href="paye-calculator.html" 
+     style="display: inline-block; background: #27ae60; color: #fff; padding: 12px 24px; font-size: 1.1em; border-radius: 6px; text-decoration: none; transition: background 0.3s, transform 0.2s;">
+     Try PAYE Calculator →
+  </a>
 </section>
 
  <section id="about" class="faq-item" style="padding: 25px 20px; margin-top: 40px;">
@@ -1127,32 +1002,6 @@
 </section>
 
   <script>
-    let lastLoanType = '';
-
-    function formatGross(input) {
-      let value = input.value.replace(/,/g, '').replace(/[^\d]/g, '');
-      if (value) {
-        input.value = parseInt(value).toLocaleString('en-KE');
-      }
-    }
-
-function resetPAYEInputs() {
-  // Clear inputs
-  document.getElementById("gross").value = "";
-  if (document.getElementById("allowances")) {
-    document.getElementById("allowances").value = "";
-  }
-
-  document.getElementById("payeResults").innerHTML = "";
-
-  document.getElementById("paye-reset-btn").style.display = "none";
-  document.getElementById("payslip-btn").style.display = "none";
-
-  const budgetCta = document.getElementById("budgetCta");
-  if (budgetCta) budgetCta.style.display = "none";
-
-  document.getElementById("paye-section").scrollIntoView({ behavior: "smooth" });
-}
 
     function resetLoanInputs() {
       document.getElementById("amount").value = "";
@@ -1452,213 +1301,6 @@ if (lastLoanType === 'reducing') {
 
   doc.save(filename);
 }
-
- function calculatePAYE() {
-  // 🔹 Get inputs
-  const grossInput = document.getElementById("gross").value.replace(/,/g, '');
-  const allowanceInput = document.getElementById("allowances") ? document.getElementById("allowances").value.replace(/,/g, '') : "0";
-
-  const gross = parseFloat(grossInput);
-  const allowances = parseFloat(allowanceInput) || 0;
-  const totalGross = gross + allowances;
-
-  if (!gross || gross <= 0) {
-    alert("Enter a valid gross salary");
-    return;
-  }
-
-  // 🔹 NSSF (2025 bands: Tier I up to 8,000; Tier II up to 72,000)
-  const tier1Limit = 8000;
-  const tier2Limit = 72000;
-  const tier1 = Math.min(totalGross, tier1Limit) * 0.06;
-  const tier2 = totalGross > tier1Limit ? Math.min(totalGross - tier1Limit, tier2Limit - tier1Limit) * 0.06 : 0;
-  const nssf = tier1 + tier2;
-
-  // 🔹 SHIF – 2.75% of gross (min 300)
-  const shif = Math.max(300, totalGross * 0.0275);
-
-  // 🔹 Housing Levy – 1.5% of gross
-  const housing = totalGross * 0.015;
-
-  // 🔹 Taxable Pay (Gross – NSSF – SHIF – Housing)
-  const taxable = totalGross - (nssf + shif + housing);
-
-  // 🔹 Income Tax Bands (Kenya 2025)
-  let incomeTax = 0;
-  if (taxable <= 24000) {
-    incomeTax = taxable * 0.10;
-  } else if (taxable <= 32333) {
-    incomeTax = (24000 * 0.10) + ((taxable - 24000) * 0.25);
-  } else if (taxable <= 500000) {
-    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((taxable - 32333) * 0.30);
-  } else if (taxable <= 800000) {
-    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((taxable - 500000) * 0.325);
-  } else {
-    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((800000 - 500000) * 0.325) + ((taxable - 800000) * 0.35);
-  }
-
-  // 🔹 Personal Relief
-  const relief = 2400;
-  const paye = Math.max(0, incomeTax - relief);
-
-  // 🔹 Totals
-  const totalDeductions = nssf + shif + housing + paye;
-  const netPay = totalGross - totalDeductions;
-
-  // 🔹 Output results (unique payslip style)
-  document.getElementById("payeResults").innerHTML = `
-    <div id="payeResults" style="margin-top: 30px;">
-      <h4>Payslip Breakdown for <strong>Ksh ${totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></h4>
-      <table>
-        <tr><td><strong>Basic Pay:</strong></td><td>Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-        <tr><td><strong>Allowances:</strong></td><td>Ksh ${allowances.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-        <tr><td><strong>Total Gross Pay:</strong></td><td><strong>Ksh ${totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></td></tr>
-
-        <tr><td colspan="2"><hr></td></tr>
-        <tr><td><em>Statutory Deductions</em></td><td></td></tr>
-        <tr><td>NSSF (Tier I + II):</td><td>Ksh ${nssf.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-        <tr><td>SHIF (2.75%):</td><td>Ksh ${shif.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-        <tr><td>Housing Levy (1.5%):</td><td>Ksh ${housing.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-
-        <tr><td colspan="2"><hr></td></tr>
-        <tr><td><em>Tax Computation</em></td><td></td></tr>
-        <tr><td>Taxable Pay:</td><td>Ksh ${taxable.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-        <tr><td>Gross Income Tax:</td><td>Ksh ${incomeTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-        <tr><td>Less: Personal Relief:</td><td>Ksh ${relief.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-        <tr><td><strong>P.A.Y.E (Net Tax):</strong></td><td>Ksh ${paye.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
-
-        <tr><td colspan="2"><hr></td></tr>
-        <tr><td><strong>Total Deductions:</strong></td><td><strong>Ksh ${totalDeductions.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></td></tr>
-        <tr><td><strong>Net Pay:</strong></td><td><strong style="color:green;">Ksh ${netPay.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></td></tr>
-      </table>
-    </div>
-  `;
-
-  setTimeout(() => {
-    document.getElementById("payeResults").scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 300);
-
-  document.getElementById("paye-reset-btn").style.display = "inline-block";
-  document.getElementById('payslip-btn').style.display = 'block';
-  document.getElementById("budgetCta").style.display = "block";
-}
-
-function downloadPayslip() {
-  const gross = parseFloat(document.getElementById("gross").value.replace(/,/g, ''));
-  const allowanceInput = document.getElementById("allowances") ? document.getElementById("allowances").value.replace(/,/g, '') : "0";
-  const allowances = parseFloat(allowanceInput) || 0;
-  const totalGross = gross + allowances;
-
-  if (!gross || gross <= 0) {
-    alert("Enter salary first");
-    return;
-  }
-
-  // 🔹 NSSF (Tier I & II)
-  const tier1Limit = 8000;
-  const tier2Limit = 72000;
-  const tier1 = Math.min(totalGross, tier1Limit) * 0.06;
-  const tier2 = totalGross > tier1Limit ? Math.min(totalGross - tier1Limit, tier2Limit - tier1Limit) * 0.06 : 0;
-  const nssf = tier1 + tier2;
-
-  // 🔹 SHIF
-  const shif = Math.max(300, totalGross * 0.0275);
-
-  // 🔹 Housing Levy
-  const housing = totalGross * 0.015;
-
-  // 🔹 Taxable Pay
-  const taxable = totalGross - (nssf + shif + housing);
-
-  // 🔹 Income Tax Bands
-  let incomeTax = 0;
-  if (taxable <= 24000) {
-    incomeTax = taxable * 0.10;
-  } else if (taxable <= 32333) {
-    incomeTax = (24000 * 0.10) + ((taxable - 24000) * 0.25);
-  } else if (taxable <= 500000) {
-    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((taxable - 32333) * 0.30);
-  } else if (taxable <= 800000) {
-    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((taxable - 500000) * 0.325);
-  } else {
-    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((800000 - 500000) * 0.325) + ((taxable - 800000) * 0.35);
-  }
-
-  const relief = 2400;
-  const paye = Math.max(0, incomeTax - relief);
-
-  // 🔹 Totals
-  const totalDeductions = nssf + shif + housing + paye;
-  const netPay = totalGross - totalDeductions;
-
-  // 🔹 PDF Export
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  doc.setFontSize(14);
-  doc.text(`Payslip for Ksh ${totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}`, 14, 20);
-
-  // Table
-  doc.autoTable({
-    startY: 30,
-    head: [["Item", "Amount (Ksh)"]],
-    body: [
-      ["Basic Pay", gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-      ["Allowances", allowances.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-      [{ content: "Total Gross Pay", styles: { fontStyle: 'bold' } }, { content: totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' } }],
-
-      ["", ""],
-      ["NSSF (Tier I + II)", nssf.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-      ["SHIF (2.75%)", shif.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-      ["Housing Levy (1.5%)", housing.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-
-      ["", ""],
-      ["Taxable Pay", taxable.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-      ["Gross Income Tax", incomeTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-      ["Less: Personal Relief", relief.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-      ["P.A.Y.E (Net Tax)", paye.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
-
-      ["", ""],
-      [{ content: "Total Deductions", styles: { fontStyle: 'bold' } }, { content: totalDeductions.toLocaleString("en-KE", { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' } }],
-      [{ content: "Net Pay", styles: { fontStyle: 'bold', textColor: [0, 128, 0] } }, { content: netPay.toLocaleString("en-KE", { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', textColor: [0, 128, 0] } }],
-    ],
-    theme: "grid",
-    headStyles: { fillColor: [44, 62, 80] },
-    styles: { fontSize: 11 }
-  });
-
-  // Professional Explanation Below Table
-  let finalY = doc.lastAutoTable.finalY + 10;
-  doc.setFontSize(11);
-  doc.setTextColor(50);
-  doc.text("Explanation:", 14, finalY);
-  doc.setFontSize(10);
-  doc.setTextColor(80);
-  doc.text(
-    "This payslip provides a detailed breakdown of gross pay, statutory deductions, taxable income, PAYE computation, and final net salary. " +
-    "Deductions include NSSF contributions, SHIF contributions, and the Housing Levy, all computed as per Kenya’s 2025 Finance Act. " +
-    "PAYE is applied to the taxable income after statutory deductions, with personal relief factored in. " +
-    "The Net Pay shown represents the actual amount receivable by the employee for the period.",
-    14,
-    finalY + 6,
-    { maxWidth: 180, align: "justify" }
-  );
-
-  // Footer Note
-  const pageHeight = doc.internal.pageSize.height;
-  const pageWidth = doc.internal.pageSize.width;
-  doc.setFontSize(9);
-  doc.setTextColor(100);
-  doc.text("Generated by JazaLoan | Based on Kenya PAYE rules 2025. Always confirm with KRA for compliance.", 14, pageHeight - 15);
-  doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth - 30, pageHeight - 15);
-
-  doc.save("payslip_2025.pdf");
-}
-
-    function formatGrossInput(input) {
-      let value = input.value.replace(/[^\d]/g, '');
-      input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
 
 function toggleFAQ(button) {
   const item = button.closest(".faq-item");
@@ -2049,11 +1691,6 @@ document.querySelectorAll("#mobileNav a").forEach(link => {
 
 </body>
 </html>
-
-
-
-
-
 
 
 
