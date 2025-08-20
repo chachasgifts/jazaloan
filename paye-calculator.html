@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Kenya Net Pay & PAYE Calculator 2025 – Take-Home Salary After Tax | JazaLoan</title>
+
+<meta name="description" content="Free Kenya Net Pay & PAYE Calculator (2025). Instantly calculate your take-home salary after tax with updated KRA PAYE bands, SHIF, NSSF, and housing levy. Accurate, mobile-friendly, and easy to use.">
+
+<meta name="keywords" content="Kenya net pay calculator, PAYE calculator Kenya 2025, salary after tax Kenya, KRA PAYE rates 2025, take-home pay calculator, Kenya income tax calculator, SHIF deductions Kenya, NSSF calculator Kenya">
+
+<meta name="author" content="JazaLoan" />
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GM58HL1VXZ"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-GM58HL1VXZ');
+</script>
+  
+<link rel="icon" type="image/png" href="Images/favicon.png" sizes="32x32">
+<link rel="icon" type="image/x-icon" href="Images/favicon.ico">
+<link rel="icon" type="image/png" href="Images/favicon-96x96.png" sizes="96x96">
+<link rel="apple-touch-icon" sizes="180x180" href="Images/apple-touch-icon.png">
+<link rel="manifest" href="Images/site.webmanifest">
+<link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
+
+<style>
+  
+   html {
+  scroll-behavior: smooth;
+}
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+
+    #paye-section {
+  scroll-margin-top: 130px;
+  scroll-margin-top: 120px;
+}
+
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #27ae60;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      margin-top: 20px;
+      width: 100%;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #1e8449;
+      transform: scale(1.03);
+    }
+    .results, .tutorial, .paye-section {
+      margin-top: 25px;
+      padding: 15px;
+      background: #ecf0f1;
+      border-radius: 8px;
+    }
+    .ad-space {
+      margin: 20px 0;
+      text-align: center;
+      padding: 10px;
+      background: #dcdde1;
+      color: #888;
+      border-radius: 5px;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #bdc3c7;
+    }
+    #download-btn, #payslip-btn {
+      background-color: #2980b9;
+      margin-top: 10px;
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+    #download-btn:hover, #payslip-btn:hover {
+      background-color: #1f6392;
+      transform: scale(1.03);
+    }
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #ffffff;
+  padding: 5px 10px;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+@media (min-width: 769px) {
+  .site-header {
+    transition: all 0.3s ease;
+    padding: 10px 20px;
+  }
+
+  .site-header.shrink {
+    padding: 2px 20px;
+  }
+
+  .site-header .logo {
+    height: 90px;
+    transition: height 0.3s ease;
+  }
+
+  .site-header.shrink .logo {
+    height: 60px;
+  }
+}
+
+    .header-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  padding: 5px 15px;
+}
+
+    .logo {
+      height: 90px;
+      max-height: 90px;
+      width: auto;
+      object-fit: contain;
+      margin-right: 10px;
+    }
+    .navbar {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .navbar a {
+      position: relative;
+      color: #2c3e50;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      transition: color 0.3s ease;
+      padding: 6px 10px;
+    }
+    .navbar a::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 0%;
+      height: 2px;
+      background-color: #007bff;
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+    .navbar a:hover {
+      color: #007bff;
+    }
+    .navbar a:hover::after {
+      width: 100%;
+    }
+    
+.navbar .dropdown > a {
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+    #about {
+      background-color: #f9f9f9;
+      border-top: 1px solid #ccc;
+      margin: 40px auto;
+      padding: 25px 20px;
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 950px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    }
+    #about h2 {
+      margin-top: 0;
+      text-align: center;
+      color: #333;
+    }
+    #about ul {
+      padding-left: 20px;
+      line-height: 1.6;
+    }
+    footer {
+      background-color: #03457b;
+      padding: 10px 0;
+      font-size: 13px;
+      text-align: center;
+      color: #fff;
+    }
+    footer a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    #backToTop {
+      position: fixed;
+      bottom: 40px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background-color: #1abc9c;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: bold;
+      line-height: 40px;
+      text-align: center;
+      cursor: pointer;
+      display: none;
+      z-index: 9999;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    #backToTop:hover {
+      background-color: #148f77;
+      transform: scale(1.15);
+    }
+
+.faq-item {
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.faq-item:hover {
+  background: #f1f8f4;
+  border-color: #b2dfdb;
+}
+
+.faq-item h3 {
+  font-size: 20px;
+  color: #1a4b2c;
+  margin-bottom: 10px;
+}
+
+.faq-item p {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #444;
+}
+.faq-question {
+  width: 100%;
+  background: none;
+  border: none;
+  font-size: 18px;
+  text-align: left;
+  padding: 15px 0;
+  cursor: pointer;
+  font-weight: bold;
+  color: #1a4b2c;
+  border-bottom: 1px solid #ddd;
+  transition: background 0.2s;
+  font-size: 1rem;
+}
+
+.faq-question:hover {
+  background-color: #f1f8f4;
+}
+
+.faq-answer {
+  display: none;
+  padding: 0 16px 16px 16px;
+  font-size: 16px;
+  color: #444;
+  line-height: 1.6;
+  animation: fadeIn 0.3s ease-in-out;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.faq-item.active .faq-answer {
+  display: block;
+  max-height: 500px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+.dropdown-content {
+  display: none;
+  position: fixed;
+  top: 60px;   
+  background-color: #fff;
+  min-width: 180px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  z-index: 1101;
+  border-radius: 6px;
+  padding: 10px 0;
+  animation: slideDown 0.25s ease forwards;
+}
+.dropdown-content a {
+  color: #2c3e50;
+  padding: 10px 16px;
+  text-decoration: none;
+  display: block;
+  font-size: 15px;
+  font-weight: normal;
+}
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+}
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+.menu-toggle {
+  display: none;
+  font-size: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .menu-toggle {
+    display: block;
+    order: 1;
+    margin-right: auto;
+  }
+
+  .logo {
+    order: 2;
+    margin: 0 auto;
+  }
+
+  .navbar {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 0;
+    align-items: flex-start;
+    background: #fff;
+    padding: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  }
+
+  .navbar.show {
+    display: flex;
+  }
+
+  .navbar a,
+  .dropdown {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .dropdown-content {
+    position: relative;
+    box-shadow: none;
+    border-top: 1px solid #ddd;
+  }
+}
+
+.faq-item details[open] > summary ~ * {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.faq-item summary {
+  cursor: pointer;
+}
+
+#loan-insight-section, 
+#loan-insight-section h2, 
+#loan-insight-section h3, 
+#loan-insight-section summary {
+  font-family: "Segoe UI", sans-serif;
+  color: #1a4b2c;
+}
+
+#loan-insight-section summary {
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 16px;
+  border-bottom: 1px solid #ddd;
+}
+.faq-dropdowns details {
+  margin-bottom: 15px;
+}
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 10px;
+}
+.table-wrapper table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+}
+.table-wrapper th, .table-wrapper td {
+  word-break: break-word;
+  padding: 8px;
+}
+#payeResults {
+  scroll-margin-top: 100px;
+}
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+#results {
+  scroll-margin-top: 100px;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
+}
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100%;
+  width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 20px 20px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 999;
+}
+.mobile-nav.show {
+  right: 0;
+}
+.mobile-nav a {
+  padding: 12px 0;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+}
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only { display: none !important; }
+}
+
+  .header-content {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+  }
+
+#overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+#overlay.show {
+  display: block;
+}
+
+#results {
+  scroll-margin-top: 90px;
+}
+#paye-area {
+  padding: 25px 20px;
+  margin-top: 40px;
+  background: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  max-width: 950px;
+  margin-left: auto;
+  margin-right: auto;
+}
+#paye-area input{
+  max-width: 750px;
+  width: 100%;
+  margin: 0 auto;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  #paye-area input {
+    max-width: 300px; 
+  }
+}
+
+.intro-text {
+  background: #f9f9f9;
+  padding: 15px 20px;
+  border-left: 6px solid transparent;
+  border-image: linear-gradient(to bottom, #0b5e2b, #03457b) 1; /* Green → Blue */
+  font-size: 1.05em;
+  line-height: 1.6;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is PAYE in Kenya (2025)?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "PAYE (Pay As You Earn) is the income tax deducted directly from an employee’s salary and paid to the Kenya Revenue Authority (KRA). In 2025, PAYE applies progressively on monthly earnings above Ksh 24,000."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does the Net Salary Calculator work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Kenya take-home pay calculator applies the latest PAYE tax brackets, SHIF, NSSF, and housing levy automatically. It instantly shows your total deductions and your net salary after tax."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are the new 2025 PAYE tax rates in Kenya?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "According to the Finance Act 2025, the PAYE income tax bands are: 10% on the first Ksh 24,000, 25% up to Ksh 32,333, 30% up to Ksh 500,000, 32.5% up to Ksh 800,000, and 35% above that."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is SHIF and how is it deducted?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Social Health Insurance Fund (SHIF) replaced NHIF in 2024. From 2025, SHIF is charged at 2.75% of gross pay without a maximum cap. This deduction is factored into the payslip automatically."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are NSSF contributions mandatory in 2025?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Both NSSF Tier I (up to Ksh 7,000) and Tier II (up to Ksh 36,000) contributions remain mandatory for formal employees. These deductions are included in the calculator before computing PAYE."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can job seekers use this salary calculator?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Absolutely. Job seekers can use the gross to net salary calculator to know their real take-home pay before accepting an offer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I download a payslip with this tool?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Once you calculate, simply click Download Payslip to get a PDF summary of your gross salary, deductions (PAYE, SHIF, NSSF, housing levy), and your final net pay in Kenya."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the calculator free and mobile-friendly?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The Kenya PAYE Calculator 2025 is free, requires no sign-up, and works seamlessly on desktop and mobile devices."
+      }
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://jazaloancalculator.co.ke/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Calculators",
+      "item": "https://jazaloancalculator.co.ke/#calculators"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "PAYE Calculator 2025",
+      "item": "https://jazaloancalculator.co.ke/paye-calculator.html"
+    }
+  ]
+}
+</script>
+
+</head>
+<body>
+ <header class="site-header fade-in">
+  <div class="header-content">
+
+  <a href="index.html" aria-label="JazaLoan homepage">
+    <img src="Images/logo.png" alt="JazaLoan – Kenya's Mobile Loan Guide" class="logo animated-logo" />
+  </a>
+
+  <div id="hamburger" class="hamburger">
+  <span></span>
+  <span></span>
+  <span></span>
+</div>
+
+  <!-- Desktop Nav -->
+  <nav class="navbar desktop-only" id="mainNav">
+    <div class="dropdown">
+      <a href="#">Loan Calculators ▾</a>
+      <div class="dropdown-content">
+        <a href="mshwari-calculator.html">Mshwari Calculator</a>
+        <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+      </div>
+    </div>
+    <a href="vat-calculator.html">VAT Calculator</a>
+    <a href="jumia-calculator.html">Jumia Calculator</a>
+    <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    <a href="compare-loans.html">Compare Loans</a>
+  </nav>
+</div>
+
+<!-- Mobile Nav -->
+<nav class="mobile-nav" id="mobileNav">
+  <a href="index.html">Home</a>
+  <a href="mshwari-calculator.html">Mshwari Calculator</a>
+  <a href="kcb-mpesa-loan.html">KCB Mpesa Calculator</a>
+  <a href="vat-calculator.html">VAT Calculator</a>
+  <a href="jumia-calculator.html">Jumia Calculator</a>
+  <a href="budgeting-calculator.html">Budgeting Calculator</a>
+  <a href="compare-loans.html">Compare Loans</a>
+  
+</nav>
+
+<!-- Overlay -->
+<div id="overlay" class="mobile-overlay"></div>
+
+</header>
+
+<section id="paye-area" style="padding:25px 20px; margin-top:40px; max-width:800px; background:#f9f9f9; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.05); margin-left:auto; margin-right:auto;">
+  <div id="paye-section" class="paye-section">
+
+    <h1>Kenya Net Pay & PAYE Calculator (2025)</h1>
+<p class="intro-text">
+  Instantly calculate your <strong>take-home salary in Kenya after tax</strong> with our free <strong>Net Pay Calculator 2025</strong>. 
+  Using the latest <strong>KRA PAYE tax rates</strong>, <strong>SHIF deductions</strong>, <strong>NSSF contributions</strong>, and 
+  <strong>housing levy</strong>, this tool gives you an accurate breakdown of your monthly payslip. 
+  Mobile-friendly, fast, and trusted by employees, HR managers, and job seekers across Kenya.
+</p>
+
+    <!-- Gross Salary Input -->
+    <label for="gross">Gross Monthly Salary (Ksh):</label>
+    <input type="text" id="gross" placeholder="e.g. 50,000" oninput="formatGrossInput(this)" />
+
+    <!-- New Allowances Input -->
+    <label for="allowances" style="margin-top:10px; display:block;">Monthly Allowances / Benefits (Ksh):</label>
+    <input type="text" id="allowances" placeholder="e.g. 10,000" oninput="formatGrossInput(this)" />
+
+    <!-- Calculate Button -->
+    <button type="button" id="paye-btn" onclick="calculatePAYE()">Calculate PAYE</button>
+
+    <!-- Results Area -->
+    <div id="payeResults" style="margin-top: 15px;"></div>
+    <button id="payslip-btn" style="display:none;margin-top:15px;" onclick="downloadPayslip()">Download Payslip PDF</button>
+    <button id="paye-reset-btn" style="display:none;margin-top:15px;" onclick="resetPAYEInputs()">Reset & Start Again</button>
+
+    <p id="budgetCta" style="display:none; margin-top:8px; font-size:0.9rem; color:#2c3e50;">
+      Ready to make the most of your <strong>net salary</strong>? Try our
+      <a href="budgeting-calculator.html" style="color:#2980b9; text-decoration:underline;">Budget Calculator</a>
+    </p>
+
+  </div>
+
+  <div>
+    <h3>Kenya Net Salary & PAYE Calculator – Updated 2025 Tax Deductions</h3>
+<p>
+  Use our free <strong>Kenya Net Salary Calculator (2025)</strong> to find out your <strong>take-home pay after tax</strong>. 
+  This updated tool applies the latest <strong>KRA PAYE tax bands</strong>, <strong>SHIF rates</strong>, <strong>NSSF contributions</strong>, 
+  and the <strong>housing levy</strong> in line with the Finance Act 2025. Perfect for employees, HR professionals, freelancers, and job seekers, it shows a clear monthly payslip breakdown.
+</p>
+<p>
+  Whether you are negotiating a new job, verifying payroll accuracy, or planning your budget, this <strong>Kenya salary calculator 2025</strong> 
+  shows exactly how your <strong>gross salary plus allowances</strong> is taxed and what your final <strong>net pay in Kenya</strong> will be.
+</p>
+
+<h4>What this 2025 Net Pay Calculator includes:</h4>
+<ul>
+  <li>Gross monthly salary (basic pay before deductions)</li>
+  <li>Optional allowances and taxable benefits</li>
+  <li><strong>SHIF (2.75% of gross salary)</strong> replacing NHIF</li>
+  <li><strong>Housing Levy (1.5% of gross pay)</strong></li>
+  <li><strong>NSSF Tier I & Tier II contributions</strong></li>
+  <li><strong>PAYE tax bands (Finance Act 2025)</strong></li>
+  <li><strong>Personal relief (Ksh 2,400)</strong> applied monthly</li>
+  <li>Final <strong>net salary / take-home pay</strong></li>
+  <li>Option to <strong>download a payslip PDF</strong> with full breakdown</li>
+</ul>
+
+<div class="faq-item">
+  <button class="faq-question">What is PAYE in Kenya (2025)?</button>
+  <div class="faq-answer">
+    <p><strong>PAYE (Pay As You Earn)</strong> is the income tax deducted directly from an employee’s salary and paid to the <strong>Kenya Revenue Authority (KRA)</strong>. 
+    In 2025, PAYE applies progressively on monthly earnings above Ksh 24,000.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-question">How does the Net Salary Calculator work?</button>
+  <div class="faq-answer">
+    <p>Our <strong>Kenya take-home pay calculator</strong> applies the latest <strong>P.A.Y.E. tax brackets</strong>, SHIF, NSSF, and housing levy automatically. 
+    It instantly shows your total deductions and your <strong>net salary after tax</strong>.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-question">What are the new 2025 PAYE tax rates in Kenya?</button>
+  <div class="faq-answer">
+    <p>According to the Finance Act 2025, the PAYE income tax bands remain progressive: 10% on the first Ksh 24,000, 
+    25% up to Ksh 32,333, 30% up to Ksh 500,000, 32.5% up to Ksh 800,000, and 35% above that. 
+    The calculator applies these automatically after allowable deductions.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-question">What is SHIF and how is it deducted?</button>
+  <div class="faq-answer">
+    <p>The <strong>Social Health Insurance Fund (SHIF)</strong> replaced NHIF in 2024. 
+    From 2025, SHIF is charged at <strong>2.75% of gross pay</strong> without a maximum cap. 
+    This deduction is factored into your payslip automatically.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-question">Are NSSF contributions mandatory in 2025?</button>
+  <div class="faq-answer">
+    <p>Yes. Both <strong>NSSF Tier I (up to Ksh 7,000)</strong> and <strong>Tier II (up to Ksh 36,000)</strong> contributions remain mandatory for formal employees. 
+    These pension deductions are included in the calculator before computing PAYE.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-question">Can job seekers use this salary calculator?</button>
+  <div class="faq-answer">
+    <p>Absolutely. If you’re comparing job offers in Kenya, our <strong>gross to net salary calculator</strong> 
+    helps you know your real <strong>take-home pay</strong> before accepting an offer.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-question">Can I download a payslip with this tool?</button>
+  <div class="faq-answer">
+    <p>Yes. Once you calculate, simply click <strong>Download Payslip</strong> to get a PDF summary of your <strong>gross salary, deductions (PAYE, SHIF, NSSF, housing levy)</strong>, 
+    and your final <strong>net pay in Kenya</strong>.</p>
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-question">Is the calculator free and mobile-friendly?</button>
+  <div class="faq-answer">
+    <p>Yes. Our <strong>Kenya PAYE Calculator 2025</strong> is free, requires no sign-up, and works seamlessly on desktop and mobile devices.</p>
+  </div>
+</div>
+
+<p>
+  Planning to borrow? Try our <a href="compare-loans.html"><strong>Loan Comparison Tool Kenya</strong></a>. 
+  See how your <strong>net salary after deductions</strong> affects your borrowing capacity. 
+  Instantly compare <strong>bank loans</strong>, <strong>mobile loans</strong>, <strong>SACCO loans</strong>, and <strong>salary advances</strong> 
+  to make the most affordable choice for your income.
+</p>
+  </div>
+</section>
+
+  <div style="text-align: center; margin: 30px 0 30px 0;">
+  <p><strong>Like our calculators? Share JazaLoan with others:</strong></p>
+  <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+    <a href="https://wa.me/?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator:%20https://jazaloancalculator.co.ke" target="_blank" title="Share on WhatsApp">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/whatsapp.svg" alt="WhatsApp" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://jazaloancalculator.co.ke" target="_blank" title="Share on Facebook">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/facebook.svg" alt="Facebook" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://jazaloancalculator.co.ke" target="_blank" title="Share on LinkedIn">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/linkedin.svg" alt="LinkedIn" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+    <a href="https://twitter.com/intent/tweet?text=Try%20this%20free%20Kenyan%20loan%20and%20PAYE%20calculator&url=https://jazaloancalculator.co.ke" target="_blank" title="Share on X (Twitter)">
+      <img src="https://cdn.jsdelivr.net/npm/simple-icons@v10/icons/x.svg" alt="X" width="28" height="28" style="vertical-align: middle;" />
+    </a>
+  </div>
+  </div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+  <script>
+  
+    function resetPAYEInputs() {
+  // Clear inputs
+  document.getElementById("gross").value = "";
+  if (document.getElementById("allowances")) {
+    document.getElementById("allowances").value = "";
+  }
+
+  document.getElementById("payeResults").innerHTML = "";
+
+  document.getElementById("paye-reset-btn").style.display = "none";
+  document.getElementById("payslip-btn").style.display = "none";
+
+  const budgetCta = document.getElementById("budgetCta");
+  if (budgetCta) budgetCta.style.display = "none";
+
+  document.getElementById("paye-section").scrollIntoView({ behavior: "smooth" });
+}
+
+  function calculatePAYE() {
+  // 🔹 Get inputs
+  const grossInput = document.getElementById("gross").value.replace(/,/g, '');
+  const allowanceInput = document.getElementById("allowances") ? document.getElementById("allowances").value.replace(/,/g, '') : "0";
+
+  const gross = parseFloat(grossInput);
+  const allowances = parseFloat(allowanceInput) || 0;
+  const totalGross = gross + allowances;
+
+  if (!gross || gross <= 0) {
+    alert("Enter a valid gross salary");
+    return;
+  }
+
+  // 🔹 NSSF (2025 bands: Tier I up to 8,000; Tier II up to 72,000)
+  const tier1Limit = 8000;
+  const tier2Limit = 72000;
+  const tier1 = Math.min(totalGross, tier1Limit) * 0.06;
+  const tier2 = totalGross > tier1Limit ? Math.min(totalGross - tier1Limit, tier2Limit - tier1Limit) * 0.06 : 0;
+  const nssf = tier1 + tier2;
+
+  // 🔹 SHIF – 2.75% of gross (min 300)
+  const shif = Math.max(300, totalGross * 0.0275);
+
+  // 🔹 Housing Levy – 1.5% of gross
+  const housing = totalGross * 0.015;
+
+  // 🔹 Taxable Pay (Gross – NSSF – SHIF – Housing)
+  const taxable = totalGross - (nssf + shif + housing);
+
+  // 🔹 Income Tax Bands (Kenya 2025)
+  let incomeTax = 0;
+  if (taxable <= 24000) {
+    incomeTax = taxable * 0.10;
+  } else if (taxable <= 32333) {
+    incomeTax = (24000 * 0.10) + ((taxable - 24000) * 0.25);
+  } else if (taxable <= 500000) {
+    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((taxable - 32333) * 0.30);
+  } else if (taxable <= 800000) {
+    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((taxable - 500000) * 0.325);
+  } else {
+    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((800000 - 500000) * 0.325) + ((taxable - 800000) * 0.35);
+  }
+
+  // 🔹 Personal Relief
+  const relief = 2400;
+  const paye = Math.max(0, incomeTax - relief);
+
+  // 🔹 Totals
+  const totalDeductions = nssf + shif + housing + paye;
+  const netPay = totalGross - totalDeductions;
+
+  // 🔹 Output results (unique payslip style)
+  document.getElementById("payeResults").innerHTML = `
+    <div id="payeResults" style="margin-top: 30px;">
+      <h4>Payslip Breakdown for <strong>Ksh ${totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></h4>
+      <table>
+        <tr><td><strong>Basic Pay:</strong></td><td>Ksh ${gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td><strong>Allowances:</strong></td><td>Ksh ${allowances.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td><strong>Total Gross Pay:</strong></td><td><strong>Ksh ${totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></td></tr>
+
+        <tr><td colspan="2"><hr></td></tr>
+        <tr><td><em>Statutory Deductions</em></td><td></td></tr>
+        <tr><td>NSSF (Tier I + II):</td><td>Ksh ${nssf.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td>SHIF (2.75%):</td><td>Ksh ${shif.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td>Housing Levy (1.5%):</td><td>Ksh ${housing.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+
+        <tr><td colspan="2"><hr></td></tr>
+        <tr><td><em>Tax Computation</em></td><td></td></tr>
+        <tr><td>Taxable Pay:</td><td>Ksh ${taxable.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td>Gross Income Tax:</td><td>Ksh ${incomeTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td>Less: Personal Relief:</td><td>Ksh ${relief.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+        <tr><td><strong>P.A.Y.E (Net Tax):</strong></td><td>Ksh ${paye.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</td></tr>
+
+        <tr><td colspan="2"><hr></td></tr>
+        <tr><td><strong>Total Deductions:</strong></td><td><strong>Ksh ${totalDeductions.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></td></tr>
+        <tr><td><strong>Net Pay:</strong></td><td><strong style="color:green;">Ksh ${netPay.toLocaleString("en-KE", { minimumFractionDigits: 2 })}</strong></td></tr>
+      </table>
+    </div>
+  `;
+
+  setTimeout(() => {
+    document.getElementById("payeResults").scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 300);
+
+  document.getElementById("paye-reset-btn").style.display = "inline-block";
+  document.getElementById('payslip-btn').style.display = 'block';
+  document.getElementById("budgetCta").style.display = "block";
+}
+
+function downloadPayslip() {
+  const gross = parseFloat(document.getElementById("gross").value.replace(/,/g, ''));
+  const allowanceInput = document.getElementById("allowances") ? document.getElementById("allowances").value.replace(/,/g, '') : "0";
+  const allowances = parseFloat(allowanceInput) || 0;
+  const totalGross = gross + allowances;
+
+  if (!gross || gross <= 0) {
+    alert("Enter salary first");
+    return;
+  }
+
+  // 🔹 NSSF (Tier I & II)
+  const tier1Limit = 8000;
+  const tier2Limit = 72000;
+  const tier1 = Math.min(totalGross, tier1Limit) * 0.06;
+  const tier2 = totalGross > tier1Limit ? Math.min(totalGross - tier1Limit, tier2Limit - tier1Limit) * 0.06 : 0;
+  const nssf = tier1 + tier2;
+
+  // 🔹 SHIF
+  const shif = Math.max(300, totalGross * 0.0275);
+
+  // 🔹 Housing Levy
+  const housing = totalGross * 0.015;
+
+  // 🔹 Taxable Pay
+  const taxable = totalGross - (nssf + shif + housing);
+
+  // 🔹 Income Tax Bands
+  let incomeTax = 0;
+  if (taxable <= 24000) {
+    incomeTax = taxable * 0.10;
+  } else if (taxable <= 32333) {
+    incomeTax = (24000 * 0.10) + ((taxable - 24000) * 0.25);
+  } else if (taxable <= 500000) {
+    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((taxable - 32333) * 0.30);
+  } else if (taxable <= 800000) {
+    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((taxable - 500000) * 0.325);
+  } else {
+    incomeTax = (24000 * 0.10) + (8333 * 0.25) + ((500000 - 32333) * 0.30) + ((800000 - 500000) * 0.325) + ((taxable - 800000) * 0.35);
+  }
+
+  const relief = 2400;
+  const paye = Math.max(0, incomeTax - relief);
+
+  // 🔹 Totals
+  const totalDeductions = nssf + shif + housing + paye;
+  const netPay = totalGross - totalDeductions;
+
+  // 🔹 PDF Export
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(14);
+  doc.text(`Payslip for Ksh ${totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 })}`, 14, 20);
+
+  // Table
+  doc.autoTable({
+    startY: 30,
+    head: [["Item", "Amount (Ksh)"]],
+    body: [
+      ["Basic Pay", gross.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+      ["Allowances", allowances.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+      [{ content: "Total Gross Pay", styles: { fontStyle: 'bold' } }, { content: totalGross.toLocaleString("en-KE", { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' } }],
+
+      ["", ""],
+      ["NSSF (Tier I + II)", nssf.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+      ["SHIF (2.75%)", shif.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+      ["Housing Levy (1.5%)", housing.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+
+      ["", ""],
+      ["Taxable Pay", taxable.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+      ["Gross Income Tax", incomeTax.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+      ["Less: Personal Relief", relief.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+      ["P.A.Y.E (Net Tax)", paye.toLocaleString("en-KE", { minimumFractionDigits: 2 })],
+
+      ["", ""],
+      [{ content: "Total Deductions", styles: { fontStyle: 'bold' } }, { content: totalDeductions.toLocaleString("en-KE", { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' } }],
+      [{ content: "Net Pay", styles: { fontStyle: 'bold', textColor: [0, 128, 0] } }, { content: netPay.toLocaleString("en-KE", { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold', textColor: [0, 128, 0] } }],
+    ],
+    theme: "grid",
+    headStyles: { fillColor: [44, 62, 80] },
+    styles: { fontSize: 11 }
+  });
+
+  // Professional Explanation Below Table
+  let finalY = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(11);
+  doc.setTextColor(50);
+  doc.text("Explanation:", 14, finalY);
+  doc.setFontSize(10);
+  doc.setTextColor(80);
+  doc.text(
+    "This payslip provides a detailed breakdown of gross pay, statutory deductions, taxable income, PAYE computation, and final net salary. " +
+    "Deductions include NSSF contributions, SHIF contributions, and the Housing Levy, all computed as per Kenya’s 2025 Finance Act. " +
+    "PAYE is applied to the taxable income after statutory deductions, with personal relief factored in. " +
+    "The Net Pay shown represents the actual amount receivable by the employee for the period.",
+    14,
+    finalY + 6,
+    { maxWidth: 180, align: "justify" }
+  );
+
+  // Footer Note
+  const pageHeight = doc.internal.pageSize.height;
+  const pageWidth = doc.internal.pageSize.width;
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text("Generated by JazaLoan | Based on Kenya PAYE rules 2025. Always confirm with KRA for compliance.", 14, pageHeight - 15);
+  doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth - 30, pageHeight - 15);
+
+  doc.save("payslip_2025.pdf");
+}
+
+    function formatGrossInput(input) {
+      let value = input.value.replace(/[^\d]/g, '');
+      input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+function toggleFAQ(button) {
+  const item = button.closest(".faq-item");
+  const isActive = item.classList.contains("active");
+
+  // Close others
+  document.querySelectorAll(".faq-item").forEach(el => {
+    if (el !== item) el.classList.remove("active");
+  });
+
+  // Toggle current
+  if (!isActive) {
+    item.classList.add("active");
+
+    // Scroll with offset (e.g. header height 80px)
+    setTimeout(() => {
+      const offset = 80;
+      const itemTop = item.getBoundingClientRect().top + window.pageYOffset;
+      window.scrollTo({ top: itemTop - offset, behavior: "smooth" });
+    }, 150);
+  } else {
+    item.classList.remove("active");
+  }
+}
+
+  </script>
+  <footer>
+    <div class="footer-content">
+      <span><strong>JazaLoan</strong></span>
+      <span>|</span>
+      <span>© 2025 JazaLoan. All rights reserved.</span>
+      <span>|</span>
+      <span>📧 <a href="mailto:mburuthus@gmail.com">support@jazaloan.co.ke</a></span>
+      <span>|</span>
+      <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
+    </div>
+
+  </footer>
+  
+  <button id="backToTop" title="Back to Top">⬆</button>
+ <script>
+document.addEventListener("DOMContentLoaded", function () {
+  // 1. Back to top button
+  const backToTopBtn = document.getElementById("backToTop");
+  window.addEventListener("scroll", () => {
+    if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
+      backToTopBtn.style.display = "block";
+    } else {
+      backToTopBtn.style.display = "none";
+    }
+  });
+
+  if (backToTopBtn) {
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  // 2. Header shrink on scroll
+  const header = document.querySelector(".site-header");
+  window.addEventListener("scroll", function () {
+    if (window.scrollY > 50) {
+      header.classList.add("shrink");
+    } else {
+      header.classList.remove("shrink");
+    }
+  });
+
+  // 5. FAQ toggle with scroll
+  const faqItems = document.querySelectorAll(".faq-item");
+  faqItems.forEach(item => {
+    const question = item.querySelector(".faq-question");
+    question.addEventListener("click", function () {
+      faqItems.forEach(otherItem => {
+        if (otherItem !== item) otherItem.classList.remove("active");
+      });
+
+      const isOpen = item.classList.contains("active");
+      item.classList.toggle("active", !isOpen);
+
+      if (!isOpen) {
+        setTimeout(() => {
+          const offset = 80;
+          const y = item.getBoundingClientRect().top + window.pageYOffset - offset;
+          window.scrollTo({ top: y, behavior: "smooth" });
+        }, 300);
+      }
+    });
+  });
+
+  // 6. Clear hash and focus on price input
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname);
+  }
+  window.scrollTo({ top: 0, behavior: 'auto' });
+
+  const priceInput = document.getElementById('price');
+  if (priceInput) priceInput.focus();
+
+  // 7. Legacy menu toggle (if still used elsewhere)
+  window.toggleMenu = function () {
+    const nav = document.getElementById("mainNav");
+    const btn = document.getElementById("menuToggleBtn");
+
+    nav.classList.toggle("show");
+    btn.textContent = nav.classList.contains("show") ? "✖" : "☰";
+  };
+});
+
+  document.addEventListener("DOMContentLoaded", () => {
+  const hamburger = document.getElementById("hamburger");
+  const mobileNav = document.getElementById("mobileNav");
+  const overlay = document.getElementById("overlay");
+
+  const toggleMobileMenu = () => {
+    hamburger.classList.toggle("active");
+    mobileNav.classList.toggle("show");
+    overlay.classList.toggle("show");
+  };
+
+  hamburger.addEventListener("click", toggleMobileMenu);
+  overlay.addEventListener("click", toggleMobileMenu);
+  // Close mobile menu when a link is clicked
+document.querySelectorAll("#mobileNav a").forEach(link => {
+  link.addEventListener("click", () => {
+    hamburger.classList.remove("active");
+    mobileNav.classList.remove("show");
+    overlay.classList.remove("show");
+  });
+});
+
+});
+
+</script>
+</body>
+</html>
