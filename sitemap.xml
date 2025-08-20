@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Homepage -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/</loc>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Loan Calculator -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/loan-calculator.html</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- PAYE & Net Salary Calculator -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/paye-calculator.html</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Mshwari Calculator -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/mshwari-calculator.html</loc>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- KCB Mpesa Calculator -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/kcb-mpesa-loan.html</loc>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- VAT Calculator -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/vat-calculator.html</loc>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Jumia Commissions Calculator -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/jumia-commissions-calculator.html</loc>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Budgeting Calculator -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/budgeting-calculator.html</loc>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Compare Loans Page -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/compare-loans.html</loc>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Blog Page -->
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog.html</loc>
+    <priority>0.7</priority>
+  </url>
+
+</urlset>
