@@ -595,6 +595,70 @@
   border-radius: 6px;
   margin-bottom: 20px;
 }
+  .related-services {
+  margin-top: 50px;
+  padding: 25px 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.section-title {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 25px;
+  font-size: 1.6rem;
+}
+
+.service-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.service-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.service-card h4 {
+  color: #03457b;
+  margin-bottom: 10px;
+}
+
+.service-card p {
+  color: #444;
+  line-height: 1.6;
+}
+
+.cta-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #27ae60, #03457b);
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.cta-btn:hover {
+  background: linear-gradient(135deg, #1e8449, #02325a);
+  transform: scale(1.05);
+}
+
 </style>
 <script type="application/ld+json">
 {
@@ -881,6 +945,42 @@
   Instantly compare <strong>bank loans</strong>, <strong>mobile loans</strong>, <strong>SACCO loans</strong>, and <strong>salary advances</strong> 
   to make the most affordable choice for your income.
 </p>
+  </div>
+</section>
+<section class="related-services">
+  <h3 class="section-title">Next Steps After Calculating Your Net Salary</h3>
+  
+  <div class="service-cards">
+    
+    <!-- Tax Filing Service (Premium) -->
+    <div class="service-card">
+      <h4>Outsource Your PAYE & Tax Filing</h4>
+      <p>
+        Avoid the stress of deadlines and penalties.  
+        Let our team handle your <strong>KRA PAYE returns, income tax filing, and compliance</strong> at an affordable fee.  
+        Perfect for employees, freelancers, and small businesses in Kenya.  
+      </p>
+      <a href="paye-calculator.html" class="cta-btn">Get Tax Filing Help</a>
+    </div>
+    
+    <!-- Budgeting Tool -->
+    <div class="service-card">
+      <h4>Plan Your Salary With 50/30/20 Budgeting</h4>
+      <p>
+        Now that you know your <strong>take-home pay</strong>, manage it wisely.  
+        Use our <a href="budgeting-calculator.html"><strong>Budgeting Calculator</strong></a> to split your salary into needs, wants, and savings.
+      </p>
+    </div>
+    
+    <!-- Loan Affordability -->
+    <div class="service-card">
+      <h4>Check Your Loan Affordability</h4>
+      <p>
+        Use your <strong>net pay</strong> to estimate how much loan you can safely borrow.  
+        Try our <a href="index.html"><strong>Loan Calculator</strong></a> for both reducing balance and flat rate loans, and download your full PDF schedule.
+      </p>
+    </div>
+
   </div>
 </section>
 
@@ -1268,3 +1368,4 @@ document.querySelectorAll("#mobileNav a").forEach(link => {
 </body>
 
 </html>
+
