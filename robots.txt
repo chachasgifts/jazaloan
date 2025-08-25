@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
+
 Sitemap: https://jazaloancalculator.co.ke/sitemap.xml
