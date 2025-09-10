@@ -1,4 +1,14 @@
+# robots.txt for jazaloancalculator.co.ke
+
 User-agent: *
 Allow: /
 
+# Block sensitive folders
+Disallow: /cgi-bin/
+Disallow: /tmp/
+Disallow: /admin/
+
+# Sitemaps
 Sitemap: https://jazaloancalculator.co.ke/sitemap.xml
+Sitemap: https://jazaloancalculator.co.ke/sitemap-calculators.xml
+Sitemap: https://jazaloancalculator.co.ke/sitemap-blog.xml
