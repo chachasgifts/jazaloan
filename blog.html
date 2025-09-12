@@ -2,16 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>JazaLoan Blog - Financial Insights for Kenyans</title>
-    <meta name="description" content="Explore JazaLoan's blog for expert advice, tips, and insights on personal finance, loans, budgeting, and managing money effectively in Kenya.">
-    <meta name="keywords" content="JazaLoan blog, financial advice Kenya, personal finance Kenya, loan tips, budgeting Kenya, money management, Kenyan finance blog">
-    <link rel="icon" type="image/png" href="Images/favicon.png" sizes="32x32">
-    <link rel="icon" type="image/x-icon" href="Images/favicon.ico">
-    <link rel="icon" type="image/png" href="Images/favicon-96x96.png" sizes="96x96">
-    <link rel="apple-touch-icon" sizes="180x180" href="Images/apple-touch-icon.png">
-    <link rel="manifest" href="Images/site.webmanifest">
-    <link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JazaLoan Blog - Personal Finance & Loan Insights for Kenyans</title>
+<meta name="description" content="Read JazaLoan Blog for expert tips on loans, budgeting, debt management, and saving money in Kenya. Practical financial advice for everyday Kenyans.">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="Images/favicon.png">
+<link rel="icon" type="image/x-icon" href="Images/favicon.ico">
+<link rel="icon" type="image/png" href="Images/favicon-96x96.png" sizes="96x96">
+<link rel="apple-touch-icon" sizes="180x180" href="Images/apple-touch-icon.png">
+<link rel="manifest" href="Images/site.webmanifest">
+<link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
+
+<!-- Open Graph -->
+<meta property="og:title" content="JazaLoan Blog - Smarter Finance for Kenyans" />
+<meta property="og:description" content="Explore budgeting tips, loan guides, debt management strategies, and saving hacks tailored for Kenya. Stay financially smart with JazaLoan Blog." />
+<meta property="og:url" content="https://jazaloancalculator.co.ke/blog" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://jazaloancalculator.co.ke/Images/jazaloan-blog-banner.jpg" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="JazaLoan Blog - Financial Insights for Kenyans" />
+<meta name="twitter:description" content="Kenya’s trusted source for personal finance tips, loan advice, and budgeting strategies. Visit the JazaLoan Blog today." />
+<meta name="twitter:image" content="https://jazaloancalculator.co.ke/Images/jazaloan-blog-banner.jpg" />
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Structured Data: Blog -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  "headline": "JazaLoan Blog - Personal Finance & Loan Insights for Kenyans",
+  "description": "JazaLoan Blog provides practical money tips on loans, budgeting, debt management, and savings tailored to Kenyan readers.",
+  "publisher": {
+    "@type": "Organization",
+    "name": "JazaLoan",
+    "url": "https://jazaloancalculator.co.ke",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://jazaloancalculator.co.ke/Images/logo.png"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://jazaloancalculator.co.ke/blog"
+  }
+}
+</script>
+
+<!-- Structured Data: Breadcrumb -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://jazaloancalculator.co.ke/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Blog",
+      "item": "https://jazaloancalculator.co.ke/blog"
+    }
+  ]
+}
+</script>
+
 
 <style>
         html {
@@ -24,7 +86,8 @@
             padding: 0;
         }
         .container {
-            max-width: 600px; /* This will be overridden for blog-container and individual-post-container */
+            max-width: 1400px;
+            width: 95%;
             margin: 30px auto;
             background: #fff;
             padding: 20px;
@@ -322,30 +385,78 @@
             padding-left: 20px;
             line-height: 1.6;
         }
-       footer {
-      background-color: #03457b;
-      padding: 10px 0;
-      font-size: 13px;
-      text-align: center;
-      color: #fff;
-    }
-    footer a {
-      color: #fff;
-      text-decoration: none;
-      margin: 0 5px;
-    }
-    footer a:hover {
-      text-decoration: underline;
-    }
-    .footer-content {
-      max-width: 900px;
-      margin: 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-    }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.site-footer {
+  background-color: #03457b;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.7;
+  padding-top: 60px;
+}
+
+.footer-content {
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 24px 60px;
+  max-width: 100%;
+}
+
+.footer-section {
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.footer-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.footer-subtitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.footer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-list li {
+  margin: 12px 0;
+}
+
+.footer-section p,
+.footer-section li {
+  color: #e2e8f0; /* light gray for contrast */
+}
+
+.site-footer a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.site-footer a:hover {
+  color: #27ae60;
+}
+
+.footer-bottom {
+  background-color: #03457b;
+  text-align: center;
+  color: #cbd5e1; /* lighter gray */
+  padding: 20px;
+  font-size: 14px;
+  border-top: 1px solid #94a3b8; /* light grey separator line */
+}
         /* Styles for the Reviews Section (These are in your main CSS but not used in blog post HTML) */
         #reviews-section {
             background-color: #f0f8ff; /* Light blue background */
@@ -417,7 +528,9 @@
 
         /* NEW STYLES FOR BLOG PAGE (blog.html specific) */
         .blog-container {
-            max-width: 900px; /* Wider container for blog content */
+            max-width: 1400px; /* Wider container for blog content */
+            width: 95%;
+            margin: 20px auto;
             margin-top: 20px;
             background: #fff; /* Ensure it has a background like .container */
             padding: 20px;
@@ -427,8 +540,8 @@
 
         .blog-post-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
             padding: 20px 0;
         }
 
@@ -615,63 +728,54 @@
 </header>
 
 
-<div class="individual-post-container blog-container">
-    <h1>JazaLoan Blog: Your Guide to Smarter Finance in Kenya</h1>
-    <p class="post-meta">Your trusted source for financial insights, loan tips, and money management strategies tailored for the Kenyan market.</p>
+<div class="blog-container">
+  <h1>JazaLoan Blog: Smarter Finance for Every Kenyan</h1>
 
-    <div class="blog-post-grid">
+  <div class="blog-post-grid">
 
-        <div class="blog-post-card">
-            <div class="blog-post-content">
-                <h3>Top Tips for Managing Your Loan Repayments in Kenya Effectively</h3>
-                <p class="blog-post-meta">Published: July 24, 2025 | Category: Loan Management</p>
-                <p>Master your loan repayments and achieve financial freedom with these actionable strategies, tailored for the Kenyan financial landscape...</p>
-                <a href="blog-post-2.html" class="read-more">Read More</a>
-            </div>
-        </div>
-        
-        <div class="blog-post-card">
-            <div class="blog-post-content">
-                <h3>Understanding Reducing Balance vs. Flat Rate Loans: A Comprehensive Kenyan Guide</h3>
-                <p class="blog-post-meta">Published: July 24, 2025 | Category: Loan Guides</p>
-                <p>Demystify loan interest calculations in Kenya. Learn the key differences between reducing balance and flat rate loans and their impact...</p>
-                <a href="blog-post-1.html" class="read-more">Read More</a>
-            </div>
-        </div>
-
-        <div class="blog-post-card">
-            <div class="blog-post-content">
-                <h3>Coming Soon: How to Create a Personal Budget in Kenya</h3>
-                <p class="blog-post-meta">Expected: August 2025 | Category: Budgeting</p>
-                <p>Learn practical steps to build a personal budget that works for you, helping you manage your money and achieve financial goals...</p>
-                <a href="blog-post-3.html" class="read-more">Learn More</a>
-            </div>
-        </div>
-
-        <div class="blog-post-card">
-            <div class="blog-post-content">
-                <h3>Coming Soon: Is Debt Consolidation Right for You in Kenya?</h3>
-                <p class="blog-post-meta">Expected: August 2025 | Category: Debt Management</p>
-                <p>Understand when and how debt consolidation can be a viable strategy to simplify your repayments and potentially save on interest...</p>
-                <a href="blog-post-4.html" class="read-more">Learn More</a>
-            </div>
-        </div>
-
+    <div class="blog-post-card">
+      <img src="images/loan-tips.jpg" alt="Loan Repayment Tips" style="width:100%; height:180px; object-fit:cover;">
+      <div class="blog-post-content">
+        <h3>Master Your Loan Repayments</h3>
+        <p class="blog-post-meta">July 17, 2025 • Loan Management</p>
+        <p>Struggling with repayments? Discover simple tricks to stay on track and stress-free.</p>
+        <a href="blog-post-2.html" class="read-more">Read More →</a>
+      </div>
     </div>
+
+    <div class="blog-post-card">
+      <img src="images/loan-types.jpg" alt="Loan Types in Kenya" style="width:100%; height:180px; object-fit:cover;">
+      <div class="blog-post-content">
+        <h3>Reducing Balance vs. Flat Rate Loans</h3>
+        <p class="blog-post-meta">July 24, 2025 • Loan Guides</p>
+        <p>Which loan type saves you more? Get the insider breakdown before you borrow.</p>
+        <a href="blog-post-1.html" class="read-more">Read More →</a>
+      </div>
+    </div>
+
+    <div class="blog-post-card">
+      <img src="images/budgeting.jpg" alt="Budgeting in Kenya" style="width:100%; height:180px; object-fit:cover;">
+      <div class="blog-post-content">
+        <h3>Create a Personal Budget That Works</h3>
+        <p class="blog-post-meta">August 31 2025 • Budgeting</p>
+        <p>Learn a budgeting trick Kenyans use to make money stretch further every month.</p>
+        <a href="blog-post-3.html" class="read-more">Learn More →</a>
+      </div>
+    </div>
+
+    <div class="blog-post-card">
+      <img src="images/debt-consolidation.jpg" alt="Debt Consolidation" style="width:100%; height:180px; object-fit:cover;">
+      <div class="blog-post-content">
+        <h3>Is Debt Consolidation Right for You?</h3>
+        <p class="blog-post-meta">7th September 2025 • Debt Management</p>
+        <p>One payment instead of many—sounds easy, but does it actually save you money?</p>
+        <a href="blog-post-4.html" class="read-more">Learn More →</a>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-
-    <footer>
-        <div class="footer-content">
-            <span><strong>JazaLoan</strong></span>
-            <span>|</span>
-            <span>© 2025 JazaLoan. All rights reserved.</span>
-            <span>|</span>
-            <span>📧 <a href="mailto:mburuthus@gmail.com">support@jazaloan.co.ke</a></span>
-            <span>|</span>
-            <span>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></span>
-        </div>
-    </footer>
     <button id="backToTop" title="Back to Top">⬆</button>
     <script>
         const backToTopBtn = document.getElementById("backToTop");
@@ -714,6 +818,54 @@ overlay.addEventListener("click", toggleMobileMenu);
     }
   });
 </script>
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-content">
+    
+    <!-- Brand / About -->
+    <div class="footer-section">
+      <h3 class="footer-title">JazaLoan</h3>
+      <p>
+        Kenya’s most trusted free financial toolkit — smart calculators for 
+        <strong>loans, PAYE tax, VAT, and business planning</strong>.
+      </p>
+    </div>
 
+    <!-- Quick Links -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Quick Links</h4>
+      <ul class="footer-list">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="compare-loans.html">Compare Loans</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="faqs.html">FAQs</a></li>
+      </ul>
+    </div>
+
+    <!-- Legal Links -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Legal</h4>
+      <ul class="footer-list">
+        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms of Service</a></li>
+        <li><a href="disclaimer.html">Disclaimer</a></li>
+      </ul>
+    </div>
+
+    <!-- Contact -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Contact</h4>
+      <p>📧 <a href="mailto:support@jazaloancalculator.co.ke">support@jazaloancalculator.co.ke</a></p>
+      <p>📞 +254 742592477</p>
+      <p>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></p>
+    </div>
+
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="footer-bottom">
+    © 2025 JazaLoan. All rights reserved. | Designed for Kenyans 🇰🇪
+  </div>
+</footer>
 </body>
 </html>
