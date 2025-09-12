@@ -29,6 +29,83 @@
 <link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How does the M‑Shwari loan calculator work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The calculator uses the official 7.5% facility fee and 15% excise duty on that fee to show your M‑PESA disbursement and repayment total. It updates in real-time when you enter a loan amount and application date."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the M‑Shwari loan calculator free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The M‑Shwari Loan Calculator is 100% free to use. You don't need to sign up or create an account."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I qualify for an M‑Shwari loan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "To qualify, you must be an active M‑PESA user with a good transaction history. Safaricom uses credit scoring to determine your loan limit."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the facility fee on M‑Shwari loans?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "M‑Shwari charges a 7.5% facility fee on the loan amount. An additional 15% excise duty is charged on the fee. The calculator includes both in your final repayment estimate."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How long do I have to repay a M‑Shwari loan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You must repay the full amount within 30 days from the date of borrowing. The calculator shows your expected due date."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I compare M‑Shwari with other mobile loans?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Visit our Compare Loans section to view mobile loan alternatives like Tala, Zenka, or KCB M-PESA and see their costs side-by-side with M‑Shwari."
+      }
+    }
+  ]
+}
+</script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://jazaloancalculator.co.ke/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "M-Shwari Calculator",
+      "item": "https://jazaloancalculator.co.ke/mshwari-calculator.html"
+    }
+  ]
+}
+</script>
+
   <style>
     html {
       scroll-behavior: smooth;
@@ -46,10 +123,14 @@
   z-index: 1000;
   transition: all 0.3s ease;
   background: white;
+  height: 100px;
 }
 .site-header.shrink {
   padding: 2px 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  height: 60px;
+  max-height: 60px;
+
 }
 .site-header.shrink .logo {
   height: 60px !important;
@@ -65,7 +146,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 100%;
+  max-width: 1000px;
   box-sizing: border-box;
   margin: auto;
   padding: 5px 15px;
@@ -78,7 +159,8 @@
   display: flex;
   gap: 15px;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-end;  /* instead of center */
+  flex: 1; 
 }
 .navbar a {
   font-size: 15px;
@@ -129,10 +211,11 @@
 .hamburger.active span:nth-child(3) {
   transform: rotate(-45deg) translate(5px, -5px);
 }
+/* Off-canvas mobile nav */
 .mobile-nav {
   position: fixed;
   top: 0;
-  right: 0;
+  right: -100%;
   height: 100%;
   width: 80%;
   max-width: 250px;
@@ -140,13 +223,12 @@
   display: flex;
   flex-direction: column;
   padding: 60px 20px 20px;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
   z-index: 999;
-  transform: translateX(100%);   /* hidden off-canvas without affecting layout width */
 }
 .mobile-nav.show {
-  transform: translateX(0);      /* slide in */
+  right: 0;
 }
 
 .mobile-nav a {
@@ -156,6 +238,8 @@
   font-weight: 600;
   font-size: 16px;
 }
+
+/* Dark overlay */
 .mobile-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -167,25 +251,18 @@
   display: block;
 }
 
+/* Responsive Rules */
 @media (max-width: 768px) {
-  /* Show hamburger, hide desktop navbar */
   .hamburger { display: flex; }
-  .desktop-only, 
-  .navbar { display: none !important; }
+  .desktop-only, .navbar { display: none !important; }
 
-  /* Keep logo left, hamburger right */
   .header-content {
-    display: flex;
-    flex-direction: row;
     justify-content: space-between;
-    align-items: center;
     width: 100%;
   }
 
-  /* Make sure logo doesn't auto-center */
   .logo {
     margin-left: 0;
-    display: block;
   }
 }
 
@@ -306,7 +383,8 @@
     .about h2, .affiliate h2 {
       color: #0b5e2b;
     }
-     body {
+
+body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 .site-footer {
@@ -877,56 +955,6 @@ html, body {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   </script>
-<!-- Footer -->
-<footer class="site-footer">
-  <div class="footer-content">
-    
-    <!-- Brand / About -->
-    <div class="footer-section">
-      <h3 class="footer-title">JazaLoan</h3>
-      <p>
-        Kenya’s most trusted free financial toolkit — smart calculators for 
-        <strong>loans, PAYE tax, VAT, and business planning</strong>.
-      </p>
-    </div>
-
-    <!-- Quick Links -->
-    <div class="footer-section">
-      <h4 class="footer-subtitle">Quick Links</h4>
-      <ul class="footer-list">
-        <li><a href="index.html">Home</a></li>
-        <li><a href="compare-loans.html">Compare Loans</a></li>
-        <li><a href="blog.html">Blog</a></li>
-        <li><a href="faqs.html">FAQs</a></li>
-      </ul>
-    </div>
-
-    <!-- Legal Links -->
-    <div class="footer-section">
-      <h4 class="footer-subtitle">Legal</h4>
-      <ul class="footer-list">
-        <li><a href="privacy-policy.html">Privacy Policy</a></li>
-        <li><a href="terms.html">Terms of Service</a></li>
-        <li><a href="disclaimer.html">Disclaimer</a></li>
-      </ul>
-    </div>
-
-    <!-- Contact -->
-    <div class="footer-section">
-      <h4 class="footer-subtitle">Contact</h4>
-      <p>📧 <a href="mailto:support@jazaloancalculator.co.ke">support@jazaloancalculator.co.ke</a></p>
-      <p>📞 +254 742592477</p>
-      <p>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></p>
-    </div>
-
-  </div>
-
-  <!-- Bottom Bar -->
-  <div class="footer-bottom">
-    © 2025 JazaLoan. All rights reserved. | Designed for Kenyans 🇰🇪
-  </div>
-</footer>
-
 <script>
 
 function formatAmountInput(el) {
@@ -1139,88 +1167,61 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 </script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "How does the M‑Shwari loan calculator work?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "The calculator uses the official 7.5% facility fee and 15% excise duty on that fee to show your M‑PESA disbursement and repayment total. It updates in real-time when you enter a loan amount and application date."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is the M‑Shwari loan calculator free to use?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. The M‑Shwari Loan Calculator is 100% free to use. You don't need to sign up or create an account."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Do I qualify for an M‑Shwari loan?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "To qualify, you must be an active M‑PESA user with a good transaction history. Safaricom uses credit scoring to determine your loan limit."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What is the facility fee on M‑Shwari loans?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "M‑Shwari charges a 7.5% facility fee on the loan amount. An additional 15% excise duty is charged on the fee. The calculator includes both in your final repayment estimate."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How long do I have to repay a M‑Shwari loan?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "You must repay the full amount within 30 days from the date of borrowing. The calculator shows your expected due date."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can I compare M‑Shwari with other mobile loans?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Visit our Compare Loans section to view mobile loan alternatives like Tala, Zenka, or KCB M-PESA and see their costs side-by-side with M‑Shwari."
-      }
-    }
-  ]
-}
-</script>
-  <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "https://jazaloancalculator.co.ke/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "M-Shwari Calculator",
-      "item": "https://jazaloancalculator.co.ke/mshwari-calculator.html"
-    }
-  ]
-}
-</script>
-
 <script>
   window.addEventListener('load', () => {
     document.body.classList.add('fade-in');
   });
 </script>
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-content">
+    
+    <!-- Brand / About -->
+    <div class="footer-section">
+      <h3 class="footer-title">JazaLoan</h3>
+      <p>
+        Kenya’s most trusted free financial toolkit — smart calculators for 
+        <strong>loans, PAYE tax, VAT, and business planning</strong>.
+      </p>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Quick Links</h4>
+      <ul class="footer-list">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="compare-loans.html">Compare Loans</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="faqs.html">FAQs</a></li>
+      </ul>
+    </div>
+
+    <!-- Legal Links -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Legal</h4>
+      <ul class="footer-list">
+        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms of Service</a></li>
+        <li><a href="disclaimer.html">Disclaimer</a></li>
+      </ul>
+    </div>
+
+    <!-- Contact -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Contact</h4>
+      <p>📧 <a href="mailto:support@jazaloancalculator.co.ke">support@jazaloancalculator.co.ke</a></p>
+      <p>📞 +254 742592477</p>
+      <p>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></p>
+    </div>
+
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="footer-bottom">
+    © 2025 JazaLoan. All rights reserved. | Designed for Kenyans 🇰🇪
+  </div>
+</footer>
+
 </body>
 </html>
 
