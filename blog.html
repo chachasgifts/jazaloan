@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JazaLoan Blog - Personal Finance & Loan Insights for Kenyans</title>
 <meta name="description" content="Read JazaLoan Blog for expert tips on loans, budgeting, debt management, and saving money in Kenya. Practical financial advice for everyday Kenyans.">
 
@@ -76,6 +76,7 @@
 
 
 <style>
+*, *::before, *::after { box-sizing: border-box; }
         html {
   scroll-behavior: smooth;
 }
@@ -178,10 +179,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1000px;
-  margin: auto;
+  max-width: 1400px;
+  width: 95%;
+  margin: 0 auto;
   padding: 5px 15px;
 }
+
 .logo {
   height: 90px;
   transition: height 0.3s ease;
@@ -279,12 +282,7 @@
   .hamburger { display: flex; }
   .desktop-only { display: none !important; }
 }
-/* Ensure header layout keeps logo left + hamburger right */
-  .header-content {
-    display: flex;
-    justify-content: space-between; /* Logo on left, hamburger on right */
-    align-items: center;
-  }
+
 /* ————— Mobile-only Share (Bottom) ————— */
 .mobile-only-share {
   display: none;
@@ -559,6 +557,25 @@ body {
             transform: translateY(-8px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.12);
         }
+        .blog-post-card img {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            display: block;
+        }
+        @media (max-width: 768px) {
+  .blog-post-card img { aspect-ratio: 4/3; }
+}
+@media (max-width: 420px) {
+  .blog-post-card img {
+    aspect-ratio: 3/2;
+    width: 100%;
+    height: auto;
+    max-height: 220px; /* cap height so thumbnails don't dominate tiny screens */
+    object-fit: cover;
+  }
+}
 
         .blog-post-content {
             padding: 20px;
@@ -722,7 +739,6 @@ body {
     <a href="budgeting-calculator.html">Budgeting Calculator</a>
     <a href="compare-loans.html">Compare Loans</a>
 </nav>
-<div id="overlay" class="mobile-overlay"></div>
 </header>
 
 
@@ -731,48 +747,48 @@ body {
 
   <div class="blog-post-grid">
 
-    <div class="blog-post-card">
-      <img src="images/loan-tips.jpg" alt="Loan Repayment Tips" style="width:100%; height:180px; object-fit:cover;">
-      <div class="blog-post-content">
-        <h3>Master Your Loan Repayments</h3>
-        <p class="blog-post-meta">July 17, 2025 • Loan Management</p>
-        <p>Struggling with repayments? Discover simple tricks to stay on track and stress-free.</p>
-        <a href="blog-post-2.html" class="read-more">Read More →</a>
-      </div>
-    </div>
-
-    <div class="blog-post-card">
-      <img src="images/loan-types.jpg" alt="Loan Types in Kenya" style="width:100%; height:180px; object-fit:cover;">
-      <div class="blog-post-content">
-        <h3>Reducing Balance vs. Flat Rate Loans</h3>
-        <p class="blog-post-meta">July 24, 2025 • Loan Guides</p>
-        <p>Which loan type saves you more? Get the insider breakdown before you borrow.</p>
-        <a href="blog-post-1.html" class="read-more">Read More →</a>
-      </div>
-    </div>
-
-    <div class="blog-post-card">
-      <img src="images/budgeting.jpg" alt="Budgeting in Kenya" style="width:100%; height:180px; object-fit:cover;">
-      <div class="blog-post-content">
-        <h3>Create a Personal Budget That Works</h3>
-        <p class="blog-post-meta">August 31 2025 • Budgeting</p>
-        <p>Learn a budgeting trick Kenyans use to make money stretch further every month.</p>
-        <a href="blog-post-3.html" class="read-more">Learn More →</a>
-      </div>
-    </div>
-
-    <div class="blog-post-card">
-      <img src="images/debt-consolidation.jpg" alt="Debt Consolidation" style="width:100%; height:180px; object-fit:cover;">
-      <div class="blog-post-content">
-        <h3>Is Debt Consolidation Right for You?</h3>
-        <p class="blog-post-meta">7th September 2025 • Debt Management</p>
-        <p>One payment instead of many—sounds easy, but does it actually save you money?</p>
-        <a href="blog-post-4.html" class="read-more">Learn More →</a>
-      </div>
-    </div>
-
+  <div class="blog-post-card">
+  <img src="images/loan-tips.jpg" alt="Loan Repayment Tips">
+  <div class="blog-post-content">
+    <h3>Master Your Loan Repayments</h3>
+    <p class="blog-post-meta">July 17, 2025 • Loan Management</p>
+    <p>Struggling with repayments? Discover simple tricks to stay on track and stress-free.</p>
+    <a href="blog-post-2.html" class="read-more">Read More →</a>
   </div>
 </div>
+
+<div class="blog-post-card">
+  <img src="images/loan-types.jpg" alt="Loan Types in Kenya">
+  <div class="blog-post-content">
+    <h3>Reducing Balance vs. Flat Rate Loans</h3>
+    <p class="blog-post-meta">July 24, 2025 • Loan Guides</p>
+    <p>Which loan type saves you more? Get the insider breakdown before you borrow.</p>
+    <a href="blog-post-1.html" class="read-more">Read More →</a>
+  </div>
+</div>
+
+<div class="blog-post-card">
+  <img src="images/budgeting.jpg" alt="Budgeting in Kenya">
+  <div class="blog-post-content">
+    <h3>Create a Personal Budget That Works</h3>
+    <p class="blog-post-meta">August 31 2025 • Budgeting</p>
+    <p>Learn a budgeting trick Kenyans use to make money stretch further every month.</p>
+    <a href="blog-post-3.html" class="read-more">Read More →</a>
+  </div>
+</div>
+
+<div class="blog-post-card">
+  <img src="images/debt-consolidation.jpg" alt="Debt Consolidation">
+  <div class="blog-post-content">
+    <h3>Is Debt Consolidation Right for You?</h3>
+    <p class="blog-post-meta">7th September 2025 • Debt Management</p>
+    <p>One payment instead of many—sounds easy, but does it actually save you money?</p>
+    <a href="blog-post-4.html" class="read-more">Read More →</a>
+  </div>
+</div>
+</div>
+</div>
+
 
     <button id="backToTop" title="Back to Top">⬆</button>
     <script>
