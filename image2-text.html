@@ -118,8 +118,9 @@
 html, body {
   max-width: 100%;
   overflow-x: hidden;
-  height: auto;       /* allow content to grow */
-  min-height: 100%;   /* still covers full screen */
+  height: auto;
+  min-height: 100%;
+  padding-top: 90px; /* added here */
 }
 
 
@@ -602,15 +603,6 @@ body {
   width: 100%;
 }
 
-  .site-header {
-    height: auto !important;
-    padding: 6px 10px !important;
-  }
-
-  .logo {
-    height: auto !important;
-    max-height: 50px !important;
-  }
 
   .features-grid {
     grid-template-columns: 1fr !important;
