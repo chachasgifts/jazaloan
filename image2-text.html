@@ -1076,8 +1076,14 @@ btnStart.addEventListener('click', async () => {
   }
 
   // 🔥 Scroll right away to results section
-  const y = outputEl.getBoundingClientRect().top + window.scrollY - 80; // adjust offset for header
-  window.scrollTo({ top: y, behavior: 'smooth' });
+const resultsContainer = document.querySelector("aside.right");
+const header = document.querySelector(".header");
+const headerHeight = header ? header.offsetHeight : 0;
+
+if (resultsContainer) {
+  const y = resultsContainer.getBoundingClientRect().top + window.scrollY - headerHeight - 10;
+  window.scrollTo({ top: y, behavior: "smooth" });
+}
 
   btnStart.disabled = true;
   btnCancel.disabled = false;
