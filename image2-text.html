@@ -1074,6 +1074,11 @@ btnStart.addEventListener('click', async () => {
     setStatus('Select an image first.', 0);
     return;
   }
+
+  // 🔥 Scroll right away to results section
+  const y = outputEl.getBoundingClientRect().top + window.scrollY - 80; // adjust offset for header
+  window.scrollTo({ top: y, behavior: 'smooth' });
+
   btnStart.disabled = true;
   btnCancel.disabled = false;
   setStatus('Preparing OCR…', 2);
@@ -1087,11 +1092,9 @@ btnStart.addEventListener('click', async () => {
       worker = await Tesseract.createWorker({ logger: m => handleLog(m) });
     }
 
-    // Load + initialize chosen language each time
     await worker.loadLanguage(lang);
     await worker.initialize(lang);
 
-        // Prefer cropped blob if available
     let sourceFile = selectedFile;
     if (preview.fileBlob instanceof Blob) {
       sourceFile = preview.fileBlob;
@@ -1105,26 +1108,20 @@ btnStart.addEventListener('click', async () => {
     lastResultText = (jobResult?.data?.text || '').trim();
     outputEl.value = lastResultText;
 
-setStatus('Done — text extracted.', 100);
-btnCopy.disabled = !lastResultText;
-btnDownload.disabled = !lastResultText;
+    setStatus('Done — text extracted.', 100);
+    btnCopy.disabled = !lastResultText;
+    btnDownload.disabled = !lastResultText;
 
-// ✅ Scroll to results on mobile
-if (/Mobi|Android/i.test(navigator.userAgent) && lastResultText) {
-  const y = outputEl.getBoundingClientRect().top + window.scrollY - 80; // offset for header
-  window.scrollTo({ top: y, behavior: 'smooth' });
-}
-
-
-} catch (err) {
-  console.error(err);
-  setStatus('Error: ' + (err.message || err), 0);
-  alert('OCR failed: ' + (err.message || err));
-} finally {
-  btnCancel.disabled = true;
-  btnStart.disabled = false;
-}
+  } catch (err) {
+    console.error(err);
+    setStatus('Error: ' + (err.message || err), 0);
+    alert('OCR failed: ' + (err.message || err));
+  } finally {
+    btnCancel.disabled = true;
+    btnStart.disabled = false;
+  }
 });
+
 
   // Cancel running OCR
   btnCancel.addEventListener('click', async () => {
