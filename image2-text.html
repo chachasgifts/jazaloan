@@ -122,7 +122,7 @@ html, body {
   overflow-x: hidden;
   height: auto;
   min-height: 100%;
-  padding-top: 60px; /* added here */
+  padding-top: 40px; /* added here */
 }
 
 
@@ -1418,6 +1418,22 @@ document.getElementById("btnCropCancel").addEventListener("click", () => {
   });
 
 
+</script>
+<script>
+  window.addEventListener('load', () => {
+    const header = document.querySelector('.site-header');
+    if (header) {
+      document.body.style.paddingTop = header.offsetHeight + 'px';
+    }
+  });
+
+  // Update on resize (for mobile nav open/close changes)
+  window.addEventListener('resize', () => {
+    const header = document.querySelector('.site-header');
+    if (header) {
+      document.body.style.paddingTop = header.offsetHeight + 'px';
+    }
+  });
 </script>
 
 <!-- Footer -->
