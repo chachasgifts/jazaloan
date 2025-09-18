@@ -1,0 +1,1257 @@
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Image to Text Converter Online - Jaza Loan Kenya</title>
+<meta name="description" content="Free online Image to Text Converter by Jaza Loan. Upload images, scanned documents, or screenshots and instantly extract editable text with OCR technology. 100% secure and runs in your browser.">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="Images/favicon.png">
+<link rel="icon" type="image/x-icon" href="Images/favicon.ico">
+<link rel="icon" type="image/png" href="Images/favicon-96x96.png" sizes="96x96">
+<link rel="apple-touch-icon" sizes="180x180" href="Images/apple-touch-icon.png">
+<link rel="manifest" href="Images/site.webmanifest">
+<link rel="icon" type="image/svg+xml" href="Images/favicon.svg">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Image to Text Converter - Jaza Loan Kenya" />
+<meta property="og:description" content="Extract text from images, PDFs, or screenshots with our free OCR tool. Powered by Tesseract.js and fully browser-based." />
+<meta property="og:url" content="https://jazaloancalculator.co.ke/image-to-text-converter" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://jazaloancalculator.co.ke/Images/og-image.jpg" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Image to Text Converter - Jaza Loan Kenya" />
+<meta name="twitter:description" content="Free OCR tool to extract text from images securely in your browser. No uploads, no storage, just fast results." />
+<meta name="twitter:image" content="https://jazaloancalculator.co.ke/Images/og-image.jpg" />
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- FAQ Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I use the Jaza Loan Image to Text Converter?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Upload an image (JPG, PNG, or WebP) by dragging and dropping or selecting from your computer, then click Convert. The OCR will extract text instantly in your browser."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the Image to Text Converter free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The Jaza Loan Image to Text Converter is 100% free and requires no signup. It runs fully in your browser using Tesseract.js."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does this tool work offline?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The converter runs entirely in your browser once loaded. No images are uploaded to servers, ensuring full privacy and security."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What types of images can be converted?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You can extract text from scanned documents, screenshots, receipts, handwritten notes, and images in formats like JPG, PNG, WebP, and BMP."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it support multiple languages?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The tool supports English, Spanish, French, German, Hindi, and many more languages via Tesseract.js language packs."
+      }
+    }
+  ]
+}
+</script>
+
+<!-- Breadcrumb Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://jazaloancalculator.co.ke/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Image to Text Converter",
+      "item": "https://jazaloancalculator.co.ke/image-to-text-converter"
+    }
+  ]
+}
+</script>
+
+<style>
+    main.container {
+  margin-top: 120px; /* same or slightly bigger than .site-header height */
+}
+
+:root {
+  --bg: #f9fafb;           /* light gray background */
+  --card: #ffffff;         /* white cards */
+  --accent: #2563eb;       /* bright blue */
+  --accent2: #3b82f6;      /* lighter blue */
+  --muted: #6b7280;        /* medium gray for secondary text */
+  --success: #16a34a;      /* green */
+  --danger: #dc2626;       /* red */
+  --radius: 12px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+* { box-sizing: border-box }
+html, body { height: 100% }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column; /* 👈 stack vertically */
+  align-items: center;
+  padding: 28px;
+}
+
+
+.container {
+  width: 100%;
+  max-width: 980px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr 420px;
+  align-items: start;
+}
+
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* pushes help text to the right */
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column; /* stack title + hint */
+  gap: 4px;
+}
+
+.help {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap; /* prevent wrapping */
+}
+
+
+h1 { margin: 0; font-size: 20px; color: #1e293b }
+.hint { color: var(--muted); font-size: 13px }
+
+.left {
+  padding: 14px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.drop {
+  margin-top: 8px;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  transition: all 0.25s ease;
+  color: #374151;
+}
+
+.drop.dragover {
+  background: #e0f2fe;
+  border-color: var(--accent);
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: #f9fafb;
+  color: #1e40af;
+  border: 1px solid #cbd5e1;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.btn.primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  color: white;
+  border: none;
+  box-shadow: 0 3px 10px rgba(37,99,235,0.3);
+}
+
+.btn.primary:hover {
+  opacity: 0.95;
+}
+
+.btn.warn {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid rgba(220,38,38,0.3);
+}
+
+.file-meta { font-size: 13px; color: var(--muted) }
+
+.preview {
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f9fafb;
+  display: block;
+  border: 1px solid #e5e7eb;
+  margin-top: 10px;
+}
+
+.right {
+  padding: 14px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress {
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progress > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 120ms linear;
+}
+
+.status { font-size: 13px; color: var(--muted) }
+
+textarea#output {
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+  padding: 12px;
+  border-radius: 8px;
+  background: white;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.small { font-size: 13px; color: var(--muted) }
+
+.footer {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lang-select {
+  background: white;
+  border: 1px solid #d1d5db;
+  padding: 6px 8px;
+  color: #111827;
+  border-radius: 8px;
+}
+
+.help { font-size: 12px; color: var(--muted) }
+
+@media (max-width:980px) {
+  .container { grid-template-columns:1fr; padding:14px }
+  .right { order:3 }
+  .drop { min-height:170px }
+}
+.content-container {
+  max-width: 1000px;
+  margin: 50px auto;
+  padding: 0 20px;
+}
+
+.info {
+  margin-bottom: 40px;
+  background: #ffffff;
+  color: #1f2937;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  line-height: 1.7;
+}
+
+.features h2 {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 24px;
+  color: #0f172a;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.feature {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.feature h3 {
+  margin-top: 0;
+  font-size: 18px;
+  color: #1e3a8a;
+}
+
+.feature p {
+  margin: 10px 0 0;
+  font-size: 15px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ————— Sticky Shrinking Header ————— */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  background: white;
+  height: 100px;
+}
+.site-header.shrink {
+  padding: 2px 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  height: 60px;
+  max-height: 60px;
+
+}
+.site-header.shrink .logo {
+  height: 60px !important;
+  max-height: 60px !important;
+}
+.site-header.shrink .navbar a {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* ————— Header / Logo / Nav ————— */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1000px;
+  box-sizing: border-box;
+  margin: auto;
+  padding: 5px 15px;
+}
+.logo {
+  height: 90px;
+  transition: height 0.3s ease;
+}
+.navbar {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: flex-end;  /* instead of center */
+  flex: 1; 
+}
+.navbar a {
+  font-size: 15px;
+  text-decoration: none;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 8px 12px;
+  position: relative;
+}
+.navbar a:hover { color: #007bff; }
+.navbar a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0%;
+  height: 2px;
+  background-color: #007bff;
+  transition: width 0.3s ease;
+}
+.navbar a:hover::after { width: 100%; }
+
+/* ————— Mobile Nav + Hamburger ————— */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 1100;
+}
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+/* Off-canvas mobile nav */
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  height: 100%;
+  width: 80%;
+  max-width: 250px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 20px 20px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 999;
+}
+.mobile-nav.show {
+  right: 0;
+}
+
+.mobile-nav a {
+  padding: 12px 0;
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Dark overlay */
+.mobile-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  z-index: 998;
+}
+.mobile-overlay.show {
+  display: block;
+}
+
+/* Responsive Rules */
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .desktop-only, .navbar { display: none !important; }
+
+  .header-content {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .logo {
+    margin-left: 0;
+  }
+}
+
+.site-header {
+  height: 100px; /* or however tall it is initially */
+  transition: all 0.3s ease;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.site-footer {
+  background-color: #03457b;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.7;
+  padding-top: 60px;
+  width: 100%;
+}
+
+.footer-content {
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 24px 60px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.footer-section {
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.footer-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.footer-subtitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.footer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-list li {
+  margin: 12px 0;
+}
+
+.footer-section p,
+.footer-section li {
+  color: #e2e8f0; /* light gray for contrast */
+}
+
+.site-footer a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.site-footer a:hover {
+  color: #27ae60;
+}
+
+.footer-bottom {
+  background-color: #03457b;
+  text-align: center;
+  color: #cbd5e1; /* lighter gray */
+  padding: 20px;
+  font-size: 14px;
+  border-top: 1px solid #94a3b8; /* light grey separator line */
+  width: 100%;
+}
+</style>
+
+
+</head>
+<body>
+<header class="site-header fade-in">
+  <div class="header-content">
+    <!-- Logo -->
+    <a href="index.html">
+      <img src="Images/logo.png" alt="JazaLoan Logo" class="logo">
+    </a>
+
+    <!-- Hamburger Icon for Mobile -->
+    <div id="hamburger" class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <!-- Desktop Navigation -->
+    <nav class="navbar desktop-only" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="paye-calculator.html">PAYE Calculator</a>
+      <a href="kcb-mpesa-loan.html">KCB M-PESA Calculator</a>
+      <a href="vat-calculator.html">VAT Calculator</a>
+      <a href="budgeting-calculator.html">Budgeting Calculator</a>
+    </nav>
+  </div>
+
+  <!-- Mobile Navigation -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html">Home</a>
+    <a href="paye-calculator.html">PAYE Calculator</a>
+    <a href="kcb-mpesa-loan.html">KCB M-PESA Calculator</a>
+    <a href="vat-calculator.html">VAT Calculator</a>
+    <a href="budgeting-calculator.html">Budgeting Calculator</a>
+  </nav>
+
+  <!-- Overlay for Mobile Menu -->
+  <div id="overlay" class="mobile-overlay"></div>
+</header>
+
+<main class="container" id="app">
+  <div class="header" role="banner">
+    <div class="logo" aria-hidden="false">
+      <div>
+        <h1 id="pageTitle">Image to Text – Jaza Loan</h1>
+        <div class="hint">Upload an image — extract text instantly in your browser.</div>
+      </div>
+    </div>
+    <div class="help" aria-hidden="true">Works with screenshots, receipts, and scanned pages. Language: English (eng)</div>
+  </div>
+
+
+    <section class="left" aria-labelledby="uploadHeading">
+      <h2 id="uploadHeading" class="small">Image input</h2>
+
+      <div id="dropZone" class="drop" tabindex="0" aria-label="Drag and drop image here or click to choose file">
+        <div>
+          <strong id="dropMessage">Drag &amp; drop an image here</strong>
+          <div class="file-meta" id="fileMeta">PNG, JPG, WebP — up to ~10MB recommended</div>
+        </div>
+
+        <img id="preview" class="preview" alt="Selected image preview" aria-hidden="true" />
+
+        <div class="controls" role="group" aria-label="File controls">
+          <label class="btn" for="fileInput" id="btnChoose">Choose file…</label>
+          <input id="fileInput" type="file" accept="image/*" style="display:none" aria-hidden="true">
+          <button id="btnClear" class="btn" title="Clear selection">Clear</button>
+          <button id="btnStart" class="btn primary" title="Start OCR">Convert</button>
+          <button id="btnCancel" class="btn warn" title="Cancel OCR (if running)" disabled>Cancel</button>
+        </div>
+
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+  <select id="lang" class="lang-select" aria-label="OCR language">
+    <option value="eng" selected>English (eng)</option>
+    <option value="fra">French (fra)</option>
+    <option value="spa">Spanish (spa)</option>
+    <option value="deu">German (deu)</option>
+    <option value="ita">Italian (ita)</option>
+    <option value="por">Portuguese (por)</option>
+    <option value="hin">Hindi (hin)</option>
+    <option value="swa">Swahili (swa)</option>
+  </select>
+  <div class="small" id="resizeNote">Large images will be resized for speed & accuracy.</div>
+</div>
+
+
+      <div style="margin-top:12px; font-size:13px; color:var(--muted);">
+        Tip: For best results use high-contrast images, avoid heavy blur. You can copy or download extracted text.
+      </div>
+    </section>
+
+    <aside class="right" aria-labelledby="outputHeading">
+      <h2 id="outputHeading" class="small">OCR output</h2>
+
+      <div>
+        <div class="status" id="status">Idle — no job running.</div>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <i id="progressBar" style="width:0%"></i>
+        </div>
+      </div>
+
+      <textarea id="output" placeholder="Extracted text will appear here..." aria-label="OCR output text"></textarea>
+
+      <div class="actions">
+        <button id="btnCopy" class="btn" disabled>Copy</button>
+        <button id="btnDownload" class="btn" disabled>Download .txt</button>
+      </div>
+    </aside>
+
+    <div class="footer" role="contentinfo">
+      <div>All processing happens locally in your browser — no images or text are sent to servers.</div>
+      <div>Built with Tesseract.js</div>
+    </div>
+  </main>
+<div class="content-container">
+
+  <section class="info">
+    <h2>How to Use Image to Text Converter Online?</h2>
+    <p>Follow these three simple steps to extract the text from the picture.</p>
+    <ol>
+      <li><strong>Upload Images:</strong> Upload images by drag & drop, selecting from your computer, or pasting them directly.</li>
+      <li><strong>Start Conversion:</strong> Click <em>“Convert”</em>. Our image to text converter will quickly process your images and provide the text in a digital format.</li>
+      <li><strong>Download/Copy Options:</strong> Save your converted text to a .txt file, download it, or copy it to your clipboard.</li>
+    </ol>
+  </section>
+
+  <section class="info">
+    <h2>Why do you need a photo to text converter?</h2>
+    <p>Extracting text from images manually used to take a lot of time and effort. With modern OCR technology, you can extract text in seconds...</p>
+  </section>
+
+  <section class="info">
+    <h2>How does the Image to Text converter work?</h2>
+    <p>OCR transforms an image into bitmap binary data...</p>
+    <h3>The process works in three steps:</h3>
+    <ul>
+      <li><strong>Preprocessing:</strong> Enhancing and optimizing the image.</li>
+      <li><strong>Character Recognition:</strong> Analyzing and recognizing characters.</li>
+      <li><strong>Postprocessing:</strong> Refining recognized text.</li>
+    </ul>
+  </section>
+
+  <!-- Features Section inside same container -->
+  <section class="info features">
+    <h2>Key Features of Our Picture to Text Converter</h2>
+    <div class="features-grid">
+      <div class="feature">
+        <h3>Low-resolution image extractor</h3>
+        <p>Excellent at extracting text from blurry or low-resolution images...</p>
+      </div>
+      <div class="feature">
+        <h3>Mathematical syntax detection</h3>
+        <p>Detects mathematical syntax with high accuracy...</p>
+      </div>
+      <div class="feature">
+        <h3>Multi-language support</h3>
+        <p>Handles multiple languages, making extraction easy worldwide.</p>
+      </div>
+      <div class="feature">
+        <h3>Extracts images in all formats</h3>
+        <p>Supports JPEG, PNG, BMP, and more.</p>
+      </div>
+      <div class="feature">
+        <h3>Batch Processing</h3>
+        <p>Upload and convert multiple images at once.</p>
+      </div>
+      <div class="feature">
+        <h3>AI-Based Extraction</h3>
+        <p>Uses Tesseract-OCR AI for accurate extraction.</p>
+      </div>
+      <div class="feature">
+        <h3>Fast Data Processing Speed</h3>
+        <p>Handles bulk uploads with speed and efficiency.</p>
+      </div>
+      <div class="feature">
+        <h3>Data Security and Privacy</h3>
+        <p>All processing happens locally, nothing is stored.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+<section id="productivity-section" 
+  style="margin: 40px auto; max-width: 950px; padding: 25px 20px; background: #ffffff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+  
+  <h2 style="text-align:center; color:#2c3e50; margin-bottom:20px;">
+    🚀 Amplify Productivity in Everyday Tasks
+  </h2>
+
+  <p style="font-size:1.05em; line-height:1.6; color:#444; text-align:center; margin-bottom:25px;">
+    Image-to-text conversion enables a wide range of applications across multiple fields — from digitization and automation to security and research.
+  </p>
+
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">📚 Document Digitization & Archiving</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Scanning books and documents for easier storage, searching, and editing.</li>
+        <li>Preserving historical manuscripts and records digitally.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">💼 Data Entry Automation</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Extracting data from forms to automate processes in healthcare, banking, and logistics.</li>
+        <li>Processing invoices & receipts for accounting and financial management.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">🔍 Content Analysis & Research</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Extracting text for social media research, marketing, and journalism.</li>
+        <li>Digitizing research papers for easier reference and citation.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">🌍 Translation Services</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Converting text in images for multilingual translation.</li>
+        <li>Useful for travelers, researchers, and international businesses.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">⚖️ Legal & Compliance</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Digitizing contracts and legal documents.</li>
+        <li>Ensuring compliance with easy retrieval and management.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">📝 Personal Productivity</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Converting handwritten notes & whiteboard content to digital.</li>
+        <li>Organizing personal docs like letters, recipes, and diaries.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">🛒 E-commerce</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Extracting product details for e-commerce listings.</li>
+        <li>Inventory and catalog management automation.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">🔐 Security & Fraud Detection</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Extracting text from ID cards, passports for identity verification.</li>
+      </ul>
+    </div>
+
+    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="color:#03457b;">📢 Marketing & Advertising</h3>
+      <ul style="line-height:1.6; padding-left:18px;">
+        <li>Repurposing text from images into campaigns.</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<script>
+/*
+  In-Browser OCR SPA (single file)
+  - Uses Tesseract.js worker on the client
+  - Downsizing before OCR for performance
+  - Accessible, responsive controls
+  - Copy and download text actions
+*/
+
+(async function () {
+  // Elements
+  const drop = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const preview = document.getElementById('preview');
+  const btnStart = document.getElementById('btnStart');
+  const btnClear = document.getElementById('btnClear');
+  const btnCancel = document.getElementById('btnCancel');
+  const statusEl = document.getElementById('status');
+  const progressBar = document.getElementById('progressBar');
+  const outputEl = document.getElementById('output');
+  const btnCopy = document.getElementById('btnCopy');
+  const btnDownload = document.getElementById('btnDownload');
+  const langSelect = document.getElementById('lang');
+  const dropMessage = document.getElementById('dropMessage');
+
+  let selectedFile = null;
+  let worker = null;
+  let currentJob = null;
+  let lastResultText = '';
+
+  // Load Tesseract.js dynamically (CDN). Version can be updated if desired.
+  // We avoid import maps and keep this simple and stable.
+  const tesseractUrl = 'https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js';
+
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = tesseractUrl;
+      s.onload = () => res(window.Tesseract);
+      s.onerror = (e) => rej(new Error('Failed to load Tesseract.js'));
+      document.head.appendChild(s);
+    });
+  }
+
+  // Utility: update status + progress
+  function setStatus(text, percent = 0) {
+    statusEl.textContent = text;
+    progressBar.style.width = (percent) + '%';
+    progressBar.parentElement.setAttribute('aria-valuenow', String(Math.round(percent)));
+  }
+
+  // Utility: reset UI state
+  function resetUI() {
+    setStatus('Idle — no job running.', 0);
+    progressBar.style.width = '0%';
+    btnCancel.disabled = true;
+    btnStart.disabled = !selectedFile;
+    btnCopy.disabled = !lastResultText;
+    btnDownload.disabled = !lastResultText;
+  }
+
+  // Handle drag & drop with keyboard accessibility
+  ['dragenter','dragover'].forEach(e => drop.addEventListener(e, (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    drop.classList.add('dragover');
+  }));
+  ['dragleave','drop'].forEach(e => drop.addEventListener(e, (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    drop.classList.remove('dragover');
+  }));
+
+  drop.addEventListener('drop', (ev) => {
+    const f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  // Support pressing Enter/Space on the drop zone to open file picker
+  drop.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  // File input
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
+  // Clear selection
+  btnClear.addEventListener('click', () => {
+    selectedFile = null;
+    preview.src = '';
+    preview.alt = '';
+    dropMessage.textContent = 'Drag & drop an image here or click to choose file';
+    fileInput.value = '';
+    lastResultText = '';
+    outputEl.value = '';
+    resetUI();
+  });
+
+// Start OCR
+btnStart.addEventListener('click', async () => {
+  if (!selectedFile) {
+    setStatus('Select an image first.', 0);
+    return;
+  }
+  btnStart.disabled = true;
+  btnCancel.disabled = false;
+  setStatus('Preparing OCR…', 2);
+
+  try {
+    const Tesseract = await loadTesseract();
+    const lang = langSelect.value || 'eng';
+
+    // (Re)create worker if not existing
+    if (!worker) {
+      worker = await Tesseract.createWorker({ logger: m => handleLog(m) });
+    }
+
+    // Load + initialize chosen language each time
+    await worker.loadLanguage(lang);
+    await worker.initialize(lang);
+
+    const processedBlob = await preprocessImageFile(selectedFile, 1600);
+    setStatus('Running OCR…', 10);
+
+    const jobResult = await worker.recognize(processedBlob);
+    lastResultText = (jobResult?.data?.text || '').trim();
+    outputEl.value = lastResultText;
+
+    setStatus('Done — text extracted.', 100);
+    btnCopy.disabled = !lastResultText;
+    btnDownload.disabled = !lastResultText;
+  } catch (err) {
+    console.error(err);
+    setStatus('Error: ' + (err.message || err), 0);
+    alert('OCR failed: ' + (err.message || err));
+  } finally {
+    btnCancel.disabled = true;
+    btnStart.disabled = false;
+  }
+});
+
+
+  // Cancel running OCR
+  btnCancel.addEventListener('click', async () => {
+    if (currentJob && worker) {
+      try {
+        await worker.terminate();
+      } catch(_) {}
+      worker = null;
+      currentJob = null;
+      setStatus('OCR cancelled by user.', 0);
+      btnCancel.disabled = true;
+      btnStart.disabled = !selectedFile;
+    }
+  });
+
+  // Copy to clipboard
+  btnCopy.addEventListener('click', async () => {
+    try {
+      const text = outputEl.value;
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
+      setStatus('Copied to clipboard ✔️', 100);
+      setTimeout(() => resetUI(), 1200);
+    } catch (err) {
+      console.error(err);
+      setStatus('Could not copy (browser permission?)', 0);
+    }
+  });
+
+  // Download .txt
+  btnDownload.addEventListener('click', () => {
+    const text = outputEl.value || '';
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const filename = (selectedFile && selectedFile.name ? selectedFile.name.replace(/\.[^/.]+$/, '') : 'ocr-output') + '.txt';
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setStatus('Downloaded ' + filename, 100);
+    setTimeout(() => resetUI(), 1000);
+  });
+
+  // Display preview and set selectedFile
+  async function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      alert('Please choose an image file.');
+      return;
+    }
+    selectedFile = file;
+    dropMessage.textContent = file.name + ' — ' + Math.round(file.size/1024) + ' KB';
+    preview.src = URL.createObjectURL(file);
+    preview.alt = 'Preview of ' + file.name;
+    outputEl.value = '';
+    lastResultText = '';
+    resetUI();
+    btnStart.disabled = false;
+  }
+
+  // Preprocess: downscale for performance and return a Blob (PNG)
+  async function preprocessImageFile(file, maxDim = 1600) {
+    // load image into Image element
+    const img = await loadImageFromFile(file);
+    // figure out scale
+    const {width, height} = img;
+    let targetW = width, targetH = height;
+    if (Math.max(width, height) > maxDim) {
+      const ratio = maxDim / Math.max(width, height);
+      targetW = Math.round(width * ratio);
+      targetH = Math.round(height * ratio);
+    }
+    // draw into canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    // optional: try simple contrast-enhancement (lightweight)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, targetW, targetH);
+    // convert to blob
+    return await new Promise((res) => {
+      canvas.toBlob((b) => res(b), 'image/png', 0.92);
+    });
+  }
+
+  // Load image element from file
+  function loadImageFromFile(file) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        res(img);
+      };
+      img.onerror = (e) => {
+        URL.revokeObjectURL(url);
+        rej(new Error('Could not load image'));
+      };
+      img.src = url;
+    });
+  }
+
+  // Handle logs and progress from Tesseract
+  function handleLog(message) {
+    // message looks like {status, progress} sometimes with other fields
+    if (!message) return;
+    if (typeof message === 'object') {
+      const {status, progress} = message;
+      if (status) {
+        const percent = Math.round((progress || 0) * 100);
+        setStatus(String(status) + (percent ? ' — ' + percent + '%' : ''), percent);
+      }
+    } else {
+      setStatus(String(message), 0);
+    }
+  }
+
+  // Initialize UI state
+  resetUI();
+
+  // Keyboard shortcuts: Start: Ctrl+Enter (or Cmd+Enter), Copy: Ctrl+C when focused on output
+  window.addEventListener('keydown', (ev) => {
+    if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+      if (!btnStart.disabled) btnStart.click();
+    }
+  });
+
+  // Accessibility: announce status changes via ARIA live
+  const live = document.createElement('div');
+  live.setAttribute('aria-live', 'polite');
+  live.style.position = 'absolute'; live.style.left = '-9999px';
+  document.body.appendChild(live);
+
+  const statusObserver = new MutationObserver(() => {
+    live.textContent = statusEl.textContent;
+  });
+  statusObserver.observe(statusEl, {childList: true, subtree: true});
+
+  // Graceful unload: terminate worker to free resources
+  window.addEventListener('beforeunload', async () => {
+    if (worker) {
+      try { await worker.terminate(); } catch(_) {}
+    }
+  });
+
+  // Responsive hint: if browser doesn't support WebAssembly or workers, warn
+  if (!window.Worker || typeof WebAssembly === 'undefined') {
+    setStatus('Warning: your browser may not fully support in-browser OCR (no WebAssembly/Worker).', 0);
+  }
+
+})();
+
+// Mobile nav toggle
+const hamburger = document.getElementById("hamburger");
+const mobileNav = document.getElementById("mobileNav");
+const overlay = document.getElementById("overlay");
+
+const toggleMobileMenu = () => {
+  hamburger.classList.toggle("active");
+  mobileNav.classList.toggle("active");
+  overlay.classList.toggle("active");
+};
+
+hamburger.addEventListener("click", toggleMobileMenu);
+overlay.addEventListener("click", toggleMobileMenu);
+
+</script>
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-content">
+    
+    <!-- Brand / About -->
+    <div class="footer-section">
+      <h3 class="footer-title">JazaLoan</h3>
+      <p>
+        Kenya’s most trusted free financial toolkit — smart calculators for 
+        <strong>loans, PAYE tax, VAT, and business planning</strong>.
+      </p>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Quick Links</h4>
+      <ul class="footer-list">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="compare-loans.html">Compare Loans</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="faqs.html">FAQs</a></li>
+      </ul>
+    </div>
+
+    <!-- Legal Links -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Legal</h4>
+      <ul class="footer-list">
+        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms of Service</a></li>
+        <li><a href="disclaimer.html">Disclaimer</a></li>
+      </ul>
+    </div>
+
+    <!-- Contact -->
+    <div class="footer-section">
+      <h4 class="footer-subtitle">Contact</h4>
+      <p>📧 <a href="mailto:support@jazaloancalculator.co.ke">support@jazaloancalculator.co.ke</a></p>
+      <p>📞 +254 742592477</p>
+      <p>💬 <a href="https://wa.me/254742592477" target="_blank">Chat on WhatsApp</a></p>
+    </div>
+
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="footer-bottom">
+    © 2025 JazaLoan. All rights reserved. | Designed for Kenyans 🇰🇪
+  </div>
+</footer>
+</body>
+</html>
