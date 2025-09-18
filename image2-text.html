@@ -1,8 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Image to Text Converter Online - Jaza Loan Kenya</title>
-<meta name="description" content="Free online Image to Text Converter by Jaza Loan. Upload images, scanned documents, or screenshots and instantly extract editable text with OCR technology. 100% secure and runs in your browser.">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Image to Text Converter Online - Jaza Loan Kenya</title>
+  <meta name="description" content="Free online Image to Text Converter by Jaza Loan. Upload images, scanned documents, or screenshots and instantly extract editable text with OCR technology. 100% secure and runs in your browser.">
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="Images/favicon.png">
@@ -120,7 +122,7 @@ html, body {
   overflow-x: hidden;
   height: auto;
   min-height: 100%;
-  padding-top: 90px; /* added here */
+  padding-top: 60px; /* added here */
 }
 
 
@@ -130,10 +132,11 @@ body {
   color: #1e293b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  padding: 28px;
 }
 
-
+.main-content {
+  padding: 28px;
+}
 .header {
   grid-column: 1 / -1;
   display: flex;
@@ -231,14 +234,17 @@ h1 { margin: 0; font-size: 20px; color: #1e293b }
 
 .preview {
   width: 100%;
-  height: 180px;
+  height: 220px; /* a bit taller for balance */
   object-fit: contain;
   border-radius: 8px;
-  background: #f9fafb;
+  background: #f3f4f6 url('placeholder-upload.png') center center no-repeat;
+  background-size: 80px; /* size of placeholder icon */
+  border: 2px dashed #d1d5db;
   display: block;
-  border: 1px solid #e5e7eb;
-  margin-top: 10px;
+  margin-top: 12px;
+  cursor: pointer;
 }
+
 
 .right {
   padding: 14px;
@@ -673,6 +679,66 @@ body {
     font-size: 12px !important;
   }
 }
+/* Container */
+#productivity-section {
+  margin: 40px auto;
+  padding: 40px 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+/* Title */
+#productivity-section .section-title {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.8em;
+  font-weight: 700;
+}
+
+/* Intro text */
+#productivity-section .section-intro {
+  text-align: center;
+  font-size: 1.05em;
+  line-height: 1.6;
+  color: #444;
+  max-width: 700px;
+  margin: 0 auto 30px;
+}
+
+/* Grid */
+.productivity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Cards */
+.productivity-card {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.productivity-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.productivity-card h3 {
+  color: #03457b;
+  margin-bottom: 12px;
+  font-size: 1.2em;
+}
+
+.productivity-card ul {
+  padding-left: 18px;
+  line-height: 1.6;
+  color: #333;
+}
 
 </style>
 
@@ -750,7 +816,7 @@ body {
     <button id="btnCropCancel" class="btn warn">Cancel</button>
   </div>
 </div>
-        <img id="preview" class="preview" alt="Selected image preview" aria-hidden="true" />
+        <img id="preview" class="preview" src="Images/placeholder-upload.png" alt="Upload preview" />
 
         <div class="controls" role="group" aria-label="File controls">
           <label class="btn" for="fileInput" id="btnChoose">Choose file…</label>
@@ -802,7 +868,7 @@ body {
     <!-- Footer -->
     <div class="footer" role="contentinfo">
       <div>All processing happens locally in your browser — no images or text are sent to servers.</div>
-      <div>Built with Tesseract.js</div>
+      <div>Built with Jaza Loan Team</div>
     </div>
   </div>
 </main>
@@ -877,91 +943,88 @@ body {
   </section>
 
 </div>
-<section id="productivity-section" 
-  style="margin: 40px auto; max-width: 950px; padding: 25px 20px; background: #ffffff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
-  
-  <h2 style="text-align:center; color:#2c3e50; margin-bottom:20px;">
+<section id="productivity-section" class="content-container">
+  <h2 class="section-title">
     🚀 Amplify Productivity in Everyday Tasks
   </h2>
 
-  <p style="font-size:1.05em; line-height:1.6; color:#444; text-align:center; margin-bottom:25px;">
+  <p class="section-intro">
     Image-to-text conversion enables a wide range of applications across multiple fields — from digitization and automation to security and research.
   </p>
 
-  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">📚 Document Digitization & Archiving</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+  <div class="productivity-grid">
+    <div class="productivity-card">
+      <h3>📚 Document Digitization & Archiving</h3>
+      <ul>
         <li>Scanning books and documents for easier storage, searching, and editing.</li>
         <li>Preserving historical manuscripts and records digitally.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">💼 Data Entry Automation</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>💼 Data Entry Automation</h3>
+      <ul>
         <li>Extracting data from forms to automate processes in healthcare, banking, and logistics.</li>
         <li>Processing invoices & receipts for accounting and financial management.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">🔍 Content Analysis & Research</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>🔍 Content Analysis & Research</h3>
+      <ul>
         <li>Extracting text for social media research, marketing, and journalism.</li>
         <li>Digitizing research papers for easier reference and citation.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">🌍 Translation Services</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>🌍 Translation Services</h3>
+      <ul>
         <li>Converting text in images for multilingual translation.</li>
         <li>Useful for travelers, researchers, and international businesses.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">⚖️ Legal & Compliance</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>⚖️ Legal & Compliance</h3>
+      <ul>
         <li>Digitizing contracts and legal documents.</li>
         <li>Ensuring compliance with easy retrieval and management.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">📝 Personal Productivity</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>📝 Personal Productivity</h3>
+      <ul>
         <li>Converting handwritten notes & whiteboard content to digital.</li>
         <li>Organizing personal docs like letters, recipes, and diaries.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">🛒 E-commerce</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>🛒 E-commerce</h3>
+      <ul>
         <li>Extracting product details for e-commerce listings.</li>
         <li>Inventory and catalog management automation.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">🔐 Security & Fraud Detection</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>🔐 Security & Fraud Detection</h3>
+      <ul>
         <li>Extracting text from ID cards, passports for identity verification.</li>
       </ul>
     </div>
 
-    <div style="background:#f9f9f9; padding:18px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
-      <h3 style="color:#03457b;">📢 Marketing & Advertising</h3>
-      <ul style="line-height:1.6; padding-left:18px;">
+    <div class="productivity-card">
+      <h3>📢 Marketing & Advertising</h3>
+      <ul>
         <li>Repurposing text from images into campaigns.</li>
       </ul>
     </div>
-
   </div>
 </section>
+
 
 <script>
 /*
@@ -1057,16 +1120,17 @@ body {
   });
 
   // Clear selection
-  btnClear.addEventListener('click', () => {
-    selectedFile = null;
-    preview.src = '';
-    preview.alt = '';
-    dropMessage.textContent = 'Drag & drop an image here or click to choose file';
-    fileInput.value = '';
-    lastResultText = '';
-    outputEl.value = '';
-    resetUI();
-  });
+btnClear.addEventListener('click', () => {
+  selectedFile = null;
+  preview.src = 'Images/placeholder-upload.png'; // restore placeholder
+  preview.alt = 'Upload preview';
+  dropMessage.textContent = 'Drag & drop an image here or click to choose file';
+  fileInput.value = '';
+  lastResultText = '';
+  outputEl.value = '';
+  resetUI();
+});
+
 
 // Start OCR
 btnStart.addEventListener('click', async () => {
@@ -1305,10 +1369,9 @@ window.addEventListener('scroll', function () {
   }
 });
 let cropper = null;
-const fileInput = document.getElementById("fileInput");
+const fileInput2 = document.getElementById("fileInput"); // rename to avoid clash
 const cropContainer = document.getElementById("cropContainer");
 const cropImage = document.getElementById("cropImage");
-const preview = document.getElementById("preview");
 
 fileInput.addEventListener("change", e => {
   const file = e.target.files[0];
@@ -1349,7 +1412,14 @@ document.getElementById("btnCropCancel").addEventListener("click", () => {
   if (cropper) cropper.destroy();
 });
 
+
+  document.getElementById('preview').addEventListener('click', function () {
+    document.getElementById('fileInput').click();
+  });
+
+
 </script>
+
 <!-- Footer -->
 <footer class="site-footer">
   <div class="footer-content">
