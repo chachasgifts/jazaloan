@@ -100,9 +100,6 @@
 </script>
 
 <style>
-    main.container {
-  margin-top: 120px; /* same or slightly bigger than .site-header height */
-}
 
 :root {
   --bg: #f9fafb;           /* light gray background */
@@ -117,7 +114,14 @@
 }
 
 * { box-sizing: border-box }
-html, body { height: 100% }
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  height: auto;       /* allow content to grow */
+  min-height: 100%;   /* still covers full screen */
+}
+
 
 body {
   margin: 0;
@@ -125,26 +129,9 @@ body {
   color: #1e293b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  display: flex;
-  flex-direction: column; /* 👈 stack vertically */
-  align-items: center;
   padding: 28px;
 }
 
-
-.container {
-  width: 100%;
-  max-width: 980px;
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: 0 6px 30px rgba(0,0,0,0.1);
-  border: 1px solid #e5e7eb;
-  display: grid;
-  gap: 18px;
-  grid-template-columns: 1fr 420px;
-  align-items: start;
-}
 
 .header {
   grid-column: 1 / -1;
@@ -321,16 +308,6 @@ textarea#output {
 
 .help { font-size: 12px; color: var(--muted) }
 
-@media (max-width:980px) {
-  .container { grid-template-columns:1fr; padding:14px }
-  .right { order:3 }
-  .drop { min-height:170px }
-}
-.content-container {
-  max-width: 1000px;
-  margin: 50px auto;
-  padding: 0 20px;
-}
 
 .info {
   margin-bottom: 40px;
@@ -395,7 +372,13 @@ textarea#output {
   z-index: 1000;
   transition: all 0.3s ease;
   background: white;
-  height: 100px;
+  height: auto;
+  padding: 10px 15px;
+}
+.logo img {
+  max-height: 60px;
+  width: auto;
+  height: auto;
 }
 .site-header.shrink {
   padding: 2px 10px;
@@ -499,9 +482,9 @@ textarea#output {
   transition: right 0.3s ease;
   z-index: 999;
 }
-.mobile-nav.show {
-  right: 0;
-}
+.mobile-nav.active { right: 0; }
+.mobile-overlay.active { display: block; }
+
 
 .mobile-nav a {
   padding: 12px 0;
@@ -618,11 +601,94 @@ body {
   border-top: 1px solid #94a3b8; /* light grey separator line */
   width: 100%;
 }
-</style>
 
+  .site-header {
+    height: auto !important;
+    padding: 6px 10px !important;
+  }
+
+  .logo {
+    height: auto !important;
+    max-height: 50px !important;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-container {
+    margin: 20px auto !important;
+    padding: 0 12px !important;
+  }
+
+.tool-container {
+  width: 100%;
+  max-width: 980px;
+  margin: auto;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr minmax(300px, 420px); /* flexible sidebar */
+}
+
+/* Mobile/tablet fixes */
+@media (max-width: 1024px) {
+  body {
+    padding: 8px; /* reduce global spacing */
+  }
+
+  .tool-container {
+    grid-template-columns: 1fr !important; /* stack columns */
+    padding: 12px !important; 
+    max-width: 100% !important; 
+    box-shadow: none; /* flatter look on mobile */
+  }
+
+  .left,
+  .right {
+    width: 100% !important;
+    padding: 10px !important;
+  }
+
+  .drop {
+    min-height: 160px !important; /* less tall */
+  }
+
+  textarea#output {
+    min-height: 180px !important;
+    font-size: 14px !important;
+  }
+
+  .footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  /* ✅ Fix header on small screens */
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .help {
+    white-space: normal !important; /* allow wrapping */
+    font-size: 12px !important;
+  }
+}
+
+</style>
 
 </head>
 <body>
+<link href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet"/>
+<script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
+
 <header class="site-header fade-in">
   <div class="header-content">
     <!-- Logo -->
@@ -660,18 +726,23 @@ body {
   <div id="overlay" class="mobile-overlay"></div>
 </header>
 
-<main class="container" id="app">
-  <div class="header" role="banner">
-    <div class="logo" aria-hidden="false">
-      <div>
-        <h1 id="pageTitle">Image to Text – Jaza Loan</h1>
-        <div class="hint">Upload an image — extract text instantly in your browser.</div>
+<main id="app-wrapper">
+  <div id="app" class="tool-container">
+    
+    <!-- Header -->
+    <div class="header" role="banner">
+      <div class="logo" aria-hidden="false">
+        <div>
+          <h1 id="pageTitle">Image to Text – Jaza Loan</h1>
+          <div class="hint">Upload an image — extract text instantly in your browser.</div>
+        </div>
+      </div>
+      <div class="help" aria-hidden="true">
+        Works with screenshots, receipts, and scanned pages. Language: English (eng)
       </div>
     </div>
-    <div class="help" aria-hidden="true">Works with screenshots, receipts, and scanned pages. Language: English (eng)</div>
-  </div>
 
-
+    <!-- Upload Section -->
     <section class="left" aria-labelledby="uploadHeading">
       <h2 id="uploadHeading" class="small">Image input</h2>
 
@@ -680,7 +751,13 @@ body {
           <strong id="dropMessage">Drag &amp; drop an image here</strong>
           <div class="file-meta" id="fileMeta">PNG, JPG, WebP — up to ~10MB recommended</div>
         </div>
-
+        <div id="cropContainer" style="display:none; margin-top:12px;">
+  <img id="cropImage" style="max-width:100%;"/>
+  <div class="controls" style="margin-top:10px;">
+    <button id="btnCropApply" class="btn primary">Crop & Use</button>
+    <button id="btnCropCancel" class="btn warn">Cancel</button>
+  </div>
+</div>
         <img id="preview" class="preview" alt="Selected image preview" aria-hidden="true" />
 
         <div class="controls" role="group" aria-label="File controls">
@@ -691,26 +768,27 @@ body {
           <button id="btnCancel" class="btn warn" title="Cancel OCR (if running)" disabled>Cancel</button>
         </div>
 
-      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-  <select id="lang" class="lang-select" aria-label="OCR language">
-    <option value="eng" selected>English (eng)</option>
-    <option value="fra">French (fra)</option>
-    <option value="spa">Spanish (spa)</option>
-    <option value="deu">German (deu)</option>
-    <option value="ita">Italian (ita)</option>
-    <option value="por">Portuguese (por)</option>
-    <option value="hin">Hindi (hin)</option>
-    <option value="swa">Swahili (swa)</option>
-  </select>
-  <div class="small" id="resizeNote">Large images will be resized for speed & accuracy.</div>
-</div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <select id="lang" class="lang-select" aria-label="OCR language">
+            <option value="eng" selected>English (eng)</option>
+            <option value="fra">French (fra)</option>
+            <option value="spa">Spanish (spa)</option>
+            <option value="deu">German (deu)</option>
+            <option value="ita">Italian (ita)</option>
+            <option value="por">Portuguese (por)</option>
+            <option value="hin">Hindi (hin)</option>
+            <option value="swa">Swahili (swa)</option>
+          </select>
+          <div class="small" id="resizeNote">Large images will be resized for speed & accuracy.</div>
+        </div>
 
-
-      <div style="margin-top:12px; font-size:13px; color:var(--muted);">
-        Tip: For best results use high-contrast images, avoid heavy blur. You can copy or download extracted text.
+        <div style="margin-top:12px; font-size:13px; color:var(--muted);">
+          Tip: For best results use high-contrast images, avoid heavy blur. You can copy or download extracted text.
+        </div>
       </div>
     </section>
 
+    <!-- OCR Output -->
     <aside class="right" aria-labelledby="outputHeading">
       <h2 id="outputHeading" class="small">OCR output</h2>
 
@@ -729,13 +807,16 @@ body {
       </div>
     </aside>
 
+    <!-- Footer -->
     <div class="footer" role="contentinfo">
       <div>All processing happens locally in your browser — no images or text are sent to servers.</div>
       <div>Built with Tesseract.js</div>
     </div>
-  </main>
-<div class="content-container">
+  </div>
+</main>
 
+<!-- Rest of content -->
+<div class="content-container">
   <section class="info">
     <h2>How to Use Image to Text Converter Online?</h2>
     <p>Follow these three simple steps to extract the text from the picture.</p>
@@ -761,6 +842,8 @@ body {
       <li><strong>Postprocessing:</strong> Refining recognized text.</li>
     </ul>
   </section>
+</div>
+
 
   <!-- Features Section inside same container -->
   <section class="info features">
@@ -948,6 +1031,7 @@ body {
     btnStart.disabled = !selectedFile;
     btnCopy.disabled = !lastResultText;
     btnDownload.disabled = !lastResultText;
+    
   }
 
   // Handle drag & drop with keyboard accessibility
@@ -1015,26 +1099,40 @@ btnStart.addEventListener('click', async () => {
     await worker.loadLanguage(lang);
     await worker.initialize(lang);
 
-    const processedBlob = await preprocessImageFile(selectedFile, 1600);
+        // Prefer cropped blob if available
+    let sourceFile = selectedFile;
+    if (preview.fileBlob instanceof Blob) {
+      sourceFile = preview.fileBlob;
+    }
+
+    const processedBlob = await preprocessImageFile(sourceFile, 1600);
+
     setStatus('Running OCR…', 10);
 
     const jobResult = await worker.recognize(processedBlob);
     lastResultText = (jobResult?.data?.text || '').trim();
     outputEl.value = lastResultText;
 
-    setStatus('Done — text extracted.', 100);
-    btnCopy.disabled = !lastResultText;
-    btnDownload.disabled = !lastResultText;
-  } catch (err) {
-    console.error(err);
-    setStatus('Error: ' + (err.message || err), 0);
-    alert('OCR failed: ' + (err.message || err));
-  } finally {
-    btnCancel.disabled = true;
-    btnStart.disabled = false;
-  }
-});
+setStatus('Done — text extracted.', 100);
+btnCopy.disabled = !lastResultText;
+btnDownload.disabled = !lastResultText;
 
+// ✅ Scroll to results on mobile
+if (/Mobi|Android/i.test(navigator.userAgent) && lastResultText) {
+  const y = outputEl.getBoundingClientRect().top + window.scrollY - 80; // offset for header
+  window.scrollTo({ top: y, behavior: 'smooth' });
+}
+
+
+} catch (err) {
+  console.error(err);
+  setStatus('Error: ' + (err.message || err), 0);
+  alert('OCR failed: ' + (err.message || err));
+} finally {
+  btnCancel.disabled = true;
+  btnStart.disabled = false;
+}
+});
 
   // Cancel running OCR
   btnCancel.addEventListener('click', async () => {
@@ -1202,6 +1300,59 @@ const toggleMobileMenu = () => {
 
 hamburger.addEventListener("click", toggleMobileMenu);
 overlay.addEventListener("click", toggleMobileMenu);
+
+window.addEventListener('scroll', function () {
+  const header = document.querySelector('.site-header');
+  if (window.scrollY > 50) {
+    header.classList.add('shrink');
+  } else {
+    header.classList.remove('shrink');
+  }
+});
+let cropper = null;
+const fileInput = document.getElementById("fileInput");
+const cropContainer = document.getElementById("cropContainer");
+const cropImage = document.getElementById("cropImage");
+const preview = document.getElementById("preview");
+
+fileInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    cropContainer.style.display = "block";
+    preview.style.display = "none"; // hide old preview
+    cropImage.src = reader.result;
+
+    if (cropper) cropper.destroy();
+    cropper = new Cropper(cropImage, {
+      aspectRatio: NaN, // free crop
+      viewMode: 1,
+      autoCropArea: 1,
+    });
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("btnCropApply").addEventListener("click", () => {
+  if (!cropper) return;
+  const canvas = cropper.getCroppedCanvas({ maxWidth: 2000, maxHeight: 2000 });
+  preview.src = canvas.toDataURL("image/png");
+  preview.style.display = "block";
+  cropContainer.style.display = "none";
+
+  // keep blob for OCR
+  canvas.toBlob(blob => {
+    preview.fileBlob = blob;
+  });
+});
+
+document.getElementById("btnCropCancel").addEventListener("click", () => {
+  cropContainer.style.display = "none";
+  preview.style.display = "block";
+  if (cropper) cropper.destroy();
+});
 
 </script>
 <!-- Footer -->
