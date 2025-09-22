@@ -453,7 +453,14 @@ function renderWeeklyGoal() {
   let todayIdx = (now.getDay() + 6) % 7; // Mon=0
 
   const weekHTML = `
-    <div style="display:flex;justify-content:center;gap:10px;margin-top:10px;">
+    <div style="
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:6px;
+      margin-top:10px;
+      max-width:100%;
+    ">
       ${days.map((d,i)=>{
         const worked = Object.keys(player.completed).some(k=>{
           let [wk,dayIdx] = k.split("-").map(Number);
@@ -461,18 +468,20 @@ function renderWeeklyGoal() {
         });
         const isToday = i===todayIdx;
         return `<div style="
-          padding:6px 10px;
+          padding:4px 6px;
           border-radius:6px;
+          font-size:12px;
           background:${worked ? "#ffcc00" : "#444"};
           color:${isToday ? "#000" : "#eee"};
           font-weight:${isToday ? "bold" : "normal"};
+          min-width:36px;
+          text-align:center;
         ">${d}</div>`;
       }).join("")}
     </div>
   `;
   document.getElementById("weeklyGoal").innerHTML = weekHTML;
 }
-
 
 function updateProfile() {
   // existing profile update logic...
