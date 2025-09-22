@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>30 Day Fitness Quest</title>
+  <style>
+    body { font-family: 'Poppins', sans-serif; margin: 0; background: linear-gradient(135deg, #141E30, #243B55); color: #eee; overflow-x: hidden; }
+    header { text-align: center; padding: 1rem; background: linear-gradient(to right, #00c6ff, #0072ff); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); position: relative; }
+    .nav { position: absolute; top: 1rem; left: 1rem; font-size: 1.8rem; cursor: pointer; }
+    .sidebar { height: 100%; width: 0; position: fixed; top: 0; left: 0; background: rgba(20,30,48,0.95); transition: 0.4s; overflow-x: hidden; padding-top: 60px; z-index: 100; }
+    .sidebar a { display: block; padding: 12px 24px; font-size: 1.2rem; text-decoration: none; color: #ffcc00; }
+    .sidebar a:hover { color: #fff; }
+    .closebtn { position: absolute; top: 20px; right: 25px; font-size: 2rem; cursor: pointer; color: #ffcc00; }
+
+    .section { display: none; padding: 1rem; }
+    .active-section { display: block; }
+
+    .profile, .reward { text-align: center; margin: 1rem auto; background: rgba(255,255,255,0.08); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.4); max-width: 600px; }
+    .day-card { background: rgba(255,255,255,0.05); margin: 1rem auto; padding: 1rem; border-radius: 12px; max-width: 500px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); cursor: pointer; }
+    .day-header { display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold; color: #00eaff; }
+    .tasks, .motivation { margin-top: 1rem; display: none; }
+    .tasks li { list-style: none; margin: 8px 0; }
+
+    button { background: #ffcc00; border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #ffd633; }
+
+    .progress-bar { width: 90%; margin: 1rem auto; background: #444; border-radius: 20px; overflow: hidden; }
+    .progress { height: 20px; background: linear-gradient(to right, #ffcc00, #ff8800); width: 0%; text-align: center; color: black; font-weight: bold; font-size: 12px; line-height: 20px; transition: width 0.5s; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="nav" onclick="openNav()">☰</span>
+    <h1>💪 30 Day Fitness Quest</h1>
+    <p id="welcome"></p>
+  </header>
+
+  <div id="sidebar" class="sidebar">
+    <span class="closebtn" onclick="closeNav()">×</span>
+    <a href="#" onclick="showSection('home')">🏠 Home</a>
+    <a href="#" onclick="showSection('profile')">👤 Profile</a>
+    <a href="#" onclick="showSection('rewards')">🎁 Rewards</a>
+    <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
+  </div>
+
+<!-- Setup (new section for first-time players) -->
+<div id="setup" class="section active-section">
+  <div class="profile">
+    <h2>👋 Welcome to 30 Day Fitness Quest</h2>
+    <p>Please enter your details to begin:</p>
+    <input type="text" id="nameInput" placeholder="Enter your name"><br><br>
+
+    <!-- Dropdown with only 2 goals -->
+    <select id="goalInput">
+      <option value="Muscle Gain">Muscle Gain 💪</option>
+      <option value="Focus Exercises">Focus Exercises 🧘</option>
+    </select><br><br>
+
+    <button onclick="saveSetup()">Start My Journey 🚀</button>
+
+    <!-- 👇 This is where feedback will appear -->
+    <p id="setupMessage" style="margin-top:15px; color:#ffcc00; font-weight:bold;"></p>
+  </div>
+</div>
+
+
+
+  <div id="profile" class="section">
+  <h2>👤 Profile</h2>
+  <p><strong>Name:</strong> <span id="profileName"></span></p>
+  <p><strong>Goal:</strong> <span id="profileGoal"></span></p>
+  <p><strong>Current Week:</strong> <span id="profileWeek"></span></p>
+  <p><strong>Total Points:</strong> <span id="profilePoints"></span></p>
+</div>
+
+<div id="rewards" class="section">
+  <h2>🎁 Rewards Unlocked</h2>
+  <ul id="rewardsList"></ul>
+</div>
+
+<div id="settings" class="section">
+  <h2>⚙️ Settings</h2>
+  <button onclick="resetProgress()">Reset Progress</button>
+</div>
+
+<div id="home" class="section">
+  <div class="profile">
+    <h2>📅 Your Fitness Plan</h2>
+    <button id="startBtn" onclick="startOrContinueWeek()">Start Week</button>
+    <div class="progress-bar"><div id="progress" class="progress"></div></div>
+    <p id="week"></p>
+    <p id="points"></p>
+    <p>Upcoming Reward: <span id="reward"></span></p>
+  </div>
+  <div id="plan"></div>
+</div>
+
+  <footer style="text-align:center; margin:1rem;">✔️ Tick daily tasks, earn points, unlock rewards 🚀</footer>
+
+  <script>
+      // 💡 Motivation messages pool
+  const motivations = [
+    "🔥 Stay strong, you’ve got this!",
+    "💪 Small steps every day lead to big results.",
+    "⚡ Push harder than yesterday!",
+    "🌟 Progress, not perfection.",
+    "🏆 One step closer to your best self.",
+    "🔥 Sweat today, shine tomorrow.",
+    "💯 Discipline beats motivation."
+  ];
+
+   const weeksMuscleGain = {
+  1:[{day:"Mon",tasks:["Push-ups 3x10","Squats 3x12","Plank 20s"]},
+     {day:"Tue",tasks:["Run 15 min"]},
+     {day:"Wed",tasks:["Push-ups 3x12","Squats 3x12","Plank 25s"]},
+     {day:"Thu",tasks:["Push-ups 3x12","Lunges 3x10 each leg","Plank 25s"]},
+     {day:"Fri",tasks:["Run 15 min"]},
+     {day:"Sat",tasks:["Fun reward: Swimming / Cycling / Music"]},
+     {day:"Sun",tasks:["Rest day"]}]
+};
+
+const weeksFocusOMAD = {
+  1:[{day:"Mon",tasks:["Push-ups 3x8–12","Squats 3x10–12","Plank 20–30s"]},
+     {day:"Tue",tasks:["Walk 15 min","Mobility 10 min"]},
+     {day:"Wed",tasks:["Lunges 3x10 each leg","Squats 3x10","Side Plank 2x20s each side"]},
+     {day:"Thu",tasks:["Push-ups 4x8–10","Dips 3x8–10","Plank w/ shoulder taps 2x10 each side"]},
+     {day:"Fri",tasks:["Walk / cycle 15 min","Leg raises 3x10","Bird-dogs 3x12"]},
+     {day:"Sat",tasks:["Yoga / Stretching 20 min","Breathing practice"]},
+     {day:"Sun",tasks:["Rest day"]}]
+};
+
+    const rewards=["Nyama choma 🍖","Swimming 🏊","Hiking 🌳","Cycling 🚴","Music 🎶"];
+
+    let player=JSON.parse(localStorage.getItem("fitness30Day"))||{name:"",goal:"",week:1,points:0,totalTasks:0,dayProgress:0,completed:{},startedWeek:false,rewardsAchieved:[]};
+
+function saveSetup() {
+  const name = document.getElementById("nameInput").value.trim();
+  const goal = document.getElementById("goalInput").value;
+  const messageEl = document.getElementById("setupMessage");
+
+  if (!name) {
+    messageEl.textContent = "⚠️ Please enter your name!";
+    return;
+  }
+
+  // Check if this user already exists
+  let storedPlayer = localStorage.getItem(`fitness30Day_${name}`);
+
+  if (storedPlayer) {
+    // ✅ Load existing profile
+    player = JSON.parse(storedPlayer);
+    messageEl.textContent = `✅ Welcome back, ${player.name}! Resuming your journey.`;
+  } else {
+    // ✅ Create new profile and start Week 1 immediately
+    player = {
+      name: name,
+      goal: goal,
+      week: 1,
+      points: 0,
+      totalTasks: 0,
+      dayProgress: 0,
+      completed: {},
+      startedWeek: true,
+      rewardsAchieved: []
+    };
+    localStorage.setItem(`fitness30Day_${name}`, JSON.stringify(player));
+    messageEl.textContent = `🎉 New profile created for ${player.name}. Your ${goal} journey begins now!`;
+  }
+
+  // Save current session user
+  localStorage.setItem("fitness30Day_current", name);
+
+  // ✅ Update UI
+  document.getElementById("welcome").textContent = `Welcome, ${player.name}! Goal: ${player.goal}`;
+  showSection("home");
+  showPlan();
+  updateProfile();
+}
+
+function savePlayer() {
+  if (player && player.name) {
+    localStorage.setItem(`fitness30Day_${player.name}`, JSON.stringify(player));
+    localStorage.setItem("fitness30Day_current", player.name); // track who is logged in
+  }
+}
+
+function startOrContinueWeek() {
+  player.startedWeek = true;
+  savePlayer();
+  showPlan();
+  updateProfile();
+
+  let now = new Date();
+  let todayIndex = now.getDay() - 1; // Monday = 0
+  if (todayIndex < 0) todayIndex = 6;
+  if (now.getHours() < 5) {
+    todayIndex = todayIndex - 1;
+    if (todayIndex < 0) todayIndex = 6;
+  }
+
+  const cards = document.querySelectorAll(".day-card");
+
+  // ✅ Scroll to today's card
+  const todayCard = cards[todayIndex];
+  if (todayCard) {
+    todayCard.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // Expand today's card (tasks clickable)
+    const mot = todayCard.querySelector(".motivation");
+    const tasks = todayCard.querySelector(".tasks");
+    mot.style.display = "block";
+    tasks.style.display = "block";
+  }
+
+  // 👀 Expand tomorrow’s card (preview only, no clicks)
+  const nextCard = cards[todayIndex + 1];
+  if (nextCard) {
+    const nextMot = nextCard.querySelector(".motivation");
+    const nextTasks = nextCard.querySelector(".tasks");
+    nextMot.style.display = "block";
+    nextTasks.style.display = "block";
+
+    // Disable checkboxes (make preview only)
+    nextTasks.querySelectorAll("input[type='checkbox']").forEach(cb => {
+      cb.disabled = true;
+    });
+
+    // Slightly dim tomorrow’s card
+    nextCard.style.opacity = "0.7";
+  }
+}
+
+  function showPlan() {
+  const container = document.getElementById("plan");
+  container.innerHTML = "";
+  const weekPlan = player.goal === "Focus Exercises"
+    ? weeksFocusOMAD[player.week]
+    : weeksMuscleGain[player.week];
+
+  player.totalTasks = 0;
+
+  if (!player.startedWeek) {
+    container.innerHTML = "<p style='text-align:center;'>Click Start Week to begin ✅</p>";
+    return;
+  }
+
+  let now = new Date();
+  let todayIndex = now.getDay() - 1; // Monday = 0
+  if (todayIndex < 0) todayIndex = 6;
+  if (now.getHours() < 5) {
+    todayIndex = todayIndex - 1;
+    if (todayIndex < 0) todayIndex = 6;
+  }
+
+  weekPlan.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = "day-card";
+    const locked = i > todayIndex;
+
+    card.innerHTML = `
+      <div class='day-header' style='${locked ? "opacity:0.5;pointer-events:none;" : ""}'>
+        <span>${p.day}</span><span>▶️</span>
+      </div>
+<div class='motivation'>
+  <p><em>"${motivations[Math.floor(Math.random() * motivations.length)]}"</em></p>
+  <p style="margin-top:6px;">Tasks for ${p.day}</p>
+</div>
+
+
+      <ul class='tasks'>
+        ${p.tasks.map((t, idx) => {
+          player.totalTasks++;
+          const key = `${player.week}-${i}-${idx}`;
+          const checked = player.completed[key] ? "checked" : "";
+          return `<li><input type='checkbox' ${checked} onchange='completeTask(${i},${idx},this)'> ${t}</li>`;
+        }).join("")}
+      </ul>
+    `;
+
+    card.querySelector(".day-header").addEventListener("click", () => {
+      const mot = card.querySelector(".motivation");
+      const tasks = card.querySelector(".tasks");
+      mot.style.display = mot.style.display === "block" ? "none" : "block";
+      tasks.style.display = tasks.style.display === "block" ? "none" : "block";
+    });
+
+    // ✅ Always expand today's tasks
+    if (i === todayIndex) {
+      card.querySelector(".motivation").style.display = "block";
+      card.querySelector(".tasks").style.display = "block";
+
+      // ✅ Check if all today's tasks are already completed
+      const todaysTasks = p.tasks.length;
+      let completedToday = 0;
+      for (let j = 0; j < todaysTasks; j++) {
+        if (player.completed[`${player.week}-${i}-${j}`]) completedToday++;
+      }
+      if (completedToday === todaysTasks) {
+        const message = document.createElement("p");
+        message.id = `congrats-${i}`;
+        message.style.color = "#ffcc00";
+        message.style.fontWeight = "bold";
+        message.style.marginTop = "10px";
+        message.textContent = `🎉 Great job! You've already finished all tasks for ${p.day}.`;
+        card.appendChild(message);
+      }
+    }
+
+    container.appendChild(card);
+  });
+
+  scheduleRefreshAtFive();
+}
+
+
+function scheduleRefreshAtFive() {
+  const now = new Date();
+  let next5am = new Date();
+  next5am.setHours(5, 0, 0, 0);
+
+  // If it's already past 5 AM, set for tomorrow
+  if (now >= next5am) {
+    next5am.setDate(next5am.getDate() + 1);
+  }
+
+  const timeUntil5 = next5am - now;
+  setTimeout(() => {
+    location.reload(); // refresh at 5 AM
+  }, timeUntil5);
+}
+
+
+function completeTask(day, task, box) {
+  const key = `${player.week}-${day}-${task}`;
+  if (box.checked) {
+    if (!player.completed[key]) {
+      player.completed[key] = true;
+      player.points += 10;
+      player.dayProgress++;
+    }
+  } else {
+    if (player.completed[key]) {
+      delete player.completed[key];
+      player.points = Math.max(0, player.points - 10);
+      player.dayProgress = Math.max(0, player.dayProgress - 1);
+    }
+  }
+  savePlayer();
+  updateProfile();
+
+  // ✅ Select the correct week plan
+  const weekPlan = player.goal === "Focus Exercises"
+    ? weeksFocusOMAD[player.week]
+    : weeksMuscleGain[player.week];
+
+  let now = new Date();
+  let todayIndex = now.getDay() - 1; // Monday = 0
+  if (todayIndex < 0) todayIndex = 6;
+  if (now.getHours() < 5) {
+    todayIndex = todayIndex - 1;
+    if (todayIndex < 0) todayIndex = 6;
+  }
+
+  const todaysTasks = weekPlan[todayIndex].tasks.length;
+
+  let completedToday = 0;
+  for (let i = 0; i < todaysTasks; i++) {
+    if (player.completed[`${player.week}-${todayIndex}-${i}`]) completedToday++;
+  }
+
+  // Remove old message if it exists
+  let oldMsg = document.querySelector(`#congrats-${todayIndex}`);
+  if (oldMsg) oldMsg.remove();
+
+  // ✅ Show congrats immediately after last task
+  if (completedToday === todaysTasks) {
+    const todayCard = document.querySelectorAll(".day-card")[todayIndex];
+    const message = document.createElement("p");
+    message.id = `congrats-${todayIndex}`;
+    message.style.color = "#ffcc00";
+    message.style.fontWeight = "bold";
+    message.style.marginTop = "10px";
+    message.textContent = `🎉 Great job! You've finished all tasks for ${weekPlan[todayIndex].day}. Come back tomorrow at the same time for your next challenge!`;
+    todayCard.appendChild(message);
+  }
+}
+
+function endWeek(){ if(player.points===player.totalTasks*10){ alert(`🎉 Week ${player.week} Complete!`); player.rewardsAchieved.push(rewards[(player.week-1)%rewards.length]); player.week++; player.points=0; player.completed={}; player.startedWeek=false; if(player.week>4){ alert("🏆 Challenge Complete!"); player.week=1; player.rewardsAchieved=[]; } savePlayer(); showPlan(); updateProfile(); } else { alert("❌ Complete all tasks first!"); } }
+
+  function updateProfile() {
+  // Home section
+  document.getElementById("week").textContent = "Current Week: " + player.week;
+  document.getElementById("points").textContent = "Weekly Points: " + player.points;
+
+  const percent = Math.floor((player.dayProgress / player.totalTasks) * 100) || 0;
+  const progressEl = document.getElementById("progress");
+  progressEl.style.width = percent + "%";
+  progressEl.textContent = percent + "%";
+
+  document.getElementById("startBtn").textContent = player.startedWeek ? "Continue Week" : "Start Week";
+  document.getElementById("reward").textContent = rewards[(player.week - 1) % rewards.length];
+
+  // Profile section
+  document.getElementById("profileName").textContent = player.name;
+  document.getElementById("profileGoal").textContent = player.goal;
+  document.getElementById("profileWeek").textContent = player.week;
+  document.getElementById("profilePoints").textContent = player.points;
+
+  // Rewards section
+  const rewardsList = document.getElementById("rewardsList");
+  rewardsList.innerHTML = player.rewardsAchieved.length
+    ? player.rewardsAchieved.map(r => `<li>${r}</li>`).join("")
+    : "<li>No rewards unlocked yet.</li>";
+}
+function resetProgress() {
+  if (confirm("Are you sure you want to reset all progress?")) {
+    const currentUser = localStorage.getItem("fitness30Day_current");
+    if (currentUser) {
+      localStorage.removeItem(`fitness30Day_${currentUser}`);
+      localStorage.removeItem("fitness30Day_current");
+    }
+    location.reload();
+  }
+}
+
+    function openNav(){ document.getElementById("sidebar").style.width="250px"; }
+    function closeNav(){ document.getElementById("sidebar").style.width="0"; }
+    function showSection(id){ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active-section")); document.getElementById(id).classList.add("active-section"); closeNav(); }
+
+    showPlan(); updateProfile();
+  </script>
+</body>
+</html>
