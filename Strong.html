@@ -87,14 +87,19 @@
 <div id="home" class="section">
   <div class="profile">
     <h2>📅 Your Fitness Plan</h2>
+    <p id="todayDate"></p> <!-- today's date will appear here -->
     <button id="startBtn" onclick="startOrContinueWeek()">Start Week</button>
     <div class="progress-bar"><div id="progress" class="progress"></div></div>
     <p id="week"></p>
     <p id="points"></p>
     <p>Upcoming Reward: <span id="reward"></span></p>
+
+    <!-- new weekly goal section -->
+    <div id="weeklyGoal" style="margin-top:1rem; text-align:center;"></div>
   </div>
   <div id="plan"></div>
 </div>
+
 
   <footer style="text-align:center; margin:1rem;">✔️ Tick daily tasks, earn points, unlock rewards 🚀</footer>
 
@@ -429,6 +434,76 @@ function resetProgress() {
     function showSection(id){ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active-section")); document.getElementById(id).classList.add("active-section"); closeNav(); }
 
     showPlan(); updateProfile();
+    function formatDate(date) {
+  return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function getWeekRange(date) {
+  const day = date.getDay(); // 0 = Sun
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - ((day + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { monday, sunday };
+}
+
+function renderWeeklyGoal() {
+  const now = new Date();
+  let days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  let todayIdx = (now.getDay() + 6) % 7; // Mon=0
+
+  const weekHTML = `
+    <div style="display:flex;justify-content:center;gap:10px;margin-top:10px;">
+      ${days.map((d,i)=>{
+        const worked = Object.keys(player.completed).some(k=>{
+          let [wk,dayIdx] = k.split("-").map(Number);
+          return wk===player.week && dayIdx===i;
+        });
+        const isToday = i===todayIdx;
+        return `<div style="
+          padding:6px 10px;
+          border-radius:6px;
+          background:${worked ? "#ffcc00" : "#444"};
+          color:${isToday ? "#000" : "#eee"};
+          font-weight:${isToday ? "bold" : "normal"};
+        ">${d}</div>`;
+      }).join("")}
+    </div>
+  `;
+  document.getElementById("weeklyGoal").innerHTML = weekHTML;
+}
+
+
+function updateProfile() {
+  // existing profile update logic...
+  document.getElementById("week").textContent = "Current Week: " + player.week;
+  document.getElementById("points").textContent = "Weekly Points: " + player.points;
+
+  const percent = Math.floor((player.dayProgress / player.totalTasks) * 100) || 0;
+  const progressEl = document.getElementById("progress");
+  progressEl.style.width = percent + "%";
+  progressEl.textContent = percent + "%";
+
+  document.getElementById("startBtn").textContent = player.startedWeek ? "Continue Week" : "Start Week";
+  document.getElementById("reward").textContent = rewards[(player.week - 1) % rewards.length];
+
+  // profile section
+  document.getElementById("profileName").textContent = player.name;
+  document.getElementById("profileGoal").textContent = player.goal;
+  document.getElementById("profileWeek").textContent = player.week;
+  document.getElementById("profilePoints").textContent = player.points;
+
+  // rewards section
+  const rewardsList = document.getElementById("rewardsList");
+  rewardsList.innerHTML = player.rewardsAchieved.length
+    ? player.rewardsAchieved.map(r => `<li>${r}</li>`).join("")
+    : "<li>No rewards unlocked yet.</li>";
+
+  // ✅ New: Today’s date + weekly goal
+  document.getElementById("todayDate").textContent = "Today: " + formatDate(new Date());
+  renderWeeklyGoal();
+}
+
   </script>
 </body>
 </html>
