@@ -8,7 +8,5 @@ Disallow: /cgi-bin/
 Disallow: /tmp/
 Disallow: /admin/
 
-# Sitemaps
+# Main sitemap index
 Sitemap: https://jazaloancalculator.co.ke/sitemap.xml
-Sitemap: https://jazaloancalculator.co.ke/sitemap-calculators.xml
-Sitemap: https://jazaloancalculator.co.ke/sitemap-blog.xml
