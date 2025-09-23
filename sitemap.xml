@@ -1,119 +1,122 @@
-This XML file does not appear to have any style information associated with it. The document tree is shown below.
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 
+                            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
-<url>
-<loc>https://jazaloancalculator.co.ke/</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>1.00</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/mshwari-calculator</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/kcb-mpesa-loan</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/paye-calculator</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/vat-calculator</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/jumia-calculator</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/budgeting-calculator</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/image2-text</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/compare-loans</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog-post-5</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog-post-1</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog-post-6</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/faqs</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/privacy-policy</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/terms</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/disclaimer</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.80</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/strong</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.64</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog-post-2</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.64</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog-post-3</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.64</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog-post-4</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.64</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog?cat=personal-finance</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.51</priority>
-</url>
-<url>
-<loc>https://jazaloancalculator.co.ke/blog?cat=budgeting</loc>
-<lastmod>2025-09-23T04:38:47+00:00</lastmod>
-<priority>0.51</priority>
-</url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>1.00</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/mshwari-calculator</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/kcb-mpesa-loan</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/paye-calculator</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/vat-calculator</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/jumia-calculator</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/budgeting-calculator</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/image2-text</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/compare-loans</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog-post-5</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog-post-1</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog-post-6</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/faqs</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/privacy-policy</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/terms</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/disclaimer</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/strong</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.64</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog-post-2</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.64</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog-post-3</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.64</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog-post-4</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.64</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog?cat=personal-finance</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.51</priority>
+  </url>
+  <url>
+    <loc>https://jazaloancalculator.co.ke/blog?cat=budgeting</loc>
+    <lastmod>2025-09-23T04:38:47+00:00</lastmod>
+    <priority>0.51</priority>
+  </url>
 </urlset>
