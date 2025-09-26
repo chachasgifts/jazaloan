@@ -489,6 +489,96 @@ details[open] > *:not(summary) {
     max-width: 100%;
   }
 }
+  /* ============================
+   Jumia Listing Generator CSS
+   Scoped with jl- prefix
+   ============================ */
+
+.jl-container {
+  max-width: 750px;
+  margin: 30px auto;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e0e6ed;
+  padding: 25px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.jl-container h1 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #03457b; /* Dark Blue */
+}
+
+.jl-intro {
+  text-align: center;
+  font-size: 14px;
+  color: #555;
+  background: #e9f8ef;
+  padding: 10px 15px;
+  border-left: 4px solid #27ae60; /* Green accent */
+  border-radius: 6px;
+  margin-bottom: 25px;
+}
+
+.jl-label {
+  display: block;
+  margin: 12px 0 5px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.jl-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.jl-input:focus {
+  border-color: #2281e6; /* Blue accent */
+}
+
+.jl-button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: #27ae60; /* Green button */
+  color: #fff;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.jl-button:hover {
+  background: #1e8449;
+}
+
+.jl-results {
+  margin-top: 25px;
+  padding: 20px;
+  background: #f1f9ff;
+  border-left: 5px solid #03457b;
+  border-radius: 8px;
+  display: none;
+}
+
+.jl-results h2 {
+  margin-top: 0;
+  color: #03457b;
+}
+
+.jl-results p, 
+.jl-results ul {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.5;
+}
 
 </style>
 <script type="application/ld+json">
@@ -806,6 +896,50 @@ details[open] > *:not(summary) {
 
     </div>
 </div>
+<div class="jl-container">
+  <h1>🛍️ Jumia Listing Generator</h1>
+  <p class="jl-intro">
+    Fill in details carefully. <strong>Category must match Jumia Vendor Center</strong>.  
+    Color and Color Family will be used in the generated Title, Description & Highlights.
+  </p>
+
+  <form id="jl-form">
+    <!-- Product Name -->
+    <label for="jl-productName" class="jl-label">Product Name *</label>
+    <input type="text" id="jl-productName" name="productName" class="jl-input" placeholder="e.g. Floral Graphic Tee" required />
+
+    <!-- Category -->
+    <label for="jl-category" class="jl-label">Category *</label>
+    <input type="text" id="jl-category" name="category" class="jl-input" placeholder="e.g. Women's Fashion > Clothing > Tops > T-Shirts" required />
+
+    <!-- Color -->
+    <label for="jl-color" class="jl-label">Color *</label>
+    <input type="text" id="jl-color" name="color" class="jl-input" placeholder="e.g. Black, Rose Pink, Sky Blue" required />
+
+    <!-- Color Family -->
+    <label for="jl-colorFamily" class="jl-label">Color Family *</label>
+    <input type="text" id="jl-colorFamily" name="colorFamily" class="jl-input" placeholder="e.g. Neutral, Pastel, Dark Shades" required />
+
+    <!-- Extra Notes -->
+    <label for="jl-features" class="jl-label">Extra Notes (optional)</label>
+    <input type="text" id="jl-features" name="features" class="jl-input" placeholder="e.g. Lightweight cotton, breathable fabric" />
+
+    <button type="submit" class="jl-button">✨ Generate Title, Highlights & Description</button>
+  </form>
+
+  <!-- Results -->
+  <div id="jl-results" class="jl-results">
+    <h2>✅ Generated Listing</h2>
+    <p><strong>Title:</strong> <span id="jl-genTitle"></span></p>
+    <p><strong>Highlights:</strong></p>
+    <ul id="jl-genHighlights"></ul>
+    <p><strong>Description:</strong> <span id="jl-genDescription"></span></p>
+    <p><strong>SKU:</strong> <span id="jl-genSku"></span></p>
+    <p><strong>Sizes:</strong> Small, Medium, Large, XL, XXL, 3XL</p>
+    <p><strong>What's in the box:</strong> <span id="jl-genBox"></span></p>
+  </div>
+</div>
+
 
 <script>
 
@@ -1141,6 +1275,67 @@ function formatWithCommas(input) {
     });
   });
 </script>
+
+  <script>
+document.getElementById("jl-form").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  // Grab values from inputs
+  const productName = document.getElementById("jl-productName").value.trim();
+  const category = document.getElementById("jl-category").value.trim();
+  const color = document.getElementById("jl-color").value.trim();
+  const colorFamily = document.getElementById("jl-colorFamily").value.trim();
+  const features = document.getElementById("jl-features").value.trim();
+
+  // Prepare payload
+  const payload = { productName, category, color, colorFamily, features };
+
+  // Disable button while loading
+  const button = this.querySelector(".jl-button");
+  button.textContent = "⏳ Generating...";
+  button.disabled = true;
+
+  try {
+    // Call Netlify Function
+    const response = await fetch("/api/generate-description", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error("Server error");
+
+    const data = await response.json();
+
+    // Populate results
+    document.getElementById("jl-genTitle").textContent = data.title || "N/A";
+    document.getElementById("jl-genDescription").textContent = data.description || "N/A";
+    document.getElementById("jl-genSku").textContent = data.sku || "N/A";
+    document.getElementById("jl-genBox").textContent = data.box || "N/A";
+
+    // Handle highlights (array → <li>)
+    const highlightsContainer = document.getElementById("jl-genHighlights");
+    highlightsContainer.innerHTML = "";
+    if (data.highlights && data.highlights.length > 0) {
+      data.highlights.forEach(h => {
+        const li = document.createElement("li");
+        li.textContent = h;
+        highlightsContainer.appendChild(li);
+      });
+    }
+
+    // Show results box
+    document.getElementById("jl-results").style.display = "block";
+
+  } catch (err) {
+    alert("⚠️ Error generating description: " + err.message);
+  } finally {
+    // Reset button
+    button.textContent = "✨ Generate Title, Highlights & Description";
+    button.disabled = false;
+  }
+});
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
 <footer class="site-footer">
@@ -1196,6 +1391,7 @@ function formatWithCommas(input) {
 
 </body>
 </html>
+
 
 
 
