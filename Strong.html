@@ -830,36 +830,6 @@ function renderWeeklyGoal() {
   document.getElementById("weeklyGoal").innerHTML = weekHTML;
 }
 
-function updateProfile() {
-  // existing profile update logic...
-  document.getElementById("week").textContent = "Current Week: " + player.week;
-  document.getElementById("points").textContent = "Weekly Points: " + player.points;
-
-  const percent = Math.floor((player.dayProgress / player.totalTasks) * 100) || 0;
-  const progressEl = document.getElementById("progress");
-  progressEl.style.width = percent + "%";
-  progressEl.textContent = percent + "%";
-
-  document.getElementById("startBtn").textContent = player.startedWeek ? "Continue Week" : "Start Week";
-  document.getElementById("reward").textContent = rewards[(player.week - 1) % rewards.length];
-
-  // profile section
-  document.getElementById("profileName").textContent = player.name;
-  document.getElementById("profileGoal").textContent = player.goal;
-  document.getElementById("profileWeek").textContent = player.week;
-  document.getElementById("profilePoints").textContent = player.points;
-
-  // rewards section
-  const rewardsList = document.getElementById("rewardsList");
-  rewardsList.innerHTML = player.rewardsAchieved.length
-    ? player.rewardsAchieved.map(r => `<li>${r}</li>`).join("")
-    : "<li>No rewards unlocked yet.</li>";
-
-  // ✅ New: Today’s date + weekly goal
-  document.getElementById("todayDate").textContent = "Today: " + formatDate(new Date());
-  renderWeeklyGoal();
-}
-
 function showSignup() {
   document.getElementById("signupForm").style.display = "block";
   document.getElementById("loginForm").style.display = "none";
