@@ -44,26 +44,35 @@
     <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
   </div>
 
-<!-- Setup (new section for first-time players) -->
 <div id="setup" class="section active-section">
   <div class="profile">
-    <h2>👋 Welcome to 30 Day Fitness Quest</h2>
-    <p>Please enter your details to begin:</p>
-    <input type="text" id="nameInput" placeholder="Enter your name"><br><br>
+    <h2>👋 Welcome to 90 Day Fitness Quest</h2>
 
-    <!-- Dropdown with only 2 goals -->
-    <select id="goalInput">
-      <option value="Muscle Gain">Muscle Gain 💪</option>
-      <option value="Focus Exercises">Focus Exercises 🧘</option>
-    </select><br><br>
+    <!-- Tabs -->
+    <div style="margin-bottom: 1rem;">
+      <button onclick="showSignup()" id="signupTab">🆕 Sign Up</button>
+      <button onclick="showLogin()" id="loginTab">🔑 Log In</button>
+    </div>
 
-    <button onclick="saveSetup()">Start My Journey 🚀</button>
+    <!-- Sign Up -->
+    <div id="signupForm">
+      <input type="text" id="signupUsername" placeholder="Choose a username"><br><br>
+      <select id="goalInput">
+        <option value="muscle">💪 Muscle Gain</option>
+        <option value="focus">🧘 Focus & OMAD</option>
+      </select><br><br>
+      <button onclick="saveSetup()">Start My Journey 🚀</button>
+    </div>
 
-    <!-- 👇 This is where feedback will appear -->
+    <!-- Log In -->
+    <div id="loginForm" style="display:none;">
+      <input type="text" id="loginUsername" placeholder="Enter your username"><br><br>
+      <button onclick="loginUser()">Continue ➡️</button>
+    </div>
+
     <p id="setupMessage" style="margin-top:15px; color:#ffcc00; font-weight:bold;"></p>
   </div>
 </div>
-
 
 
   <div id="profile" class="section">
@@ -93,6 +102,7 @@
     <p id="week"></p>
     <p id="points"></p>
     <p>Upcoming Reward: <span id="reward"></span></p>
+<p id="daysLeft"></p>
 
     <!-- new weekly goal section -->
     <div id="weeklyGoal" style="margin-top:1rem; text-align:center;"></div>
@@ -104,6 +114,14 @@
   <footer style="text-align:center; margin:1rem;">✔️ Tick daily tasks, earn points, unlock rewards 🚀</footer>
 
   <script>
+    function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
       // 💡 Motivation messages pool
   const motivations = [
     "🔥 Stay strong, you’ve got this!",
@@ -115,73 +133,326 @@
     "💯 Discipline beats motivation."
   ];
 
-   const weeksMuscleGain = {
-  1:[{day:"Mon",tasks:["Push-ups 3x10","Squats 3x12","Plank 20s"]},
-     {day:"Tue",tasks:["Run 15 min"]},
-     {day:"Wed",tasks:["Push-ups 3x12","Squats 3x12","Plank 25s"]},
-     {day:"Thu",tasks:["Push-ups 3x12","Lunges 3x10 each leg","Plank 25s"]},
-     {day:"Fri",tasks:["Run 15 min"]},
-     {day:"Sat",tasks:["Fun reward: Swimming / Cycling / Music"]},
-     {day:"Sun",tasks:["Rest day"]}]
+const weeksMuscleGain = {
+  // ========= Month 1 (Foundation) =========
+  1:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Standard Push-ups 3x10","Bodyweight Squats 3x12","Plank 20s"]},
+    {day:"Tue",tasks:["Jog 15 min"]},
+    {day:"Wed",tasks:["Incline Push-ups 3x12","Glute Bridges 3x12","Plank 25s"]},
+    {day:"Thu",tasks:["Knee Push-ups 3x12","Lunges 3x10 each leg","Side Plank 20s each side"]},
+    {day:"Fri",tasks:["Jog 15 min","Mountain Climbers 3x15"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Swimming / Music"]}
+  ],
+  2:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Standard Push-ups 3x12","Jump Squats 3x10","Plank 30s"]},
+    {day:"Tue",tasks:["Jog 18 min"]},
+    {day:"Wed",tasks:["Incline Push-ups 4x10","Glute Bridges 3x15","Plank 30s"]},
+    {day:"Thu",tasks:["Diamond Push-ups 3x8","Reverse Lunges 3x12 each leg","Side Plank 25s each side"]},
+    {day:"Fri",tasks:["Jog 18 min","Mountain Climbers 3x20"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Hiking / Music"]}
+  ],
+  3:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Wide Push-ups 3x12","Bulgarian Split Squats 3x10 each leg","Plank 35s"]},
+    {day:"Tue",tasks:["Jog 20 min"]},
+    {day:"Wed",tasks:["Incline Push-ups 4x12","Hip Thrusts 3x12","Leg Raises 3x10"]},
+    {day:"Thu",tasks:["Diamond Push-ups 3x10","Step-ups 3x12 each leg","Side Plank 30s each side"]},
+    {day:"Fri",tasks:["Jog 20 min","Burpees 3x8"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Outdoor Activity"]}
+  ],
+  4:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Decline Push-ups 3x10","Jump Squats 3x12","Plank 40s"]},
+    {day:"Tue",tasks:["Jog 22 min"]},
+    {day:"Wed",tasks:["Archer Push-ups 3x8","Glute Bridges 4x12","Leg Raises 3x12"]},
+    {day:"Thu",tasks:["Diamond Push-ups 4x8","Lunges 4x12 each leg","Side Plank 35s each side"]},
+    {day:"Fri",tasks:["Jog 22 min","Burpees 3x10"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Movie Night"]}
+  ],
+
+  // ========= Month 2 (Strength & Endurance) =========
+  5:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Standard Push-ups 4x12","Bulgarian Split Squats 3x12 each leg","Plank 45s"]},
+    {day:"Tue",tasks:["Jog 25 min"]},
+    {day:"Wed",tasks:["Incline Push-ups 4x12","Hip Thrusts 4x12","Leg Raises 3x15"]},
+    {day:"Thu",tasks:["Decline Push-ups 3x10","Jump Lunges 3x10 each leg","Side Plank 40s each side"]},
+    {day:"Fri",tasks:["Jog 25 min","Burpees 3x12"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Nyama Choma"]}
+  ],
+  6:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Wide Push-ups 4x12","Pistol Squat (assisted) 3x6 each leg","Plank 50s"]},
+    {day:"Tue",tasks:["Jog 28 min"]},
+    {day:"Wed",tasks:["Diamond Push-ups 4x10","Glute Bridges 4x15","Leg Raises 4x10"]},
+    {day:"Thu",tasks:["Decline Push-ups 4x10","Step-ups 4x12 each leg","Side Plank 45s each side"]},
+    {day:"Fri",tasks:["Jog 28 min","Burpees 3x15"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Music / Game Night"]}
+  ],
+  7:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Archer Push-ups 4x8","Jump Squats 4x12","Plank 55s"]},
+    {day:"Tue",tasks:["Jog 30 min"]},
+    {day:"Wed",tasks:["Incline Push-ups 5x10","Hip Thrusts 4x15","Leg Raises 4x12"]},
+    {day:"Thu",tasks:["Diamond Push-ups 4x12","Walking Lunges 3x14 each leg","Side Plank 50s each side"]},
+    {day:"Fri",tasks:["Jog 30 min","Burpees 4x10"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Outdoor Fun"]}
+  ],
+  8:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Decline Push-ups 4x12","Bulgarian Split Squats 4x12 each leg","Plank 60s"]},
+    {day:"Tue",tasks:["Jog 32 min"]},
+    {day:"Wed",tasks:["Archer Push-ups 4x10","Glute Bridges 4x18","Leg Raises 4x15"]},
+    {day:"Thu",tasks:["Diamond Push-ups 5x10","Jump Lunges 4x12 each leg","Side Plank 55s each side"]},
+    {day:"Fri",tasks:["Jog 32 min","Burpees 4x12"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Music / Nyama Choma"]}
+  ],
+
+  // ========= Month 3 (Peak Challenge) =========
+  9:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Standard Push-ups 5x12","Jump Squats 4x15","Plank 65s"]},
+    {day:"Tue",tasks:["Jog 35 min"]},
+    {day:"Wed",tasks:["Incline Push-ups 5x12","Hip Thrusts 5x12","Leg Raises 4x18"]},
+    {day:"Thu",tasks:["Diamond Push-ups 5x12","Walking Lunges 4x14 each leg","Side Plank 60s each side"]},
+    {day:"Fri",tasks:["Jog 35 min","Burpees 4x15"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Party"]}
+  ],
+  10:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Wide Push-ups 5x12","Pistol Squat (assisted) 4x8 each leg","Plank 70s"]},
+    {day:"Tue",tasks:["Jog 38 min"]},
+    {day:"Wed",tasks:["Decline Push-ups 5x10","Glute Bridges 5x15","Leg Raises 5x12"]},
+    {day:"Thu",tasks:["Archer Push-ups 4x12","Jump Squats 4x15","Side Plank 65s each side"]},
+    {day:"Fri",tasks:["Jog 38 min","Burpees 5x10"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Movie Night"]}
+  ],
+  11:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Diamond Push-ups 5x12","Bulgarian Split Squats 4x14 each leg","Plank 75s"]},
+    {day:"Tue",tasks:["Jog 40 min"]},
+    {day:"Wed",tasks:["Decline Push-ups 5x12","Hip Thrusts 5x18","Leg Raises 5x15"]},
+    {day:"Thu",tasks:["Archer Push-ups 5x10","Walking Lunges 4x16 each leg","Side Plank 70s each side"]},
+    {day:"Fri",tasks:["Jog 40 min","Burpees 5x12"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Nyama Choma"]}
+  ],
+  12:[
+    {day:"Sun",tasks:["Rest day"]},
+    {day:"Mon",tasks:["Mixed Push-up Circuit (Standard, Wide, Diamond) 5x10 each","Jump Squats 5x15","Plank 80s"]},
+    {day:"Tue",tasks:["Jog 45 min"]},
+    {day:"Wed",tasks:["Archer Push-ups 5x12","Glute Bridges 5x20","Leg Raises 5x18"]},
+    {day:"Thu",tasks:["Decline Push-ups 5x12","Pistol Squat (assisted) 4x10 each leg","Side Plank 75s each side"]},
+    {day:"Fri",tasks:["Jog 45 min","Burpees 5x15"]},
+    {day:"Sat",tasks:["🎁 Reward Day: Celebration 🎉"]}
+  ]
 };
 
+
 const weeksFocusOMAD = {
-  1:[{day:"Mon",tasks:["Push-ups 3x8–12","Squats 3x10–12","Plank 20–30s"]},
+  1:[ 
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Push-ups 3x8–12","Squats 3x10–12","Plank 20–30s"]},
      {day:"Tue",tasks:["Walk 15 min","Mobility 10 min"]},
      {day:"Wed",tasks:["Lunges 3x10 each leg","Squats 3x10","Side Plank 2x20s each side"]},
      {day:"Thu",tasks:["Push-ups 4x8–10","Dips 3x8–10","Plank w/ shoulder taps 2x10 each side"]},
      {day:"Fri",tasks:["Walk / cycle 15 min","Leg raises 3x10","Bird-dogs 3x12"]},
-     {day:"Sat",tasks:["Yoga / Stretching 20 min","Breathing practice"]},
-     {day:"Sun",tasks:["Rest day"]}]
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  2:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Incline Push-ups 3x10","Goblet Squats 3x12","Plank 30s"]},
+     {day:"Tue",tasks:["Jog 20 min","Mobility flow 10 min"]},
+     {day:"Wed",tasks:["Reverse Lunges 3x12 each leg","Glute bridges 3x15","Side Plank 3x20s each side"]},
+     {day:"Thu",tasks:["Diamond Push-ups 3x8","Chair Dips 3x10","Mountain Climbers 3x20"]},
+     {day:"Fri",tasks:["Walk / cycle 20 min","Leg raises 3x12","Supermans 3x12"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  3:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Decline Push-ups 3x10","Split Squats 3x12 each leg","Plank 40s"]},
+     {day:"Tue",tasks:["Jog 25 min","Mobility flow 15 min"]},
+     {day:"Wed",tasks:["Step-ups 3x12 each leg","Glute bridges 4x15","Side Plank 3x25s each side"]},
+     {day:"Thu",tasks:["Wide Push-ups 3x10","Bench Dips 3x12","Mountain Climbers 4x20"]},
+     {day:"Fri",tasks:["Cycle 20 min","Hollow Holds 3x20s","Bird-dogs 4x12"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  4:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Archer Push-ups 3x6 each side","Bulgarian Split Squats 3x12 each leg","Plank 45s"]},
+     {day:"Tue",tasks:["Jog 25 min","Yoga flow 20 min"]},
+     {day:"Wed",tasks:["Jump Squats 3x12","Glute bridges 4x20","Side Plank 3x30s each side"]},
+     {day:"Thu",tasks:["Decline Push-ups 3x12","Chair Dips 4x10","Mountain Climbers 4x25"]},
+     {day:"Fri",tasks:["Walk 20 min","Leg Raises 3x15","Supermans 4x15"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  5:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Diamond Push-ups 4x8","Step-ups 4x12 each leg","Plank 50s"]},
+     {day:"Tue",tasks:["Jog 30 min","Yoga mobility 20 min"]},
+     {day:"Wed",tasks:["Jump Lunges 3x10 each leg","Glute Bridges 4x20","Side Plank 4x30s each side"]},
+     {day:"Thu",tasks:["Wide Push-ups 4x10","Dips 4x10","Mountain Climbers 4x30"]},
+     {day:"Fri",tasks:["Cycle 25 min","Leg Raises 4x12","Bird-dogs 4x15"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  6:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Pike Push-ups 3x10","Bulgarian Split Squats 4x12 each leg","Plank 60s"]},
+     {day:"Tue",tasks:["Jog 30 min","Yoga flow 20 min"]},
+     {day:"Wed",tasks:["Jump Squats 4x12","Hip Thrusts 3x15","Side Plank 4x35s each side"]},
+     {day:"Thu",tasks:["Decline Push-ups 4x12","Chair Dips 4x12","Burpees 3x10"]},
+     {day:"Fri",tasks:["Cycle 30 min","Hollow Holds 4x25s","Supermans 4x15"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  7:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Spiderman Push-ups 3x8","Squat Jumps 4x12","Plank 70s"]},
+     {day:"Tue",tasks:["Jog 35 min","Mobility 20 min"]},
+     {day:"Wed",tasks:["Curtsy Lunges 4x12 each leg","Glute Kickbacks 4x15","Side Plank 4x40s each side"]},
+     {day:"Thu",tasks:["Diamond Push-ups 4x10","Parallel Bar Dips 3x10","Mountain Climbers 5x25"]},
+     {day:"Fri",tasks:["Run 25 min","Leg Raises 4x15","Bird-dogs 5x15"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  8:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Wide Push-ups 4x12","Bulgarian Split Squats 4x12 each leg","Plank 80s"]},
+     {day:"Tue",tasks:["Jog 35 min","Yoga mobility 20 min"]},
+     {day:"Wed",tasks:["Jump Lunges 4x12 each leg","Hip Thrusts 4x20","Side Plank 4x45s each side"]},
+     {day:"Thu",tasks:["Archer Push-ups 3x8 each side","Chair Dips 4x12","Burpees 4x10"]},
+     {day:"Fri",tasks:["Cycle 30 min","Hollow Holds 4x30s","Supermans 5x15"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  9:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Decline Push-ups 4x12","Pistol Squats (assisted) 3x6 each leg","Plank 90s"]},
+     {day:"Tue",tasks:["Jog 40 min","Yoga flow 20 min"]},
+     {day:"Wed",tasks:["Step-ups 4x12 each leg","Glute Kickbacks 4x20","Side Plank 4x50s each side"]},
+     {day:"Thu",tasks:["Pike Push-ups 4x10","Dips 4x12","Mountain Climbers 5x30"]},
+     {day:"Fri",tasks:["Run 30 min","Leg Raises 5x12","Bird-dogs 5x20"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  10:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Diamond Push-ups 4x12","Jump Squats 5x12","Plank 100s"]},
+     {day:"Tue",tasks:["Jog 40 min","Yoga flow 25 min"]},
+     {day:"Wed",tasks:["Curtsy Lunges 5x12 each leg","Hip Thrusts 5x15","Side Plank 4x55s each side"]},
+     {day:"Thu",tasks:["Archer Push-ups 4x8 each side","Chair Dips 5x10","Burpees 4x12"]},
+     {day:"Fri",tasks:["Cycle 35 min","Hollow Holds 5x30s","Supermans 5x20"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  11:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Pike Push-ups 4x12","Bulgarian Split Squats 5x12 each leg","Plank 110s"]},
+     {day:"Tue",tasks:["Jog 45 min","Yoga flow 25 min"]},
+     {day:"Wed",tasks:["Jump Lunges 5x12 each leg","Glute Kickbacks 5x20","Side Plank 5x30s each side"]},
+     {day:"Thu",tasks:["Decline Push-ups 5x12","Parallel Bar Dips 4x12","Burpees 4x15"]},
+     {day:"Fri",tasks:["Run 35 min","Leg Raises 5x15","Bird-dogs 5x20"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ],
+
+  12:[
+     {day:"Sun",tasks:["Rest day"]},
+     {day:"Mon",tasks:["Spiderman Push-ups 4x10","Pistol Squats (assisted) 4x8 each leg","Plank 120s"]},
+     {day:"Tue",tasks:["Jog 45 min","Yoga flow 25 min"]},
+     {day:"Wed",tasks:["Jump Squats 5x15","Hip Thrusts 5x20","Side Plank 5x35s each side"]},
+     {day:"Thu",tasks:["Archer Push-ups 5x8 each side","Dips 5x12","Burpees 5x12"]},
+     {day:"Fri",tasks:["Cycle 40 min","Hollow Holds 5x35s","Supermans 5x20"]},
+     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
+  ]
 };
 
-    const rewards=["Nyama choma 🍖","Swimming 🏊","Hiking 🌳","Cycling 🚴","Music 🎶"];
 
-    let player=JSON.parse(localStorage.getItem("fitness30Day"))||{name:"",goal:"",week:1,points:0,totalTasks:0,dayProgress:0,completed:{},startedWeek:false,rewardsAchieved:[]};
+  let rewards = ["Nyama choma 🍖","Swimming 🏊","Hiking 🌳","Cycling 🚴","Music 🎶"];
+
+let player = JSON.parse(localStorage.getItem("fitness30Day")) || {
+  name: "",
+  goal: "",
+  week: 1,
+  points: 0,
+  totalTasks: 0,
+  dayProgress: 0,
+  completed: {},
+  startedWeek: false,
+  rewardsAchieved: [],
+  rewardsOrder: shuffle([...rewards]) // randomize rewards for this cycle
+};
 
 function saveSetup() {
-  const name = document.getElementById("nameInput").value.trim();
+  const username = document.getElementById("signupUsername").value.trim();
   const goal = document.getElementById("goalInput").value;
   const messageEl = document.getElementById("setupMessage");
 
-  if (!name) {
-    messageEl.textContent = "⚠️ Please enter your name!";
+  if (!username) {
+    messageEl.textContent = "⚠️ Please choose a username!";
     return;
   }
 
-  // Check if this user already exists
-  let storedPlayer = localStorage.getItem(`fitness30Day_${name}`);
-
-  if (storedPlayer) {
-    // ✅ Load existing profile
-    player = JSON.parse(storedPlayer);
-    messageEl.textContent = `✅ Welcome back, ${player.name}! Resuming your journey.`;
-  } else {
-    // ✅ Create new profile and start Week 1 immediately
-    player = {
-      name: name,
-      goal: goal,
-      week: 1,
-      points: 0,
-      totalTasks: 0,
-      dayProgress: 0,
-      completed: {},
-      startedWeek: true,
-      rewardsAchieved: []
-    };
-    localStorage.setItem(`fitness30Day_${name}`, JSON.stringify(player));
-    messageEl.textContent = `🎉 New profile created for ${player.name}. Your ${goal} journey begins now!`;
+  if (localStorage.getItem(`fitness30Day_${username}`)) {
+    messageEl.textContent = "⚠️ Username already taken. Please log in instead.";
+    return;
   }
 
-  // Save current session user
-  localStorage.setItem("fitness30Day_current", name);
+  // Create new profile
+  player = {
+    name: username,
+    goal: goal,
+    week: 1,
+    points: 0,
+    totalTasks: 0,
+    dayProgress: 0,
+    completed: {},
+    startedWeek: true,
+    rewardsAchieved: [],
+    rewardsOrder: shuffle([...rewards])
+  };
 
-  // ✅ Update UI
+  localStorage.setItem(`fitness30Day_${username}`, JSON.stringify(player));
+  localStorage.setItem("fitness30Day_current", username);
+
+  messageEl.textContent = `🎉 New profile created for ${player.name}. Let's go!`;
+
   document.getElementById("welcome").textContent = `Welcome, ${player.name}! Goal: ${player.goal}`;
   showSection("home");
   showPlan();
   updateProfile();
 }
+function loginUser() {
+  const username = document.getElementById("loginUsername").value.trim();
+  const messageEl = document.getElementById("setupMessage");
+
+  if (!username) {
+    messageEl.textContent = "⚠️ Please enter your username!";
+    return;
+  }
+
+  let storedPlayer = localStorage.getItem(`fitness30Day_${username}`);
+  if (!storedPlayer) {
+    messageEl.textContent = "❌ No account found. Please Sign Up first.";
+    return;
+  }
+
+  player = JSON.parse(storedPlayer);
+  localStorage.setItem("fitness30Day_current", username);
+
+  messageEl.textContent = `✅ Welcome back, ${player.name}!`;
+
+  document.getElementById("welcome").textContent = `Welcome, ${player.name}! Goal: ${player.goal}`;
+  showSection("home");
+  showPlan();
+  updateProfile();
+}
+
 
 function savePlayer() {
   if (player && player.name) {
@@ -197,12 +468,12 @@ function startOrContinueWeek() {
   updateProfile();
 
   let now = new Date();
-  let todayIndex = now.getDay() - 1; // Monday = 0
+let todayIndex = now.getDay(); // Sunday=0, Saturday=6
+if (now.getHours() < 5) {
+  todayIndex = todayIndex - 1;
   if (todayIndex < 0) todayIndex = 6;
-  if (now.getHours() < 5) {
-    todayIndex = todayIndex - 1;
-    if (todayIndex < 0) todayIndex = 6;
-  }
+}
+
 
   const cards = document.querySelectorAll(".day-card");
 
@@ -235,13 +506,21 @@ function startOrContinueWeek() {
     nextCard.style.opacity = "0.7";
   }
 }
+function getCurrentPlan() {
+  // Odd weeks → Muscle Gain, Even weeks → Focus Plan
+  if (player.week % 2 === 1) {
+    return weeksMuscleGain;
+  } else {
+    return weeksFocusOMAD;
+  }
+}
 
   function showPlan() {
   const container = document.getElementById("plan");
   container.innerHTML = "";
-  const weekPlan = player.goal === "Focus Exercises"
-    ? weeksFocusOMAD[player.week]
-    : weeksMuscleGain[player.week];
+ const plan = getCurrentPlan();
+const weekPlan = plan[player.week];
+
 
   player.totalTasks = 0;
 
@@ -354,10 +633,9 @@ function completeTask(day, task, box) {
   savePlayer();
   updateProfile();
 
-  // ✅ Select the correct week plan
-  const weekPlan = player.goal === "Focus Exercises"
-    ? weeksFocusOMAD[player.week]
-    : weeksMuscleGain[player.week];
+const plan = getCurrentPlan();
+const weekPlan = plan[player.week];
+
 
   let now = new Date();
   let todayIndex = now.getDay() - 1; // Monday = 0
@@ -390,8 +668,47 @@ function completeTask(day, task, box) {
     todayCard.appendChild(message);
   }
 }
+function endWeek() {
+  if (player.points === player.totalTasks * 10) {
+    const now = new Date();
+    let todayIndex = now.getDay(); // Sunday=0, Saturday=6
+    if (now.getHours() < 5) {
+      todayIndex = todayIndex - 1;
+      if (todayIndex < 0) todayIndex = 6;
+    }
 
-function endWeek(){ if(player.points===player.totalTasks*10){ alert(`🎉 Week ${player.week} Complete!`); player.rewardsAchieved.push(rewards[(player.week-1)%rewards.length]); player.week++; player.points=0; player.completed={}; player.startedWeek=false; if(player.week>4){ alert("🏆 Challenge Complete!"); player.week=1; player.rewardsAchieved=[]; } savePlayer(); showPlan(); updateProfile(); } else { alert("❌ Complete all tasks first!"); } }
+    // ✅ Only give reward if today is Saturday
+    if (todayIndex === 6) {
+      const rewardIndex = (player.week - 1) % player.rewardsOrder.length;
+      const earnedReward = player.rewardsOrder[rewardIndex];
+      player.rewardsAchieved.push(earnedReward);
+
+      alert(`🎉 Week ${player.week} Complete! Reward unlocked: ${earnedReward}`);
+    } else {
+      alert(`🎉 Week ${player.week} Complete!`);
+    }
+
+    // Move to next week
+    player.week++;
+    player.points = 0;
+    player.dayProgress = 0;
+    player.completed = {};
+    player.startedWeek = true; // auto-start new week
+
+    // Reshuffle rewards when cycle ends
+    if ((player.week - 1) % player.rewardsOrder.length === 0) {
+      player.rewardsOrder = shuffle(player.rewardsOrder);
+      player.rewardsAchieved = []; // reset visible list
+      alert("♻️ Rewards reshuffled for a new cycle!");
+    }
+
+    savePlayer();
+    showPlan();
+    updateProfile();
+  } else {
+    alert("❌ Complete all tasks first!");
+  }
+}
 
   function updateProfile() {
   // Home section
@@ -404,7 +721,17 @@ function endWeek(){ if(player.points===player.totalTasks*10){ alert(`🎉 Week $
   progressEl.textContent = percent + "%";
 
   document.getElementById("startBtn").textContent = player.startedWeek ? "Continue Week" : "Start Week";
-  document.getElementById("reward").textContent = rewards[(player.week - 1) % rewards.length];
+const rewardIndex = (player.week - 1) % player.rewardsOrder.length;
+document.getElementById("reward").textContent = "🎁 Unlocks on Saturday";
+
+const now = new Date();
+let todayIndex = now.getDay(); // Sunday=0
+if (now.getHours() < 5) {
+  todayIndex = todayIndex - 1;
+  if (todayIndex < 0) todayIndex = 6;
+}
+const daysLeft = 6 - todayIndex;
+document.getElementById("daysLeft").textContent = `${daysLeft} day(s) left until your next reward 🎁`;
 
   // Profile section
   document.getElementById("profileName").textContent = player.name;
@@ -513,6 +840,21 @@ function updateProfile() {
   renderWeeklyGoal();
 }
 
+function showSignup() {
+  document.getElementById("signupForm").style.display = "block";
+  document.getElementById("loginForm").style.display = "none";
+  document.getElementById("signupTab").style.fontWeight = "bold";
+  document.getElementById("loginTab").style.fontWeight = "normal";
+}
+
+function showLogin() {
+  document.getElementById("signupForm").style.display = "none";
+  document.getElementById("loginForm").style.display = "block";
+  document.getElementById("signupTab").style.fontWeight = "normal";
+  document.getElementById("loginTab").style.fontWeight = "bold";
+}
+
   </script>
+  
 </body>
 </html>
