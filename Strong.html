@@ -292,10 +292,11 @@ button,
   <h2>⚙️ Settings</h2>
 
   <div class="settings-card">
-    <h3>Profile</h3>
-    <label for="username">Username:</label>
-    <input type="text" id="username" value="" disabled>
-    <button onclick="editUsername()">✏️ Edit</button>
+    <h3>🎯 Change Goal</h3>
+    <select id="goalSelect" onchange="changeGoal(this.value)">
+      <option value="Muscle Gain">Muscle Gain 💪</option>
+      <option value="Focus Exercises">Focus Exercises 🧘</option>
+    </select>
   </div>
 
   <div class="settings-card">
@@ -1156,7 +1157,13 @@ function showToast(message) {
     toast.className = "toast";
   }, 4000);
 }
-
+function changeGoal(newGoal) {
+  player.goal = newGoal;
+  savePlayer();
+  showPlan();
+  updateProfile();
+  alert(`✅ Goal updated to: ${newGoal}`);
+}
   </script>
   <div id="toast" class="toast"></div>
 
