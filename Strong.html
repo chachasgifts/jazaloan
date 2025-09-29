@@ -200,6 +200,30 @@ button,
               box-shadow 0.4s ease, 
               border 0.4s ease;
 }
+.toast {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background: linear-gradient(135deg, #ffcc00, #ff8800);
+  color: #000;
+  text-align: center;
+  border-radius: 8px;
+  padding: 12px;
+  position: fixed;
+  z-index: 1000;
+  left: 50%;
+  bottom: 30px;
+  font-weight: bold;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: visibility 0s, opacity 0.5s ease-in-out;
+  opacity: 0;
+}
+
+.toast.show {
+  visibility: visible;
+  opacity: 1;
+}
 
   </style>
 </head>
@@ -217,10 +241,6 @@ button,
     <a href="#" onclick="showSection('rewards')">🎁 Rewards</a>
     <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
   </div>
-<div class="settings-card">
-  <h3>Theme</h3>
-  <button id="themeToggleBtn" onclick="toggleTheme()">🌙 Dark / ☀️ Light</button>
-</div>
 
 <div id="setup" class="section active-section">
   <div class="profile">
@@ -1062,16 +1082,14 @@ function showLogin() {
 }
 function toggleTheme() {
   document.body.classList.toggle("light-theme");
-
-  // Save preference
+  const themeBtn = document.getElementById("themeToggle");
   if (document.body.classList.contains("light-theme")) {
-    localStorage.setItem("theme", "light");
+    themeBtn.textContent = "🌞 Light Mode";
   } else {
-    localStorage.setItem("theme", "dark");
+    themeBtn.textContent = "🌙 Dark Mode";
   }
-
-  updateThemeButton();
 }
+
 
 function updateThemeButton() {
   const btn = document.getElementById("themeToggleBtn");
@@ -1093,7 +1111,54 @@ window.addEventListener("load", () => {
   updateThemeButton();
 });
 
+function toggleNotifications() {
+  const isEnabled = document.getElementById("notifToggle").checked;
+  localStorage.setItem("notificationsEnabled", isEnabled);
+
+  if (isEnabled) {
+    Notification.requestPermission().then(permission => {
+      if (permission !== "granted") {
+        showToast("🔔 Browser notifications blocked. You'll get in-app reminders instead.");
+      }
+    });
+  }
+}
+
+function checkDailyReminder() {
+  const isEnabled = localStorage.getItem("notificationsEnabled") === "true";
+  if (!isEnabled) return;
+
+  const now = new Date();
+  const fiveAM = new Date();
+  fiveAM.setHours(5, 0, 0, 0);
+
+  const today = now.toDateString();
+  const lastReminder = localStorage.getItem("lastReminderDate");
+
+  if (now >= fiveAM && lastReminder !== today) {
+    if (Notification.permission === "granted") {
+      new Notification("⏰ Time to start your daily tasks!");
+    } else {
+      showToast("⏰ Time to start your daily tasks!");
+    }
+    localStorage.setItem("lastReminderDate", today);
+  }
+}
+
+// Run check on page load
+document.addEventListener("DOMContentLoaded", checkDailyReminder);
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = "toast show";
+  setTimeout(() => {
+    toast.className = "toast";
+  }, 4000);
+}
+
   </script>
-  
+  <div id="toast" class="toast"></div>
+
 </body>
 </html>
