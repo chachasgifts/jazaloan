@@ -40,6 +40,166 @@
   font-weight: bold;
   text-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
 }
+.app-footer {
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  color: #fff;
+  text-align: center;
+  padding: 1rem 1.5rem;
+  margin-top: 2rem;
+  border-radius: 12px 12px 0 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 -3px 10px rgba(0,0,0,0.2);
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.footer-content span {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.footer-credit {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin: 0;
+}
+.settings-card {
+  background: #222;
+  padding: 1rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.settings-card h3 {
+  margin-bottom: 0.5rem;
+  color: #ffcc00;
+}
+
+.settings-card button {
+  background: #444;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.settings-card button:hover {
+  background: #666;
+}
+
+.settings-card.danger {
+  border: 1px solid #ff4444;
+  background: #330000;
+}
+
+.settings-card.danger button {
+  background: #ff4444;
+}
+
+.settings-card.danger button:hover {
+  background: #cc0000;
+}
+/* Default = Dark mode */
+body {
+  background: #121212;
+  color: #eee;
+  transition: background 0.3s, color 0.3s;
+}
+
+.light-theme {
+  background: #f5f5f5;
+  color: #222;
+}
+
+.light-theme .settings-card {
+  background: #fff;
+  color: #222;
+}
+
+.light-theme .settings-card button {
+  background: #ddd;
+  color: #000;
+}
+/* Light Theme Cards */
+.light-theme .profile,
+.light-theme .reward,
+.light-theme .day-card,
+.light-theme .settings-card {
+  background: #fff;
+  color: #222;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Light Theme Day Header */
+.light-theme .day-header {
+  color: #0072ff;
+}
+
+/* Light Theme Buttons */
+.light-theme button {
+  background: #ddd;
+  color: #222;
+}
+
+.light-theme button:hover {
+  background: #bbb;
+  color: #000;
+}
+
+/* Light Theme Progress Bar */
+.light-theme .progress-bar {
+  background: #ccc;
+}
+.light-theme .progress {
+  background: linear-gradient(to right, #0072ff, #00c6ff);
+  color: #fff;
+}
+
+/* Light Theme Footer */
+.light-theme .app-footer {
+  background: linear-gradient(135deg, #ffcc00, #ff8800);
+  color: #222;
+}
+
+/* Danger Zone Adjustments */
+.light-theme .settings-card.danger {
+  background: #ffe6e6;
+  border-color: #ff6666;
+}
+.light-theme .settings-card.danger button {
+  background: #ff4444;
+  color: #fff;
+}
+.light-theme .settings-card.danger button:hover {
+  background: #cc0000;
+}
+/* Smooth theme transition */
+body,
+.profile,
+.reward,
+.day-card,
+.settings-card,
+button,
+.progress-bar,
+.progress,
+.app-footer {
+  transition: background 0.4s ease, 
+              color 0.4s ease, 
+              box-shadow 0.4s ease, 
+              border 0.4s ease;
+}
 
   </style>
 </head>
@@ -57,6 +217,10 @@
     <a href="#" onclick="showSection('rewards')">🎁 Rewards</a>
     <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
   </div>
+<div class="settings-card">
+  <h3>Theme</h3>
+  <button id="themeToggleBtn" onclick="toggleTheme()">🌙 Dark / ☀️ Light</button>
+</div>
 
 <div id="setup" class="section active-section">
   <div class="profile">
@@ -106,7 +270,31 @@
 
 <div id="settings" class="section">
   <h2>⚙️ Settings</h2>
-  <button onclick="resetProgress()">Reset Progress</button>
+
+  <div class="settings-card">
+    <h3>Profile</h3>
+    <label for="username">Username:</label>
+    <input type="text" id="username" value="" disabled>
+    <button onclick="editUsername()">✏️ Edit</button>
+  </div>
+
+  <div class="settings-card">
+    <h3>Theme</h3>
+    <button onclick="toggleTheme()">🌙 Dark / ☀️ Light</button>
+  </div>
+
+  <div class="settings-card">
+    <h3>Notifications</h3>
+    <label>
+      <input type="checkbox" id="dailyReminder">
+      🔔 Daily workout reminders
+    </label>
+  </div>
+
+  <div class="settings-card danger">
+    <h3>Danger Zone</h3>
+    <button onclick="resetProgress()">❌ Reset Progress</button>
+  </div>
 </div>
 
 <div id="home" class="section">
@@ -127,7 +315,14 @@
 </div>
 
 
-  <footer style="text-align:center; margin:1rem;">✔️ Tick daily tasks, earn points, unlock rewards 🚀</footer>
+<footer class="app-footer">
+  <div class="footer-content">
+    <span>✔️ Stay consistent</span>
+    <span>💎 Earn points</span>
+    <span>🎁 Unlock rewards</span>
+  </div>
+  <p class="footer-credit">Made with ❤️ by JazaLoan Team</p>
+</footer>
 
   <script>
     function shuffle(array) {
@@ -865,6 +1060,38 @@ function showLogin() {
   document.getElementById("signupTab").style.fontWeight = "normal";
   document.getElementById("loginTab").style.fontWeight = "bold";
 }
+function toggleTheme() {
+  document.body.classList.toggle("light-theme");
+
+  // Save preference
+  if (document.body.classList.contains("light-theme")) {
+    localStorage.setItem("theme", "light");
+  } else {
+    localStorage.setItem("theme", "dark");
+  }
+
+  updateThemeButton();
+}
+
+function updateThemeButton() {
+  const btn = document.getElementById("themeToggleBtn");
+  if (!btn) return;
+
+  if (document.body.classList.contains("light-theme")) {
+    btn.textContent = "🌙 Switch to Dark Mode";
+  } else {
+    btn.textContent = "☀️ Switch to Light Mode";
+  }
+}
+
+// ✅ Load saved theme on page load
+window.addEventListener("load", () => {
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "light") {
+    document.body.classList.add("light-theme");
+  }
+  updateThemeButton();
+});
 
   </script>
   
