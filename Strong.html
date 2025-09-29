@@ -27,6 +27,20 @@
 
     .progress-bar { width: 90%; margin: 1rem auto; background: #444; border-radius: 20px; overflow: hidden; }
     .progress { height: 20px; background: linear-gradient(to right, #ffcc00, #ff8800); width: 0%; text-align: center; color: black; font-weight: bold; font-size: 12px; line-height: 20px; transition: width 0.5s; }
+    /* Normal countdown */
+.rewardCountdown {
+  font-weight: bold;
+  color: #0077cc; /* blue accent */
+}
+
+/* Highlight when it's reward day */
+.rewardToday {
+  color: #d4af37; /* gold */
+  font-size: 1.1em;
+  font-weight: bold;
+  text-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
+}
+
   </style>
 </head>
 <body>
@@ -81,7 +95,7 @@
   <p><strong>Goal:</strong> <span id="profileGoal"></span></p>
   <p><strong>Current Week:</strong> <span id="profileWeek"></span></p>
   <p><strong>Total Points:</strong> <span id="profilePoints"></span></p>
-  <p><strong>Next Reward:</strong> <span id="nextReward"></span></p> 
+  <p><strong>Next Reward:</strong> <span id="nextReward" class="rewardCountdown"></span></p>
 </div>
 
 
@@ -751,12 +765,20 @@ function updateProfile() {
   document.getElementById("profilePoints").textContent = player.points;
 
   // ✅ Add reward countdown in Profile section too
-  if (document.getElementById("nextReward")) {
-    document.getElementById("nextReward").textContent =
-      daysLeft === 0
-        ? `🎁 Today! Reward: ${nextRewardName}`
-        : `${daysLeft} day(s) left until your next reward 🎁 (${nextRewardName})`;
+if (document.getElementById("nextReward")) {
+  const rewardEl = document.getElementById("nextReward");
+
+  if (daysLeft === 0) {
+    rewardEl.textContent = `🎁 Today! Reward: ${nextRewardName}`;
+    rewardEl.classList.add("rewardToday");
+    rewardEl.classList.remove("rewardCountdown");
+  } else {
+    rewardEl.textContent = `${daysLeft} day(s) left until your next reward 🎁 (${nextRewardName})`;
+    rewardEl.classList.add("rewardCountdown");
+    rewardEl.classList.remove("rewardToday");
   }
+}
+
 
   // Rewards section
   const rewardsList = document.getElementById("rewardsList");
