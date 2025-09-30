@@ -1005,34 +1005,21 @@ html, body {
 
 
 <button id="backToTop" title="Back to Top">⬆</button>
-  <script>
-    const backToTopBtn = document.getElementById("backToTop");
-    window.addEventListener("scroll", () => {
-      if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
-        backToTopBtn.style.display = "block";
-      } else {
-        backToTopBtn.style.display = "none";
-      }
-    });
-
-    backToTopBtn.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  </script>
 <script>
+// -------------------- FUNCTIONS --------------------
 
+// Format input with commas
 function formatAmountInput(el) {
-  // Remove all non-digit characters
   let raw = el.value.replace(/[^\d]/g, '');
-
-  // Format with commas
   el.value = raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-    function toggleMenu() {
-      document.getElementById("mainNav").classList.toggle("show");
-    }
+// Toggle desktop nav
+function toggleMenu() {
+  document.getElementById("mainNav").classList.toggle("show");
+}
 
+// M-Shwari loan calculation
 function calculateMshwariLoan() {
   const amountStr = document.getElementById("mshwariAmount").value.replace(/,/g, '');
   const amount = parseFloat(amountStr);
@@ -1043,8 +1030,8 @@ function calculateMshwariLoan() {
     return;
   }
 
-  const FACILITY_RATE = 0.075;  // 7.5%
-  const EXCISE_ON_FEE = 0.20;   // 20% of facility fee
+  const FACILITY_RATE = 0.075;  
+  const EXCISE_ON_FEE = 0.20;   
 
   const facilityFee = amount * FACILITY_RATE;
   const exciseDuty = facilityFee * EXCISE_ON_FEE;
@@ -1081,50 +1068,30 @@ function calculateMshwariLoan() {
   if (explEl) explEl.innerText = explanation;
 }
 
-
-  // Mobile nav toggle
- const hamburger = document.getElementById("hamburger");
-const mobileNav = document.getElementById("mobileNav");
-const overlay = document.getElementById("overlay");
-
-const toggleMobileMenu = () => {
-  hamburger.classList.toggle("active");
-  mobileNav.classList.toggle("show");
-  overlay.classList.toggle("show");
-};
-
-hamburger.addEventListener("click", toggleMobileMenu);
-overlay.addEventListener("click", toggleMobileMenu);
-
-
+// Reset calculator
 function resetMshwariCalculator() {
   document.getElementById("mshwariAmount").value = "";
   document.getElementById("loanDate").value = "";
   document.getElementById("mshwariResults").style.display = "none";
   document.getElementById("resetBtn").style.display = "none";
   document.getElementById("downloadBtn").style.display = "none";
-  // Scroll back to input section
   document.getElementById("mshwari").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// Load jsPDF + AutoTable dynamically
 function loadJsPDF(callback) {
   if (window.jspdf) {
     callback();
     return;
   }
-
-  // Show loading overlay
   document.getElementById("pdfLoading").style.display = "flex";
-
-  // Load jsPDF first
   const script1 = document.createElement("script");
   script1.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
   script1.onload = () => {
-    // Then load autoTable
     const script2 = document.createElement("script");
     script2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js";
     script2.onload = () => {
-      document.getElementById("pdfLoading").style.display = "none"; // hide overlay
+      document.getElementById("pdfLoading").style.display = "none";
       callback();
     };
     document.body.appendChild(script2);
@@ -1132,6 +1099,7 @@ function loadJsPDF(callback) {
   document.body.appendChild(script1);
 }
 
+// Generate PDF
 function downloadMshwariResults() {
   loadJsPDF(() => {
     const { jsPDF } = window.jspdf;
@@ -1142,7 +1110,7 @@ function downloadMshwariResults() {
       return isNaN(cleaned) || cleaned === "" ? 0 : Number(cleaned);
     };
 
-    // --- Header ---
+    // Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
     doc.text("M-Shwari Loan Repayment Report", 14, 20);
@@ -1152,7 +1120,7 @@ function downloadMshwariResults() {
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
 
-    // --- Get Data Safely ---
+    // Get Data
     const amount = safeNum(document.getElementById("mshwariAmount").value);
     const date = document.getElementById("loanDate").value || "-";
     const fee = safeNum(document.getElementById("facilityFee").innerText);
@@ -1161,7 +1129,7 @@ function downloadMshwariResults() {
     const total = safeNum(document.getElementById("repaymentTotal").innerText);
     const due = document.getElementById("dueDate").innerText || "-";
 
-    // --- Table ---
+    // Table
     const tableData = [
       ["Loan Amount", `Ksh ${amount.toLocaleString()}`],
       ["Loan Start Date", date],
@@ -1181,7 +1149,7 @@ function downloadMshwariResults() {
       alternateRowStyles: { fillColor: [240, 240, 240] }
     });
 
-    // --- Summary Section ---
+    // Summary
     const summaryY = doc.lastAutoTable.finalY + 12;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
@@ -1205,12 +1173,12 @@ function downloadMshwariResults() {
 
     let bulletY = summaryY + 8;
     summaryPoints.forEach(point => {
-      doc.circle(12, bulletY - 2.5, 1, "F"); // small bullet
+      doc.circle(12, bulletY - 2.5, 1, "F");
       doc.text(point, 16, bulletY);
       bulletY += 7;
     });
 
-    // --- Footer ---
+    // Footer
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(9);
     doc.setTextColor(150);
@@ -1221,24 +1189,48 @@ function downloadMshwariResults() {
   });
 }
 
-<script>
-document.querySelectorAll("details.faq-block").forEach((detail) => {
-  detail.addEventListener("toggle", function () {
-    if (this.open) {
-      // Close all others
-      document.querySelectorAll("details.faq-block").forEach((el) => {
-        if (el !== this) el.removeAttribute("open");
-      });
-
-      // Scroll this into view
-      setTimeout(() => {
-        this.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 200);
+// -------------------- DOMContentLoaded --------------------
+document.addEventListener("DOMContentLoaded", () => {
+  // Back to Top
+  const backToTopBtn = document.getElementById("backToTop");
+  window.addEventListener("scroll", () => {
+    if (document.documentElement.scrollTop > 300 || document.body.scrollTop > 300) {
+      backToTopBtn.style.display = "block";
+    } else {
+      backToTopBtn.style.display = "none";
     }
   });
-});
-document.addEventListener("DOMContentLoaded", () => {
-  // Shrink header on scroll
+  backToTopBtn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  // Mobile nav
+  const hamburger = document.getElementById("hamburger");
+  const mobileNav = document.getElementById("mobileNav");
+  const overlay = document.getElementById("overlay");
+  const toggleMobileMenu = () => {
+    hamburger.classList.toggle("active");
+    mobileNav.classList.toggle("show");
+    overlay.classList.toggle("show");
+  };
+  hamburger.addEventListener("click", toggleMobileMenu);
+  overlay.addEventListener("click", toggleMobileMenu);
+
+  // FAQ accordion
+  document.querySelectorAll("details.faq-block").forEach((detail) => {
+    detail.addEventListener("toggle", function () {
+      if (this.open) {
+        document.querySelectorAll("details.faq-block").forEach((el) => {
+          if (el !== this) el.removeAttribute("open");
+        });
+        setTimeout(() => {
+          this.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 200);
+      }
+    });
+  });
+
+  // Shrink header
   window.addEventListener("scroll", () => {
     const header = document.querySelector(".site-header");
     if (window.scrollY > 50) {
@@ -1249,12 +1241,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// -------------------- Fade-in Effect --------------------
+window.addEventListener("load", () => {
+  document.body.classList.add("fade-in");
+});
 </script>
-<script>
-  window.addEventListener('load', () => {
-    document.body.classList.add('fade-in');
-  });
-</script>
+
 <!-- Footer -->
 <footer class="site-footer">
   <div class="footer-content">
@@ -1312,6 +1304,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+
 
 
 
