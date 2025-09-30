@@ -695,12 +695,48 @@ html, body {
     font-display: swap;
     src: url('/fonts/inter-v20-latin-700.woff2') format('woff2');
   }
+  /* PDF Loading Overlay */
+#pdfLoading {
+  display: none; /* hidden by default */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: Arial, sans-serif;
+}
+
+#pdfLoading p {
+  margin-top: 15px;
+  font-size: 16px;
+  color: #03457b;
+  font-weight: bold;
+}
+
+.spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #03457b;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
   </style>
   <link rel="canonical" href="https://jazaloan.co.ke/mshwari-loan-calculator" />
 </head>
 <body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
   <header class="site-header fade-in">
     <div class="header-content">
@@ -1072,100 +1108,119 @@ function resetMshwariCalculator() {
   document.getElementById("mshwari").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function downloadMshwariResults() {
-  if (typeof window.jspdf === "undefined") {
-    alert("PDF generation library not loaded. Please check jsPDF script.");
+function loadJsPDF(callback) {
+  if (window.jspdf) {
+    callback();
     return;
   }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  // Show loading overlay
+  document.getElementById("pdfLoading").style.display = "flex";
 
-  const safeNum = (value) => {
-    const cleaned = String(value || "").replace(/,/g, "").trim();
-    return isNaN(cleaned) || cleaned === "" ? 0 : Number(cleaned);
+  // Load jsPDF first
+  const script1 = document.createElement("script");
+  script1.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+  script1.onload = () => {
+    // Then load autoTable
+    const script2 = document.createElement("script");
+    script2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js";
+    script2.onload = () => {
+      document.getElementById("pdfLoading").style.display = "none"; // hide overlay
+      callback();
+    };
+    document.body.appendChild(script2);
   };
-
-  // --- Header ---
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text("M-Shwari Loan Repayment Report", 14, 20);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(100);
-  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
-
-  // --- Get Data Safely ---
-  const amount = safeNum(document.getElementById("mshwariAmount").value);
-  const date = document.getElementById("loanDate").value || "-";
-  const fee = safeNum(document.getElementById("facilityFee").innerText);
-  const duty = safeNum(document.getElementById("exciseDuty").innerText);
-  const deposited = safeNum(document.getElementById("mpesaDeposited").innerText);
-  const total = safeNum(document.getElementById("repaymentTotal").innerText);
-  const due = document.getElementById("dueDate").innerText || "-";
-
-  // --- Table ---
-  const tableData = [
-    ["Loan Amount", `Ksh ${amount.toLocaleString()}`],
-    ["Loan Start Date", date],
-    ["M-PESA Deposited (Loan - Excise Duty)", `Ksh ${deposited.toLocaleString()}`],
-    ["Facility Fee (7.5% of Loan)", `Ksh ${fee.toLocaleString()}`],
-    ["Excise Duty (1.5% of Loan)", `Ksh ${duty.toLocaleString()}`],
-    ["Total Repayment Amount", `Ksh ${total.toLocaleString()}`],
-    ["Due Date (30 Days)", due]
-  ];
-
-  doc.autoTable({
-    startY: 38,
-    head: [["Description", "Amount"]],
-    body: tableData,
-    styles: { fontSize: 11, cellPadding: 4 },
-    headStyles: { fillColor: [3, 69, 123], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [240, 240, 240] }
-  });
-
-  // --- Summary Section ---
-  const summaryY = doc.lastAutoTable.finalY + 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(40);
-  doc.text("Loan Summary", 14, summaryY);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(60);
-
-  const summaryPoints = [
-    `Loan Amount: Ksh ${amount.toLocaleString()}`,
-    `Loan Start Date: ${date}`,
-    `Facility Fee: 7.5% of loan amount (Ksh ${fee.toLocaleString()})`,
-    `Excise Duty: 1.5% of loan amount (Ksh ${duty.toLocaleString()})`,
-    `M-PESA Deposited: Ksh ${deposited.toLocaleString()}`,
-    `Total Repayment: Ksh ${total.toLocaleString()}`,
-    `Due Date: ${due}`,
-    `Note: Loan repayment is inclusive of a 1.5% excise duty deducted upfront.`
-  ];
-
-  // Bulleted style
-  let bulletY = summaryY + 8;
-  summaryPoints.forEach(point => {
-    doc.circle(12, bulletY - 2.5, 1, "F"); // small bullet
-    doc.text(point, 16, bulletY);
-    bulletY += 7;
-  });
-
-  // --- Footer ---
-  const pageHeight = doc.internal.pageSize.height;
-  doc.setFontSize(9);
-  doc.setTextColor(150);
-  doc.text("Generated by JazaLoan.co.ke – For informational purposes only", 14, pageHeight - 10);
-  doc.text(`Page 1 of 1`, doc.internal.pageSize.width - 30, pageHeight - 10);
-
-  doc.save("M-Shwari_Loan_Report.pdf");
+  document.body.appendChild(script1);
 }
 
-</script>
+function downloadMshwariResults() {
+  loadJsPDF(() => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const safeNum = (value) => {
+      const cleaned = String(value || "").replace(/,/g, "").trim();
+      return isNaN(cleaned) || cleaned === "" ? 0 : Number(cleaned);
+    };
+
+    // --- Header ---
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("M-Shwari Loan Repayment Report", 14, 20);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+    // --- Get Data Safely ---
+    const amount = safeNum(document.getElementById("mshwariAmount").value);
+    const date = document.getElementById("loanDate").value || "-";
+    const fee = safeNum(document.getElementById("facilityFee").innerText);
+    const duty = safeNum(document.getElementById("exciseDuty").innerText);
+    const deposited = safeNum(document.getElementById("mpesaDeposited").innerText);
+    const total = safeNum(document.getElementById("repaymentTotal").innerText);
+    const due = document.getElementById("dueDate").innerText || "-";
+
+    // --- Table ---
+    const tableData = [
+      ["Loan Amount", `Ksh ${amount.toLocaleString()}`],
+      ["Loan Start Date", date],
+      ["M-PESA Deposited (Loan - Excise Duty)", `Ksh ${deposited.toLocaleString()}`],
+      ["Facility Fee (7.5% of Loan)", `Ksh ${fee.toLocaleString()}`],
+      ["Excise Duty (20% of Facility Fee)", `Ksh ${duty.toLocaleString()}`],
+      ["Total Repayment Amount", `Ksh ${total.toLocaleString()}`],
+      ["Due Date (30 Days)", due]
+    ];
+
+    doc.autoTable({
+      startY: 38,
+      head: [["Description", "Amount"]],
+      body: tableData,
+      styles: { fontSize: 11, cellPadding: 4 },
+      headStyles: { fillColor: [3, 69, 123], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [240, 240, 240] }
+    });
+
+    // --- Summary Section ---
+    const summaryY = doc.lastAutoTable.finalY + 12;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(40);
+    doc.text("Loan Summary", 14, summaryY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(60);
+
+    const summaryPoints = [
+      `Loan Amount: Ksh ${amount.toLocaleString()}`,
+      `Loan Start Date: ${date}`,
+      `Facility Fee: 7.5% of loan amount (Ksh ${fee.toLocaleString()})`,
+      `Excise Duty: 20% of facility fee (Ksh ${duty.toLocaleString()})`,
+      `M-PESA Deposited: Ksh ${deposited.toLocaleString()}`,
+      `Total Repayment: Ksh ${total.toLocaleString()}`,
+      `Due Date: ${due}`,
+      `Note: Loan repayment is inclusive of excise duty deducted upfront.`
+    ];
+
+    let bulletY = summaryY + 8;
+    summaryPoints.forEach(point => {
+      doc.circle(12, bulletY - 2.5, 1, "F"); // small bullet
+      doc.text(point, 16, bulletY);
+      bulletY += 7;
+    });
+
+    // --- Footer ---
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(9);
+    doc.setTextColor(150);
+    doc.text("Generated by JazaLoan.co.ke – For informational purposes only", 14, pageHeight - 10);
+    doc.text(`Page 1 of 1`, doc.internal.pageSize.width - 30, pageHeight - 10);
+
+    doc.save("M-Shwari_Loan_Report.pdf");
+  });
+}
 
 <script>
 document.querySelectorAll("details.faq-block").forEach((detail) => {
@@ -1250,9 +1305,15 @@ document.addEventListener("DOMContentLoaded", () => {
     © 2025 JazaLoan. All rights reserved. | Designed for Kenyans 🇰🇪
   </div>
 </footer>
+<!-- Loading overlay for PDF -->
+<div id="pdfLoading">
+  <div class="spinner"></div>
+  <p>Preparing your PDF...</p>
+</div>
 
 </body>
 </html>
+
 
 
 
