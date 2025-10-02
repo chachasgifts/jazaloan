@@ -617,6 +617,14 @@ details[open] > *:not(summary) {
     max-width: 100%;
   }
 }
+.listing-container {
+  max-width: 900px;           /* slightly wider than calculator */
+  margin: 30px auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
 
 </style>
   
@@ -805,6 +813,31 @@ details[open] > *:not(summary) {
 </div>
 
     </div>
+</div>
+<div class="listing-container" id="listing-generator">
+  <h1>Jumia Product Listing Generator (2025)</h1>
+  
+  <p class="intro-text">
+    Create a professional <strong>SEO-optimized Jumia product listing</strong> in seconds.  
+    Enter your product name and preferred color, and we’ll generate a ready-to-use  
+    <em>title</em>, <em>highlights</em>, and <em>description</em> that follow  
+    <strong>best practices for Jumia Kenya 2025</strong>.  
+    Perfect for boosting visibility and maximizing sales.
+  </p>
+
+  <div style="margin-top:20px;">
+    <input id="productInput" type="text" placeholder="e.g. Samsung Galaxy A15" 
+           style="width:100%;padding:10px;margin-bottom:10px;">
+    
+    <input id="colorInput" type="text" placeholder="e.g. Black, Blue, Red" 
+           style="width:100%;padding:10px;margin-bottom:10px;">
+    
+    <button onclick="generateListing()" style="margin-top:10px;padding:10px 20px;">
+      Generate Listing
+    </button>
+  </div>
+
+  <div id="listingResult" style="margin-top:30px;"></div>
 </div>
 
 <script>
@@ -1142,6 +1175,81 @@ function formatWithCommas(input) {
   });
 </script>
 
+<script>
+async function generateListing() {
+  const product = document.getElementById("productInput").value.trim();
+  const color = document.getElementById("colorInput").value.trim();
+  const resultDiv = document.getElementById("listingResult");
+
+  if (!product) {
+    resultDiv.innerHTML = "<p style='color:red;'>Please enter a product name.</p>";
+    return;
+  }
+
+  resultDiv.innerHTML = "<p>⏳ Generating optimized listing...</p>";
+
+  try {
+    const response = await fetch("/.netlify/functions/listing-generator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product, color }),
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      resultDiv.innerHTML = `<p style="color:red;">⚠️ ${data.error}</p>`;
+      return;
+    }
+
+    // Highlights HTML list
+    let highlightsHTML = "";
+    if (Array.isArray(data.highlights)) {
+      highlightsHTML = "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>";
+    }
+
+    // Copy text versions
+    const titleText = data.title;
+    const highlightsText = Array.isArray(data.highlights) ? data.highlights.map(h => "- " + h).join("\n") : "";
+    const descriptionText = data.description;
+
+    const fullListing = `
+${titleText}
+
+Highlights:
+${highlightsText}
+
+Description:
+${descriptionText}
+    `;
+
+    resultDiv.innerHTML = `
+      <div style="background:#f9f9f9;padding:20px;border-radius:10px;">
+        <h2 style="color:#2c3e50;">${titleText}</h2>
+        <h3>Key Highlights</h3>
+        ${highlightsHTML}
+        <h3>Detailed Description</h3>
+        <p>${descriptionText}</p>
+
+        <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px;">
+          <button onclick="copyListing(\`${fullListing.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Full Listing</button>
+          <button onclick="copyListing(\`${titleText.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Title Only</button>
+          <button onclick="copyListing(\`${highlightsText.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Highlights Only</button>
+          <button onclick="copyListing(\`${descriptionText.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Description Only</button>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    resultDiv.innerHTML = `<p style="color:red;">❌ Error: ${err.message}</p>`;
+  }
+}
+
+function copyListing(text) {
+  navigator.clipboard.writeText(text)
+    .then(() => alert("✅ Copied to clipboard!"))
+    .catch(() => alert("❌ Failed to copy."));
+}
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
@@ -1198,6 +1306,7 @@ function formatWithCommas(input) {
 
 </body>
 </html>
+
 
 
 
