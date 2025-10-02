@@ -1202,17 +1202,22 @@ async function generateListing() {
       return;
     }
 
+    // Safeguards: fallback values if missing
+    const titleText = data.title || "No title generated";
+    const highlightsText = Array.isArray(data.highlights) 
+      ? data.highlights.map(h => "- " + h).join("\n") 
+      : "No highlights available";
+    const descriptionText = data.description || "No description available";
+
     // Highlights HTML list
     let highlightsHTML = "";
     if (Array.isArray(data.highlights)) {
       highlightsHTML = "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>";
+    } else {
+      highlightsHTML = "<p>No highlights available</p>";
     }
 
-    // Copy text versions
-    const titleText = data.title;
-    const highlightsText = Array.isArray(data.highlights) ? data.highlights.map(h => "- " + h).join("\n") : "";
-    const descriptionText = data.description;
-
+    // Full combined text
     const fullListing = `
 ${titleText}
 
@@ -1223,11 +1228,26 @@ Description:
 ${descriptionText}
     `;
 
+    // Word count check
+    const wordCount = titleText.split(/\s+/).filter(w => w.length > 0).length;
+    let wordStatus = "";
+    if (wordCount >= 5 && wordCount <= 7) {
+      wordStatus = `<span style="color:green;">✅ ${wordCount} words (OK)</span>`;
+    } else if (wordCount < 5) {
+      wordStatus = `<span style="color:orange;">⚠️ ${wordCount} words (too short)</span>`;
+    } else {
+      wordStatus = `<span style="color:red;">❌ ${wordCount} words (too long)</span>`;
+    }
+
+    // Render result
     resultDiv.innerHTML = `
       <div style="background:#f9f9f9;padding:20px;border-radius:10px;">
         <h2 style="color:#2c3e50;">${titleText}</h2>
+        <p><strong>Title length check:</strong> ${wordStatus}</p>
+
         <h3>Key Highlights</h3>
         ${highlightsHTML}
+
         <h3>Detailed Description</h3>
         <p>${descriptionText}</p>
 
@@ -1245,6 +1265,10 @@ ${descriptionText}
 }
 
 function copyListing(text) {
+  if (!text) {
+    alert("⚠️ Nothing to copy!");
+    return;
+  }
   navigator.clipboard.writeText(text)
     .then(() => alert("✅ Copied to clipboard!"))
     .catch(() => alert("❌ Failed to copy."));
@@ -1306,6 +1330,7 @@ function copyListing(text) {
 
 </body>
 </html>
+
 
 
 
