@@ -1288,18 +1288,15 @@ async function generateListing() {
     // Safeguards
     const titleText = data.title || "SEO Optimized Product Title";
     const descriptionText = data.description || "No description available";
-    const highlightsText = Array.isArray(data.highlights) 
-      ? data.highlights.map(h => "- " + h).join("\n") 
-      : "No highlights available";
-    const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
-
     const highlightsHTML = Array.isArray(data.highlights)
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
+    const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
-    // Render results with fade-in effect
+    // Render results
     resultDiv.innerHTML = `
-      <div id="resultsBox" class="fade-in" style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
+      <div id="resultsBox" class="fade-in" 
+           style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
 
         <!-- Title -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
@@ -1325,11 +1322,9 @@ async function generateListing() {
           <p>${whatsInTheBoxText}</p>
         </div>
 
-        <!-- Action Buttons -->
-        <div id="actionButtons" class="fade-in" style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
-          <button onclick="clearResults()" class="cta-btn" style="background:linear-gradient(135deg, #e74c3c, #c0392b);">
-            🧹 Clear Results
-          </button>
+        <!-- Single Action Button -->
+        <div id="actionButtons" class="fade-in" 
+             style="display:flex;justify-content:center;margin-top:15px;">
           <button onclick="restartTool()" class="cta-btn">
             ✨ Generate Another Listing
           </button>
@@ -1348,11 +1343,6 @@ async function generateListing() {
   }
 }
 
-// Clear results
-function clearResults() {
-  document.getElementById("listingResult").innerHTML = "";
-}
-
 // Restart tool (reset inputs + clear results + scroll top)
 function restartTool() {
   document.getElementById("listingResult").innerHTML = "";
@@ -1362,7 +1352,7 @@ function restartTool() {
   document.getElementById("productInput").focus();
 }
 </script>
-  
+ 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
 <footer class="site-footer">
@@ -1418,6 +1408,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
