@@ -1332,8 +1332,11 @@ async function generateListing() {
       </div>
     `;
 
-    // Scroll into view
-    document.getElementById("resultsBox").scrollIntoView({ behavior: "smooth", block: "start" });
+    // Scroll into view with offset so "Title" is fully visible
+    const resultsBox = document.getElementById("resultsBox");
+    const yOffset = -100; // adjust this if needed
+    const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({ top: y, behavior: "smooth" });
 
   } catch (err) {
     resultDiv.innerHTML = `<p style="color:red;">❌ Error: ${err.message}</p>`;
@@ -1352,7 +1355,7 @@ function restartTool() {
   document.getElementById("productInput").focus();
 }
 </script>
- 
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
 <footer class="site-footer">
@@ -1408,6 +1411,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
