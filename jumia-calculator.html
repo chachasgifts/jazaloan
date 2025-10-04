@@ -1252,7 +1252,6 @@ function formatWithCommas(input) {
 
 <script>
 async function generateListing() {
-  const generateBtn = document.getElementById("generateBtn");
   const product = document.getElementById("productInput").value.trim();
   const color = document.getElementById("colorInput").value.trim();
   const resultDiv = document.getElementById("listingResult");
@@ -1261,13 +1260,6 @@ async function generateListing() {
     resultDiv.innerHTML = "<p style='color:red;'>Please enter a product name.</p>";
     return;
   }
-
-  // Clear old results
-  resultDiv.innerHTML = "";
-
-  // Disable button during loading
-  generateBtn.disabled = true;
-  generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
 
   resultDiv.innerHTML = "<p>⏳ Generating optimized listing...</p>";
 
@@ -1293,13 +1285,17 @@ async function generateListing() {
       : "No highlights available";
     const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
-    const highlightsHTML = Array.isArray(data.highlights)
-      ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
-      : "<p>No highlights available</p>";
+    // Highlights HTML
+    let highlightsHTML = "";
+    if (Array.isArray(data.highlights)) {
+      highlightsHTML = "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>";
+    } else {
+      highlightsHTML = "<p>No highlights available</p>";
+    }
 
-    // Render results with fade-in effect
+    // Render clean result (no copy buttons)
     resultDiv.innerHTML = `
-      <div id="resultsBox" class="fade-in" style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
+      <div style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
 
         <!-- Title -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
@@ -1324,45 +1320,14 @@ async function generateListing() {
           <h3>What's in the Box</h3>
           <p>${whatsInTheBoxText}</p>
         </div>
-
-        <!-- Action Buttons -->
-        <div id="actionButtons" class="fade-in" style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
-          <button onclick="clearResults()" class="cta-btn" style="background:linear-gradient(135deg, #e74c3c, #c0392b);">
-            🧹 Clear Results
-          </button>
-          <button onclick="restartTool()" class="cta-btn">
-            ✨ Generate Another Listing
-          </button>
-        </div>
       </div>
     `;
-
-    // Scroll into view
-    document.getElementById("resultsBox").scrollIntoView({ behavior: "smooth", block: "start" });
-
   } catch (err) {
     resultDiv.innerHTML = `<p style="color:red;">❌ Error: ${err.message}</p>`;
-  } finally {
-    generateBtn.disabled = false;
-    generateBtn.innerHTML = "⚡ Generate Listing";
   }
 }
-
-// Clear results
-function clearResults() {
-  document.getElementById("listingResult").innerHTML = "";
-}
-
-// Restart tool (reset inputs + clear results + scroll top)
-function restartTool() {
-  document.getElementById("listingResult").innerHTML = "";
-  document.getElementById("productInput").value = "";
-  document.getElementById("colorInput").value = "";
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  document.getElementById("productInput").focus();
-}
 </script>
-  
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
 <footer class="site-footer">
@@ -1418,6 +1383,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
