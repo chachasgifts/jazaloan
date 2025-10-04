@@ -1202,12 +1202,13 @@ async function generateListing() {
       return;
     }
 
-    // Safeguards: fallback values if missing
+    // Safeguards: fallback values
     const titleText = data.title || "No title generated";
     const highlightsText = Array.isArray(data.highlights) 
       ? data.highlights.map(h => "- " + h).join("\n") 
       : "No highlights available";
     const descriptionText = data.description || "No description available";
+    const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
     // Highlights HTML list
     let highlightsHTML = "";
@@ -1216,17 +1217,6 @@ async function generateListing() {
     } else {
       highlightsHTML = "<p>No highlights available</p>";
     }
-
-    // Full combined text
-    const fullListing = `
-${titleText}
-
-Highlights:
-${highlightsText}
-
-Description:
-${descriptionText}
-    `;
 
     // Word count check
     const wordCount = titleText.split(/\s+/).filter(w => w.length > 0).length;
@@ -1239,23 +1229,56 @@ ${descriptionText}
       wordStatus = `<span style="color:red;">❌ ${wordCount} words (too long)</span>`;
     }
 
-    // Render result
+    // Render structured output
     resultDiv.innerHTML = `
-      <div style="background:#f9f9f9;padding:20px;border-radius:10px;">
-        <h2 style="color:#2c3e50;">${titleText}</h2>
-        <p><strong>Title length check:</strong> ${wordStatus}</p>
+      <div style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
 
-        <h3>Key Highlights</h3>
-        ${highlightsHTML}
+        <!-- Title -->
+        <div style="border:1px solid #ddd;padding:10px;border-radius:6px;position:relative;">
+          <h2 style="color:#2c3e50;margin:0;">${titleText}</h2>
+          <p><strong>Title length check:</strong> ${wordStatus}</p>
+          <button onclick="copyListing(\`${titleText.replace(/`/g, "\\`")}\`)" 
+            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            📋 Copy
+          </button>
+        </div>
 
-        <h3>Detailed Description</h3>
-        <p>${descriptionText}</p>
+        <!-- Description -->
+        <div style="border:1px solid #ddd;padding:10px;border-radius:6px;position:relative;">
+          <h3>Description</h3>
+          <p>${descriptionText.replace(/\n/g, "</p><p>")}</p>
+          <button onclick="copyListing(\`${descriptionText.replace(/`/g, "\\`")}\`)" 
+            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            📋 Copy
+          </button>
+        </div>
 
-        <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px;">
-          <button onclick="copyListing(\`${fullListing.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Full Listing</button>
-          <button onclick="copyListing(\`${titleText.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Title Only</button>
-          <button onclick="copyListing(\`${highlightsText.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Highlights Only</button>
-          <button onclick="copyListing(\`${descriptionText.replace(/`/g, "\\`")}\`)" style="padding:10px 15px;cursor:pointer;">📋 Copy Description Only</button>
+        <!-- Highlights -->
+        <div style="border:1px solid #ddd;padding:10px;border-radius:6px;position:relative;">
+          <h3>Key Highlights</h3>
+          ${highlightsHTML}
+          <button onclick="copyListing(\`${highlightsText.replace(/`/g, "\\`")}\`)" 
+            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            📋 Copy
+          </button>
+        </div>
+
+        <!-- What's in the Box -->
+        <div style="border:1px solid #ddd;padding:10px;border-radius:6px;position:relative;">
+          <h3>What's in the Box</h3>
+          <p>${whatsInTheBoxText}</p>
+          <button onclick="copyListing(\`${whatsInTheBoxText.replace(/`/g, "\\`")}\`)" 
+            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            📋 Copy
+          </button>
+        </div>
+
+        <!-- Full Listing -->
+        <div style="margin-top:10px;text-align:center;">
+          <button onclick="copyListing(\`${titleText}\n\nDescription:\n${descriptionText}\n\nHighlights:\n${highlightsText}\n\nWhat's in the Box:\n${whatsInTheBoxText}\`)" 
+            style="padding:10px 15px;cursor:pointer;border-radius:6px;border:none;background:#2c3e50;color:#fff;">
+            📋 Copy Full Listing
+          </button>
         </div>
       </div>
     `;
@@ -1330,6 +1353,7 @@ function copyListing(text) {
 
 </body>
 </html>
+
 
 
 
