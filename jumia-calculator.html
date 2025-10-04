@@ -1252,13 +1252,12 @@ async function generateListing() {
       highlightsHTML = "<p>No highlights available</p>";
     }
 
-    // Copy button template (slim style for sections)
+    // Small clipboard button
     const copyBtn = (text) => `
-      <div style="text-align:right; margin-top:6px;">
-        <button class="copy-btn" onclick="copyListing(\`${text.replace(/`/g, "\\`")}\`)">
-          📋 Copy
-        </button>
-      </div>
+      <button onclick="copyListing(\`${text.replace(/`/g, "\\`")}\`)" 
+        style="background:none;border:none;cursor:pointer;font-size:14px;margin-left:6px;color:#03457b;">
+        📋
+      </button>
     `;
 
     // Render result
@@ -1267,37 +1266,34 @@ async function generateListing() {
 
         <!-- Title -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
-          <h3 style="margin-top:0;">Title</h3>
-          <h2 style="color:#2c3e50;margin:0 0 10px;">${titleText}</h2>
-          ${copyBtn(titleText)}
+          <h3 style="margin:0;display:flex;align-items:center;justify-content:space-between;">
+            Title ${copyBtn(titleText)}
+          </h3>
+          <h2 style="color:#2c3e50;margin:10px 0 0;">${titleText}</h2>
         </div>
 
         <!-- Description -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
-          <h3>Description</h3>
+          <h3 style="margin:0;display:flex;align-items:center;justify-content:space-between;">
+            Description ${copyBtn(descriptionText)}
+          </h3>
           <p>${descriptionText.replace(/\n/g, "</p><p>")}</p>
-          ${copyBtn(descriptionText)}
         </div>
 
         <!-- Highlights -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
-          <h3>Key Highlights</h3>
+          <h3 style="margin:0;display:flex;align-items:center;justify-content:space-between;">
+            Key Highlights ${copyBtn(highlightsText)}
+          </h3>
           ${highlightsHTML}
-          ${copyBtn(highlightsText)}
         </div>
 
         <!-- What's in the Box -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
-          <h3>What's in the Box</h3>
+          <h3 style="margin:0;display:flex;align-items:center;justify-content:space-between;">
+            What's in the Box ${copyBtn(whatsInTheBoxText)}
+          </h3>
           <p>${whatsInTheBoxText}</p>
-          ${copyBtn(whatsInTheBoxText)}
-        </div>
-
-        <!-- Full Listing -->
-        <div style="margin-top:10px;text-align:center;">
-          <button class="cta-btn" onclick="copyListing(\`${titleText}\n\nDescription:\n${descriptionText}\n\nHighlights:\n${highlightsText}\n\nWhat's in the Box:\n${whatsInTheBoxText}\`)">
-            📋 Copy Full Listing
-          </button>
         </div>
       </div>
     `;
@@ -1372,6 +1368,7 @@ function copyListing(text) {
 
 </body>
 </html>
+
 
 
 
