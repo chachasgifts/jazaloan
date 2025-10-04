@@ -664,6 +664,15 @@ details[open] > *:not(summary) {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+/* Fade-in animation */
+.fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>
   
 </head>
@@ -1252,7 +1261,10 @@ async function generateListing() {
     return;
   }
 
-  // Disable button during loading with spinner
+  // Clear old results
+  resultDiv.innerHTML = "";
+
+  // Disable button during loading
   generateBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
 
@@ -1280,17 +1292,13 @@ async function generateListing() {
       : "No highlights available";
     const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
-    // Highlights HTML
-    let highlightsHTML = "";
-    if (Array.isArray(data.highlights)) {
-      highlightsHTML = "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>";
-    } else {
-      highlightsHTML = "<p>No highlights available</p>";
-    }
+    const highlightsHTML = Array.isArray(data.highlights)
+      ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
+      : "<p>No highlights available</p>";
 
-    // Render clean result
+    // Render results with fade-in effect
     resultDiv.innerHTML = `
-      <div id="resultsBox" style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
+      <div id="resultsBox" class="fade-in" style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
 
         <!-- Title -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
@@ -1317,7 +1325,7 @@ async function generateListing() {
         </div>
 
         <!-- Action Buttons -->
-        <div style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
+        <div id="actionButtons" class="fade-in" style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
           <button onclick="clearResults()" class="cta-btn" style="background:linear-gradient(135deg, #e74c3c, #c0392b);">
             🧹 Clear Results
           </button>
@@ -1328,24 +1336,23 @@ async function generateListing() {
       </div>
     `;
 
-    // 🔹 Smooth scroll to results
+    // Scroll into view
     document.getElementById("resultsBox").scrollIntoView({ behavior: "smooth", block: "start" });
 
   } catch (err) {
     resultDiv.innerHTML = `<p style="color:red;">❌ Error: ${err.message}</p>`;
   } finally {
-    // Re-enable button (back to normal CTA style)
     generateBtn.disabled = false;
     generateBtn.innerHTML = "⚡ Generate Listing";
   }
 }
 
-// Clear only the results
+// Clear results
 function clearResults() {
   document.getElementById("listingResult").innerHTML = "";
 }
 
-// Restart tool (clear results + reset inputs + focus product field)
+// Restart tool (reset inputs + clear results + scroll top)
 function restartTool() {
   document.getElementById("listingResult").innerHTML = "";
   document.getElementById("productInput").value = "";
@@ -1410,6 +1417,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
