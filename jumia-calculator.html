@@ -1202,15 +1202,15 @@ async function generateListing() {
       return;
     }
 
-    // Safeguards: fallback values
-    const titleText = data.title || "No title generated";
+    // Safeguards
+    const titleText = data.title || "SEO Optimized Product Title";
+    const descriptionText = data.description || "No description available";
     const highlightsText = Array.isArray(data.highlights) 
       ? data.highlights.map(h => "- " + h).join("\n") 
       : "No highlights available";
-    const descriptionText = data.description || "No description available";
     const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
-    // Highlights HTML list
+    // Highlights HTML
     let highlightsHTML = "";
     if (Array.isArray(data.highlights)) {
       highlightsHTML = "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>";
@@ -1218,27 +1218,16 @@ async function generateListing() {
       highlightsHTML = "<p>No highlights available</p>";
     }
 
-    // Word count check
-    const wordCount = titleText.split(/\s+/).filter(w => w.length > 0).length;
-    let wordStatus = "";
-    if (wordCount >= 5 && wordCount <= 7) {
-      wordStatus = `<span style="color:green;">✅ ${wordCount} words (OK)</span>`;
-    } else if (wordCount < 5) {
-      wordStatus = `<span style="color:orange;">⚠️ ${wordCount} words (too short)</span>`;
-    } else {
-      wordStatus = `<span style="color:red;">❌ ${wordCount} words (too long)</span>`;
-    }
-
-    // Render structured output
+    // Render result
     resultDiv.innerHTML = `
       <div style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
 
         <!-- Title -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;position:relative;">
-          <h2 style="color:#2c3e50;margin:0;">${titleText}</h2>
-          <p><strong>Title length check:</strong> ${wordStatus}</p>
+          <h3 style="margin-top:0;">Title</h3>
+          <h2 style="color:#2c3e50;margin:0 0 10px;">${titleText}</h2>
           <button onclick="copyListing(\`${titleText.replace(/`/g, "\\`")}\`)" 
-            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            style="position:absolute;top:8px;right:8px;font-size:11px;background:#f1f1f1;border:1px solid #ccc;border-radius:4px;padding:4px 6px;cursor:pointer;">
             📋 Copy
           </button>
         </div>
@@ -1248,7 +1237,7 @@ async function generateListing() {
           <h3>Description</h3>
           <p>${descriptionText.replace(/\n/g, "</p><p>")}</p>
           <button onclick="copyListing(\`${descriptionText.replace(/`/g, "\\`")}\`)" 
-            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            style="position:absolute;top:8px;right:8px;font-size:11px;background:#f1f1f1;border:1px solid #ccc;border-radius:4px;padding:4px 6px;cursor:pointer;">
             📋 Copy
           </button>
         </div>
@@ -1258,7 +1247,7 @@ async function generateListing() {
           <h3>Key Highlights</h3>
           ${highlightsHTML}
           <button onclick="copyListing(\`${highlightsText.replace(/`/g, "\\`")}\`)" 
-            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            style="position:absolute;top:8px;right:8px;font-size:11px;background:#f1f1f1;border:1px solid #ccc;border-radius:4px;padding:4px 6px;cursor:pointer;">
             📋 Copy
           </button>
         </div>
@@ -1268,7 +1257,7 @@ async function generateListing() {
           <h3>What's in the Box</h3>
           <p>${whatsInTheBoxText}</p>
           <button onclick="copyListing(\`${whatsInTheBoxText.replace(/`/g, "\\`")}\`)" 
-            style="position:absolute;bottom:8px;right:8px;font-size:12px;background:#eee;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;">
+            style="position:absolute;top:8px;right:8px;font-size:11px;background:#f1f1f1;border:1px solid #ccc;border-radius:4px;padding:4px 6px;cursor:pointer;">
             📋 Copy
           </button>
         </div>
@@ -1297,6 +1286,7 @@ function copyListing(text) {
     .catch(() => alert("❌ Failed to copy."));
 }
 </script>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
@@ -1353,6 +1343,7 @@ function copyListing(text) {
 
 </body>
 </html>
+
 
 
 
