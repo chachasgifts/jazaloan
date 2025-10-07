@@ -1269,7 +1269,37 @@ async function generateListing() {
   generateBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
 
-  resultDiv.innerHTML = "<p>⏳ Generating optimized listing...</p>";
+  // 🪄 Dynamic progress messages
+  const progressSteps = [
+    "🔍 Collecting product insights...",
+    "📊 Analyzing best SEO keywords...",
+    "✍️ Writing persuasive Jumia title...",
+    "✨ Crafting benefit-driven highlights...",
+    "📝 Finalizing engaging product description..."
+  ];
+
+  // Show first progress step
+  resultDiv.innerHTML = `
+    <div id="loadingBox" style="padding:15px;border:1px solid #ddd;border-radius:8px;background:#fafafa;">
+      <p id="progressText">${progressSteps[0]}</p>
+      <div class="spinner" style="margin-top:8px;"></div>
+    </div>
+  `;
+
+  // Smooth scroll to feedback
+  resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Cycle through progress messages
+  let stepIndex = 0;
+  const interval = setInterval(() => {
+    stepIndex++;
+    if (stepIndex < progressSteps.length) {
+      const progressEl = document.getElementById("progressText");
+      if (progressEl) progressEl.textContent = progressSteps[stepIndex];
+    }
+  }, 900); // step changes every 0.9 seconds
+
+  const startTime = Date.now();
 
   try {
     const response = await fetch("/.netlify/functions/listing-generator", {
@@ -1279,6 +1309,14 @@ async function generateListing() {
     });
 
     const data = await response.json();
+    clearInterval(interval);
+
+    // Ensure smooth loading (avoid flash if API is fast)
+    const elapsed = Date.now() - startTime;
+    const minLoadTime = 1800;
+    if (elapsed < minLoadTime) {
+      await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
+    }
 
     if (data.error) {
       resultDiv.innerHTML = `<p style="color:red;">⚠️ ${data.error}</p>`;
@@ -1332,13 +1370,14 @@ async function generateListing() {
       </div>
     `;
 
-    // Scroll into view with offset so "Title" is fully visible
+    // Smooth scroll so “Title” is visible
     const resultsBox = document.getElementById("resultsBox");
-    const yOffset = -100; // adjust this if needed
+    const yOffset = -100;
     const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
 
   } catch (err) {
+    clearInterval(interval);
     resultDiv.innerHTML = `<p style="color:red;">❌ Error: ${err.message}</p>`;
   } finally {
     generateBtn.disabled = false;
@@ -1411,6 +1450,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
