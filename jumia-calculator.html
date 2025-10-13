@@ -878,6 +878,9 @@ details[open] > *:not(summary) {
     
     <input id="colorInput" type="text" placeholder="e.g. Black, Blue, Red" 
            style="width:100%;padding:10px;margin-bottom:10px;">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+  <input type="checkbox" id="skuCheckbox" /> Generate SKUs
+</label>
     
    <button id="generateBtn" onclick="generateListing()" style="margin-top:10px;padding:10px 20px;">
   ⚡ Generate Listing
@@ -1255,6 +1258,7 @@ async function generateListing() {
   const generateBtn = document.getElementById("generateBtn");
   const product = document.getElementById("productInput").value.trim();
   const color = document.getElementById("colorInput").value.trim();
+  const generateSKU = document.getElementById("generateSKU").checked;
   const resultDiv = document.getElementById("listingResult");
 
   if (!product) {
@@ -1262,23 +1266,20 @@ async function generateListing() {
     return;
   }
 
-  // Clear old results
+  // Reset
   resultDiv.innerHTML = "";
-
-  // Disable button during loading
   generateBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
 
-  // 🪄 Dynamic progress messages
+  // Dynamic loading box
   const progressSteps = [
     "🔍 Collecting product insights...",
-    "📊 Analyzing best SEO keywords...",
-    "✍️ Writing persuasive Jumia title...",
-    "✨ Crafting benefit-driven highlights...",
-    "📝 Finalizing engaging product description..."
+    "📊 Finding trending SEO keywords...",
+    "✍️ Writing persuasive Jumia-style title...",
+    "✨ Creating benefit-driven highlights...",
+    "📝 Building bold, engaging description..."
   ];
 
-  // Show first progress step
   resultDiv.innerHTML = `
     <div id="loadingBox" style="padding:15px;border:1px solid #ddd;border-radius:8px;background:#fafafa;">
       <p id="progressText">${progressSteps[0]}</p>
@@ -1286,10 +1287,6 @@ async function generateListing() {
     </div>
   `;
 
-  // Smooth scroll to feedback
-  resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
-
-  // Cycle through progress messages
   let stepIndex = 0;
   const interval = setInterval(() => {
     stepIndex++;
@@ -1297,7 +1294,7 @@ async function generateListing() {
       const progressEl = document.getElementById("progressText");
       if (progressEl) progressEl.textContent = progressSteps[stepIndex];
     }
-  }, 900); // step changes every 0.9 seconds
+  }, 900);
 
   const startTime = Date.now();
 
@@ -1305,13 +1302,12 @@ async function generateListing() {
     const response = await fetch("/.netlify/functions/listing-generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product, color }),
+      body: JSON.stringify({ product, color, generateSkus: generateSKU }),
     });
 
     const data = await response.json();
     clearInterval(interval);
 
-    // Ensure smooth loading (avoid flash if API is fast)
     const elapsed = Date.now() - startTime;
     const minLoadTime = 1800;
     if (elapsed < minLoadTime) {
@@ -1323,7 +1319,6 @@ async function generateListing() {
       return;
     }
 
-    // Safeguards
     const titleText = data.title || "SEO Optimized Product Title";
     const descriptionText = data.description || "No description available";
     const highlightsHTML = Array.isArray(data.highlights)
@@ -1331,48 +1326,65 @@ async function generateListing() {
       : "<p>No highlights available</p>";
     const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
-    // Render results
+    // 🧾 SKU Section (new)
+    let skuSectionHTML = "";
+    if (data.skus) {
+      const skuRows = data.skus.skus
+        .map(s => `<tr><td style="border:1px solid #ddd;padding:6px;">${s.size}</td><td style="border:1px solid #ddd;padding:6px;"><code>${s.sku}</code></td></tr>`)
+        .join("");
+
+      skuSectionHTML = `
+        <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
+          <h3>🧾 Simple SKU Format</h3>
+          <p><b>Format:</b> ${data.skus.format}</p>
+          <table style="width:100%;border-collapse:collapse;margin-top:10px;">
+            <thead>
+              <tr style="background:#f3f3f3;">
+                <th style="border:1px solid #ddd;padding:6px;text-align:left;">Size</th>
+                <th style="border:1px solid #ddd;padding:6px;text-align:left;">SKU</th>
+              </tr>
+            </thead>
+            <tbody>${skuRows}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
     resultDiv.innerHTML = `
-      <div id="resultsBox" class="fade-in" 
+      <div id="resultsBox" class="fade-in"
            style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
 
-        <!-- Title -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
-          <h3 style="margin-top:0;">Title</h3>
+          <h3>Title</h3>
           <h2 style="color:#2c3e50;margin:10px 0 0;">${titleText}</h2>
         </div>
 
-        <!-- Description -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
           <h3>Description</h3>
           <p>${descriptionText.replace(/\n/g, "</p><p>")}</p>
         </div>
 
-        <!-- Highlights -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
           <h3>Key Highlights</h3>
           ${highlightsHTML}
         </div>
 
-        <!-- What's in the Box -->
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
           <h3>What's in the Box</h3>
           <p>${whatsInTheBoxText}</p>
         </div>
 
-        <!-- Single Action Button -->
-        <div id="actionButtons" class="fade-in" 
-             style="display:flex;justify-content:center;margin-top:15px;">
-          <button onclick="restartTool()" class="cta-btn">
-            ✨ Generate Another Listing
-          </button>
+        ${skuSectionHTML}
+
+        <div style="display:flex;justify-content:center;margin-top:15px;">
+          <button onclick="restartTool()" class="cta-btn">✨ Generate Another Listing</button>
         </div>
       </div>
     `;
 
-    // Smooth scroll so “Title” is visible
+    // Smooth scroll only after results ready
     const resultsBox = document.getElementById("resultsBox");
-    const yOffset = -100;
+    const yOffset = -60; // scroll slightly above results
     const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
 
@@ -1385,11 +1397,11 @@ async function generateListing() {
   }
 }
 
-// Restart tool (reset inputs + clear results + scroll top)
 function restartTool() {
   document.getElementById("listingResult").innerHTML = "";
   document.getElementById("productInput").value = "";
   document.getElementById("colorInput").value = "";
+  document.getElementById("generateSKU").checked = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
   document.getElementById("productInput").focus();
 }
@@ -1450,6 +1462,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
