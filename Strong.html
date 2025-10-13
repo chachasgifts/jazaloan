@@ -901,36 +901,28 @@ const weekPlan = plan[player.week];
   }
 }
 function endWeek() {
-  if (player.points === player.totalTasks * 10) {
-    const now = new Date();
-    let todayIndex = now.getDay(); // Sunday=0, Saturday=6
-    if (now.getHours() < 5) {
-      todayIndex = todayIndex - 1;
-      if (todayIndex < 0) todayIndex = 6;
-    }
+  const now = new Date();
+  const todayIndex = now.getDay(); // Sunday=0, Saturday=6
 
-    // ✅ Only give reward if today is Saturday
-    if (todayIndex === 6) {
-      const rewardIndex = (player.week - 1) % player.rewardsOrder.length;
-      const earnedReward = player.rewardsOrder[rewardIndex];
-      player.rewardsAchieved.push(earnedReward);
+  // ✅ Only end the week automatically on Saturday
+  if (todayIndex === 6) {
+    const rewardIndex = (player.week - 1) % player.rewardsOrder.length;
+    const earnedReward = player.rewardsOrder[rewardIndex];
+    player.rewardsAchieved.push(earnedReward);
 
-      alert(`🎉 Week ${player.week} Complete! Reward unlocked: ${earnedReward}`);
-    } else {
-      alert(`🎉 Week ${player.week} Complete!`);
-    }
+    alert(`🎉 Week ${player.week} Complete! Reward unlocked: ${earnedReward}`);
 
-    // Move to next week
+    // Move to next week, starting Sunday
     player.week++;
     player.points = 0;
     player.dayProgress = 0;
     player.completed = {};
-    player.startedWeek = true; // auto-start new week
+    player.startedWeek = true;
 
-    // Reshuffle rewards when cycle ends
+    // Reshuffle rewards when a full cycle completes
     if ((player.week - 1) % player.rewardsOrder.length === 0) {
       player.rewardsOrder = shuffle(player.rewardsOrder);
-      player.rewardsAchieved = []; // reset visible list
+      player.rewardsAchieved = [];
       alert("♻️ Rewards reshuffled for a new cycle!");
     }
 
@@ -938,9 +930,10 @@ function endWeek() {
     showPlan();
     updateProfile();
   } else {
-    alert("❌ Complete all tasks first!");
+    showToast("Keep going — the week ends Saturday with your reward! 💪");
   }
 }
+
 
 function updateProfile() {
   // Home section
@@ -1019,6 +1012,44 @@ function resetProgress() {
     function showSection(id){ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active-section")); document.getElementById(id).classList.add("active-section"); closeNav(); }
 
     showPlan(); updateProfile();
+
+    // --- AUTO MARK MISSED TASKS AT 10PM ---
+function scheduleAutoMarkMissed() {
+  const now = new Date();
+  const next10PM = new Date();
+  next10PM.setHours(22, 0, 0, 0); // 10 PM today
+
+  if (now > next10PM) next10PM.setDate(next10PM.getDate() + 1);
+  const timeUntil10PM = next10PM - now;
+
+  setTimeout(() => {
+    markMissedTasks();
+    scheduleAutoMarkMissed(); // reschedule for next day
+  }, timeUntil10PM);
+}
+
+function markMissedTasks() {
+  if (!player) return;
+
+  const todayIndex = new Date().getDay(); // Sunday=0, Saturday=6
+  const currentPlan = getCurrentPlan();
+  const weekTasks = currentPlan[player.week - 1];
+  if (!weekTasks || !weekTasks[todayIndex]) return;
+
+  weekTasks[todayIndex].tasks.forEach((_, taskIdx) => {
+    const key = `${player.week}-${todayIndex}-${taskIdx}`;
+    if (!player.completed[key]) {
+      player.completed[key] = 'missed'; // mark as missed
+    }
+  });
+
+  savePlayer();
+  console.log(`Auto-marked missed tasks for Day ${todayIndex + 1}`);
+}
+
+// ✅ Start the scheduler when the app loads
+scheduleAutoMarkMissed();
+
     function formatDate(date) {
   return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -1169,3 +1200,4 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
