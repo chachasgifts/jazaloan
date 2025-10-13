@@ -1,3 +1,4 @@
+// /api/generateProductCopy.js
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -6,7 +7,7 @@ const client = new OpenAI({
 
 export async function handler(event) {
   try {
-    const { product, color } = JSON.parse(event.body || "{}");
+    const { product, color, size, variant, price, category } = JSON.parse(event.body || "{}");
 
     if (!product) {
       return {
@@ -16,38 +17,65 @@ export async function handler(event) {
     }
 
     const prompt = `
-You are an expert Jumia copywriter.
+You are an advanced AI trained in SEO copywriting for online marketplaces like Jumia, Amazon, and Google Shopping.
 
-Product: "${product}" ${color ? `(Color: ${color})` : ""}
+**Objective:** Write optimized eCommerce copy that is persuasive, keyword-rich, and product-specific, while maintaining flexibility and SEO depth.
 
-Follow these exact rules:
-- Title: 5–7 words, persuasive, keyword-rich, Jumia-style.
-- Highlights: 4–6 short, benefit-driven bullets.
-- Description: 3 paragraphs —
-   1️⃣ Hook + who it’s for
-   2️⃣ Features, materials, benefits
-   3️⃣ Why it’s a great purchase/gift
-- What's in the Box: Use quantity from title if present, otherwise "1 x [title]".
+Product details:
+- Name: "${product}"
+- Color: ${color || "Not specified"}
+- Size: ${size || "Not specified"}
+- Variant: ${variant || "Not specified"}
+- Category: ${category || "General"}
+- Price: ${price || "N/A"}
 
-Output only valid JSON:
+**Instructions:**
+
+1️⃣ **Title (60–70 characters)**  
+- Must include rich, searchable keywords relevant to the product.  
+- Add distinguishing attributes naturally (color, size, variant).  
+- Reflects real landing-page content.  
+- Persuasive, SEO-friendly, marketplace tone (Jumia-style).  
+- Example: “Men’s Cotton Polo T-Shirt – Black, Size L, Casual Wear”.
+
+2️⃣ **Highlights (6–8 bullets)**  
+- 6–10 words each.  
+- Short, benefit-driven, keyword-optimized.  
+- Focus on materials, benefits, value, or lifestyle fit.
+
+3️⃣ **Description (3 paragraphs)**  
+- Paragraph 1: Hook + who it’s for + core value.  
+- Paragraph 2: Features, specs, materials, benefits.  
+- Paragraph 3: Why it’s worth buying or gifting + marketplace relevance.  
+- Include subtle mentions of attributes (price, category, availability, shipping).
+
+4️⃣ **What's in the Box:**  
+- Include *all key components* mentioned in the product name/title (e.g., “Black T-Shirt + Birthday Card”).  
+- Split them naturally and describe them in a modern marketplace tone.  
+- Example conversions:
+   - “Black T-Shirt + Birthday Card” → “1 x Premium Black T-Shirt, 1 x Stylish Birthday Card”.
+   - “Set of 2 Curtains – Blue, 250cm” → “2 x Elegant Blue Curtains (250cm)”.
+- Do not simply restate the title — rephrase it professionally to sound like a retail listing.  
+
+Output ONLY valid JSON:
 
 {
- "title": "SEO optimized Jumia title",
- "highlights": ["H1","H2","H3","H4"],
- "description": "Three+ marketing paragraphs",
- "whatsInTheBox": "Box content"
+ "title": "SEO optimized, 60–70 char product title",
+ "highlights": ["H1","H2","H3","H4","H5","H6","H7","H8"],
+ "description": "Three or more detailed, keyword-rich paragraphs.",
+ "whatsInTheBox": "Natural marketplace-style box contents"
 }
 `;
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 1.0, // 🔥 more creative, avoids repeated titles
-      max_tokens: 600,
+      temperature: 1.0,
+      max_tokens: 750,
       messages: [
         {
           role: "system",
           content:
-            "You are a JSON-only assistant that outputs valid structured data for e-commerce listings.",
+            "You are a JSON-only assistant that outputs valid structured data optimized for online marketplaces.",
         },
         { role: "user", content: prompt },
       ],
@@ -60,13 +88,17 @@ Output only valid JSON:
     const highlights =
       Array.isArray(data.highlights) && data.highlights.length > 0
         ? data.highlights
-        : ["Durable design", "High quality", "Perfect for everyday use"];
+        : ["High quality build", "Optimized design", "Customer favorite", "Durable materials"];
     const description =
       data.description ||
-      `This ${product} blends quality, comfort, and value for everyday use.`;
+      `This ${product} delivers outstanding value and performance for everyday use.`;
     const whatsInTheBox =
       data.whatsInTheBox ||
-      (/(\d+|pack|set)/i.test(title) ? title : `1 x ${title}`);
+      `Includes ${product
+        .split("+")
+        .map((item) => item.trim())
+        .map((i) => `1 x ${i}`)
+        .join(", ")}.`;
 
     return {
       statusCode: 200,
