@@ -1060,8 +1060,9 @@ function handleSundayRestDay() {
   if (dayIndex !== 0) return; // Only run on Sunday
 
   const currentPlan = getCurrentPlan();
-  const weekTasks = currentPlan[player.week - 1];
-  if (!weekTasks || !weekTasks[0]) return; // no week data
+  // Use player.week instead of week-1 so it matches showPlan()
+  const weekTasks = currentPlan[player.week];
+  if (!weekTasks || !weekTasks[0]) return;
 
   // Auto-tick all Sunday tasks
   weekTasks[0].tasks.forEach((_, taskIdx) => {
@@ -1070,13 +1071,14 @@ function handleSundayRestDay() {
   });
 
   savePlayer();
-  showToast("🌅 Sunday — Rest, recharge, and prepare for the new week 💪");
-  console.log("Auto-marked Sunday as Rest Day ✅");
-}
 
-// ✅ Check every hour + run immediately on load
-setInterval(handleSundayRestDay, 60 * 60 * 1000);
-handleSundayRestDay();
+  // Re-render so UI updates instantly
+  showPlan();
+  updateProfile();
+
+  showToast("🌅 Sunday — Rest, recharge, and prepare for the new week 💪");
+  console.log("✅ Sunday auto-marked as Rest Day");
+}
 
 function formatDate(date) {
   return date.toLocaleDateString("en-US", {
@@ -1236,5 +1238,6 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
 
 
