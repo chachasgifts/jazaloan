@@ -1054,6 +1054,21 @@ function scheduleAutoMarkMissed() {
   }, timeUntil10PM);
 }
 
+// --- AUTO MARK MISSED TASKS AT 10PM ---
+function scheduleAutoMarkMissed() {
+  const now = new Date();
+  const next10PM = new Date();
+  next10PM.setHours(22, 0, 0, 0); // 10 PM today
+
+  if (now > next10PM) next10PM.setDate(next10PM.getDate() + 1);
+  const timeUntil10PM = next10PM - now;
+
+  setTimeout(() => {
+    markMissedTasks();
+    scheduleAutoMarkMissed(); // reschedule for next day
+  }, timeUntil10PM);
+}
+
 function markMissedTasks() {
   if (!player) return;
 
@@ -1062,10 +1077,25 @@ function markMissedTasks() {
   const weekTasks = currentPlan[player.week - 1];
   if (!weekTasks || !weekTasks[todayIndex]) return;
 
+  // ✅ If Sunday → auto mark as Rest Day (completed)
+  if (todayIndex === 0) {
+    weekTasks[0].tasks.forEach((_, taskIdx) => {
+      const key = `${player.week}-0-${taskIdx}`;
+      player.completed[key] = true;
+    });
+    savePlayer();
+    showPlan();
+    updateProfile();
+    console.log("🌅 Sunday auto-marked as Rest Day ✅");
+    showToast("🌞 Rest Day — recharge and prepare for a new week!");
+    return;
+  }
+
+  // ✅ For other days → mark missed tasks normally
   weekTasks[todayIndex].tasks.forEach((_, taskIdx) => {
     const key = `${player.week}-${todayIndex}-${taskIdx}`;
     if (!player.completed[key]) {
-      player.completed[key] = 'missed'; // mark as missed
+      player.completed[key] = 'missed';
     }
   });
 
@@ -1075,9 +1105,9 @@ function markMissedTasks() {
 
 // ✅ Start the scheduler when the app loads
 scheduleAutoMarkMissed();
+
 // ✅ Auto-mark Sunday as Rest Day on app load
 handleSundayRestDay();
-
 
 // --- AUTO REST SUNDAY HANDLER ---
 function handleSundayRestDay() {
@@ -1086,7 +1116,6 @@ function handleSundayRestDay() {
   if (dayIndex !== 0) return; // Only run on Sunday
 
   const currentPlan = getCurrentPlan();
-  // Use player.week instead of week-1 so it matches showPlan()
   const weekTasks = currentPlan[player.week];
   if (!weekTasks || !weekTasks[0]) return;
 
@@ -1097,8 +1126,6 @@ function handleSundayRestDay() {
   });
 
   savePlayer();
-
-  // Re-render so UI updates instantly
   showPlan();
   updateProfile();
 
@@ -1264,6 +1291,7 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
 
 
 
