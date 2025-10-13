@@ -788,17 +788,18 @@ const weekPlan = plan[player.week];
   <p><em>"${motivations[Math.floor(Math.random() * motivations.length)]}"</em></p>
   <p style="margin-top:6px;">Tasks for ${p.day}</p>
 </div>
-
-
-      <ul class='tasks'>
-        ${p.tasks.map((t, idx) => {
-          player.totalTasks++;
-          const key = `${player.week}-${i}-${idx}`;
-          const checked = player.completed[key] ? "checked" : "";
-          return `<li><input type='checkbox' ${checked} onchange='completeTask(${i},${idx},this)'> ${t}</li>`;
-        }).join("")}
-      </ul>
-    `;
+<ul class='tasks'>
+  ${p.tasks.map((t, idx) => {
+    player.totalTasks++;
+    const key = `${player.week}-${i}-${idx}`;
+    const checked = player.completed[key] ? "checked" : "";
+    const isLocked = player.completed[key] === true || player.completed[key] === 'missed';
+    return `<li>
+      <input type='checkbox' ${checked} ${isLocked ? "disabled" : ""} onchange='completeTask(${i},${idx},this)'> ${t}
+    </li>`;
+  }).join("")}
+</ul>
+`;
 
     card.querySelector(".day-header").addEventListener("click", () => {
       const mot = card.querySelector(".motivation");
@@ -1263,6 +1264,7 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
 
 
 
