@@ -17,42 +17,67 @@ export async function handler(event) {
       };
     }
 
+    // Split the main product and extras (if any)
     const productParts = product.split("+").map((p) => p.trim()).filter(Boolean);
     const mainProduct = productParts[0];
     const extras = productParts.slice(1);
 
+    // 🧠 Construct prompt for the AI
     const prompt = `
-You are an advanced AI trained in SEO copywriting for online marketplaces (Jumia, Amazon, Google Shopping).
+You are an expert AI trained in writing SEO-optimized, persuasive, marketplace-style product listings (for platforms like Jumia, Amazon, or Konga).
 
-**Goal:** Write persuasive, keyword-rich, SEO-optimized product listings that reflect real marketplace tone.
+Your task is to generate a **realistic, keyword-rich** product listing in JSON format only.
 
 Main Product: "${mainProduct}"
-${extras.length > 0 ? `Extra/Bundled Items: ${extras.join(", ")}` : ""}
+${extras.length > 0 ? `Additional/Bundled Items: ${extras.join(", ")}` : ""}
 Color: ${color || "Not specified"}
 Size: ${size || "Not specified"}
 Variant: ${variant || "Not specified"}
 Category: ${category || "General"}
 Price: ${price || "N/A"}
 
-**Instructions:**
-1️⃣ Title (60–70 characters)
-${extras.length > 0 ? "- Include extras separated by a plus (+)." : "- Only include main product details."}
-2️⃣ Highlights: 6–8 bullets (benefit-driven, keyword-optimized)
-3️⃣ Description: 3 paragraphs (main product only ${
-      extras.length > 0 ? "but mention the extra in paragraph 3" : ""
-    })
-4️⃣ What's in the Box: List all items clearly
-5️⃣ Bold key product terms
+Follow these exact instructions:
 
-Output only valid JSON:
+1️⃣ **Title (60–70 characters)**  
+- Include both the main product and the additional item(s), separated by a plus sign (+).  
+- Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM, Black + Free Pen”.  
+- Ensure the main product is detailed and keyword-rich, extras short and natural.  
+- Marketplace tone (Jumia-style).  
+- Must reflect what’s truly being sold.
+
+2️⃣ **Highlights (6–8 bullets)**  
+- 6–10 words each.  
+- Focus mainly on the main product’s features and benefits.  
+- Optional final bullet can mention the bonus item if applicable.
+
+3️⃣ **Description (3 paragraphs)**  
+- Paragraph 1: Hook + who it’s for + value.  
+- Paragraph 2: Specs, features, materials, and benefits (main product only).  
+- Paragraph 3: Why it’s a smart buy or gift + brief mention of free item or bundle bonus.  
+- Keep SEO-rich, natural marketplace style.
+
+4️⃣ **What's in the Box:**  
+- Include *all key components* (main + extras).  
+- Write naturally in marketplace tone.  
+- Example:
+   - “1 x Samsung Galaxy A16 Smartphone, 1 x Free Pen”
+   - “1 x Laptop, 1 x Pair of Headphones”
+- Don’t just restate the title.
+
+Important rules:
+- Do **not** invent or assume any gift, freebie, or bundle if the user didn’t mention it in the input.
+- Write in clean marketplace language, no bold or Markdown formatting.
+- Output **only valid JSON** in the format below.
+
 {
  "title": "SEO optimized, 60–70 char product title",
  "highlights": ["H1","H2","H3","H4","H5","H6","H7","H8"],
  "description": "Three detailed, keyword-rich paragraphs",
- "whatsInTheBox": "Marketplace-style listing"
+ "whatsInTheBox": "Natural marketplace-style contents"
 }
 `;
 
+    // 🧠 Send to OpenAI
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
@@ -70,6 +95,7 @@ Output only valid JSON:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
+    // 🧾 Safe fallbacks
     const title =
       data.title ||
       `${mainProduct}${extras.length > 0 ? " + " + extras.join(" + ") : ""}`;
@@ -77,15 +103,19 @@ Output only valid JSON:
     const highlights =
       Array.isArray(data.highlights) && data.highlights.length > 0
         ? data.highlights
-        : ["High-quality build", "Optimized design", "Great value"];
+        : [
+            "High-quality build and performance",
+            "Optimized for everyday reliability",
+            ...(extras.length > 0 ? [`Includes ${extras.join(" & ")}`] : []),
+          ];
 
     const description =
       data.description ||
-      `The **${mainProduct}** delivers performance and value for everyday use.${
+      `The ${mainProduct} offers excellent value and performance for daily use.${
         extras.length > 0
-          ? ` It also includes **${extras.join(
+          ? ` It also comes with ${extras.join(
               " and "
-            )}** — a thoughtful bonus to elevate your experience.`
+            )}, adding extra convenience and appeal.`
           : ""
       }`;
 
@@ -93,7 +123,7 @@ Output only valid JSON:
       data.whatsInTheBox ||
       productParts.map((i) => `1 x ${i}`).join(", ");
 
-    // 🧾 Optional SKU Generation
+    // 🧮 Optional SKU generation with unique IDs
     let skuData = null;
     if (generateSkus) {
       const acronym = mainProduct
@@ -102,11 +132,25 @@ Output only valid JSON:
         .join("")
         .toUpperCase()
         .replace(/[^A-Z]/g, "")
-        .slice(0, 3); // keep first 3 letters
+        .slice(0, 3);
+
+      const uniqueSuffix = Math.floor(Date.now() / 1000)
+        .toString(36)
+        .slice(-3)
+        .toUpperCase() + Math.floor(Math.random() * 90 + 10);
+
+      const colorCode = color
+        ? `-${color.split(" ")[0].substring(0, 2).toUpperCase()}`
+        : "";
+
       const sizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
       skuData = {
-        format: `${acronym}-[Size]`,
-        skus: sizes.map((sz) => ({ size: sz, sku: `${acronym}-${sz}` })),
+        format: `${acronym}${colorCode}-[Size]-${uniqueSuffix}`,
+        skus: sizes.map((sz) => ({
+          size: sz,
+          sku: `${acronym}${colorCode}-${sz}-${uniqueSuffix}`,
+        })),
       };
     }
 
