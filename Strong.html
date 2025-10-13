@@ -851,29 +851,47 @@ function scheduleRefreshAtFive() {
     location.reload(); // refresh at 5 AM
   }, timeUntil5);
 }
-
-
 function completeTask(day, task, box) {
   const key = `${player.week}-${day}-${task}`;
+
+  // If user checks the box
   if (box.checked) {
-    if (!player.completed[key]) {
+    // If task was previously marked missed, convert to completed and award points
+    if (player.completed[key] === 'missed') {
       player.completed[key] = true;
       player.points += 10;
       player.dayProgress++;
     }
-  } else {
-    if (player.completed[key]) {
-      delete player.completed[key];
-      player.points = Math.max(0, player.points - 10);
-      player.dayProgress = Math.max(0, player.dayProgress - 1);
+    // If task not recorded at all, record it as completed and award points
+    else if (!player.completed[key]) {
+      player.completed[key] = true;
+      player.points += 10;
+      player.dayProgress++;
     }
+
+    // Lock the checkbox so it cannot be unchecked later
+    box.disabled = true;
   }
+  // If user tries to uncheck a box
+  else {
+    // If task already recorded as completed or missed, forbid unchecking
+    if (player.completed[key]) {
+      box.checked = true; // revert UI
+      showToast("✅ Task already completed — you can’t uncheck it.");
+      return;
+    }
+
+    // (If there is no recorded completion for this key and somehow box is being unchecked,
+    // we do nothing else — but that shouldn't normally happen because unchecking is blocked above.)
+  }
+
+  // Save and update UI/stats
   savePlayer();
   updateProfile();
 
-const plan = getCurrentPlan();
-const weekPlan = plan[player.week];
-
+  // Recompute today's completion status and show congrats if finished
+  const plan = getCurrentPlan();
+  const weekPlan = plan[player.week];
 
   let now = new Date();
   let todayIndex = now.getDay() - 1; // Monday = 0
@@ -894,7 +912,7 @@ const weekPlan = plan[player.week];
   let oldMsg = document.querySelector(`#congrats-${todayIndex}`);
   if (oldMsg) oldMsg.remove();
 
-  // ✅ Show congrats immediately after last task
+  // Show congrats immediately after last task
   if (completedToday === todaysTasks) {
     const todayCard = document.querySelectorAll(".day-card")[todayIndex];
     const message = document.createElement("p");
@@ -906,6 +924,7 @@ const weekPlan = plan[player.week];
     todayCard.appendChild(message);
   }
 }
+
 function endWeek() {
   const now = new Date();
   const todayIndex = now.getDay(); // Sunday=0, Saturday=6
@@ -1244,6 +1263,7 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
 
 
 
