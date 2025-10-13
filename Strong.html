@@ -1055,9 +1055,9 @@ function markMissedTasks() {
 
 // ✅ Start the scheduler when the app loads
 scheduleAutoMarkMissed();
+// ✅ Auto-mark Sunday as Rest Day on app load
+handleSundayRestDay();
 
-    // ✅ Start the scheduler when the app loads
-scheduleAutoMarkMissed();
 
 // --- AUTO REST SUNDAY HANDLER ---
 function handleSundayRestDay() {
@@ -1244,6 +1244,7 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
 
 
 
