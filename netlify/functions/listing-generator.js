@@ -16,18 +16,18 @@ export async function handler(event) {
       };
     }
 
-    // Split product parts like: "Samsung Galaxy A16 + Free Pen"
+    // Split product like "Samsung Galaxy A16 + Free Pen"
     const productParts = product.split("+").map((p) => p.trim()).filter(Boolean);
     const mainProduct = productParts[0];
-    const bundleItems = productParts.slice(1);
+    const extras = productParts.slice(1);
 
     const prompt = `
-You are an advanced AI trained in SEO copywriting for online marketplaces like Jumia, Amazon, and Google Shopping.
+You are an expert SEO marketplace copywriter (Jumia, Amazon, Google Shopping).
 
-**Objective:** Write optimized eCommerce copy that is persuasive, keyword-rich, and marketplace-accurate.
+**Objective:** Write a persuasive, keyword-rich product listing with bolded key terms for better readability and SEO.
 
 Main Product: "${mainProduct}"
-Additional Items (bundled/extras): ${bundleItems.length > 0 ? bundleItems.join(", ") : "None"}
+Extra/Bundled Items: ${extras.length > 0 ? extras.join(", ") : "None"}
 Color: ${color || "Not specified"}
 Size: ${size || "Not specified"}
 Variant: ${variant || "Not specified"}
@@ -37,45 +37,38 @@ Price: ${price || "N/A"}
 **Instructions:**
 
 1️⃣ **Title (60–70 characters)**  
-- Include both the main product and the additional item(s), separated by a plus sign (+).  
-- Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM, Black + Free Pen”.  
-- Ensure the main product is detailed and keyword-rich, extras short and natural.  
-- Marketplace tone (Jumia-style).  
-- Must reflect what’s truly being sold.
+- Include main + extras separated by “+”.  
+- Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM, Black + Free Pen”.
 
 2️⃣ **Highlights (6–8 bullets)**  
-- 6–10 words each.  
-- Focus mainly on the main product’s features and benefits.  
-- Optional final bullet can mention the bonus item.
+- 6–10 words, benefit-driven, keyword-optimized.
 
 3️⃣ **Description (3 paragraphs)**  
-- Paragraph 1: Hook + who it’s for + value.  
-- Paragraph 2: Specs, features, materials, and benefits (main product only).  
-- Paragraph 3: Why it’s a smart buy or gift + brief mention of free item or bundle bonus.  
-- Keep SEO-rich, natural marketplace style.
+- Use **bold** markdown for important/SEO words (materials, size, brand, color, features, benefits).  
+- Paragraph 1: Hook + target customer + main benefit.  
+- Paragraph 2: Features, specs, materials, benefits.  
+- Paragraph 3: Mention gift/extras as bonus value (e.g., “Includes a **Free Pen**”).  
+- Maintain persuasive, marketplace tone.
 
 4️⃣ **What's in the Box:**  
 - Include *all key components* (main + extras).  
-- Write naturally in marketplace tone.  
-- Example:
-   - “1 x Samsung Galaxy A16 Smartphone, 1 x Free Pen”
-   - “1 x Laptop, 1 x Pair of Headphones”
-- Don’t just restate the title.  
+- Natural retail tone.  
+- Example: “1 x Samsung Galaxy A16 Smartphone, 1 x Free Pen”.
 
 Output ONLY valid JSON:
 
 {
- "title": "SEO optimized 60–70 char title (include + extras)",
+ "title": "SEO optimized, 60–70 char product title",
  "highlights": ["H1","H2","H3","H4","H5","H6","H7","H8"],
- "description": "Three+ marketing paragraphs (main product focus, extras optional)",
- "whatsInTheBox": "Marketplace-style contents"
+ "description": "Three+ detailed, markdown-bolded paragraphs including the gift mention.",
+ "whatsInTheBox": "Natural marketplace-style contents"
 }
 `;
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
-      max_tokens: 800,
+      max_tokens: 900,
       messages: [
         {
           role: "system",
@@ -89,21 +82,42 @@ Output ONLY valid JSON:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
-    const title = data.title || `${mainProduct}${bundleItems.length > 0 ? " + " + bundleItems.join(" + ") : ""}`;
+    const title =
+      data.title ||
+      `${mainProduct}${extras.length > 0 ? " + " + extras.join(" + ") : ""}`;
+
     const highlights =
       Array.isArray(data.highlights) && data.highlights.length > 0
         ? data.highlights
-        : ["High-quality build", "Optimized design", "Customer favorite", "Durable materials"];
+        : [
+            "High-quality performance",
+            "Optimized design",
+            "Durable materials",
+            ...(extras.length > 0 ? [`Includes ${extras.join(" & ")}`] : []),
+          ];
+
     const description =
       data.description ||
-      `The ${mainProduct} delivers outstanding value and performance for everyday use.`;
+      `The **${mainProduct}** offers exceptional **performance** and **value** for everyday use.${
+        extras.length > 0
+          ? ` As a special bonus, this bundle includes **${extras.join(
+              " and "
+            )}**, adding extra convenience and appeal.`
+          : ""
+      }`;
+
     const whatsInTheBox =
       data.whatsInTheBox ||
-      `Includes ${productParts.map((i) => `1 x ${i}`).join(", ")}.`;
+      productParts.map((i) => `1 x ${i}`).join(", ");
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ title, highlights, description, whatsInTheBox }),
+      body: JSON.stringify({
+        title,
+        highlights,
+        description,
+        whatsInTheBox,
+      }),
     };
   } catch (error) {
     console.error("❌ FUNCTION ERROR:", error);
