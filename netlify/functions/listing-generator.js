@@ -22,9 +22,9 @@ export async function handler(event) {
     const extras = productParts.slice(1);
 
     const prompt = `
-You are an expert SEO marketplace copywriter (Jumia, Amazon, Google Shopping).
+You are an advanced AI trained in SEO copywriting for online marketplaces (Jumia, Amazon, Google Shopping).
 
-**Objective:** Write a persuasive, keyword-rich product listing with bolded key terms for better readability and SEO.
+**Goal:** Write persuasive, keyword-rich, SEO-optimized product listings that reflect real marketplace style and include any promotional or bundled gifts.
 
 Main Product: "${mainProduct}"
 Extra/Bundled Items: ${extras.length > 0 ? extras.join(", ") : "None"}
@@ -37,30 +37,34 @@ Price: ${price || "N/A"}
 **Instructions:**
 
 1️⃣ **Title (60–70 characters)**  
-- Include main + extras separated by “+”.  
+- Include the main product + extras, separated by a plus (+).  
+- Be keyword-rich, persuasive, and marketplace-optimized (Jumia-style).  
 - Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM, Black + Free Pen”.
 
 2️⃣ **Highlights (6–8 bullets)**  
-- 6–10 words, benefit-driven, keyword-optimized.
+- 6–10 words each.  
+- Focus on benefits, features, and lifestyle fit.  
+- Include one line about the free/bundled item (e.g., “Comes with a Free Pen”).
 
 3️⃣ **Description (3 paragraphs)**  
-- Use **bold** markdown for important/SEO words (materials, size, brand, color, features, benefits).  
-- Paragraph 1: Hook + target customer + main benefit.  
-- Paragraph 2: Features, specs, materials, benefits.  
-- Paragraph 3: Mention gift/extras as bonus value (e.g., “Includes a **Free Pen**”).  
-- Maintain persuasive, marketplace tone.
+- **Paragraph 1:** Hook + who it’s for + why it’s great.  
+- **Paragraph 2:** Detailed specs, materials, and benefits (main product).  
+- **Paragraph 3:** Mention the offer/gift naturally — explain that it’s an added value, bonus, or promotional item.  
+- Maintain SEO tone, use trending product keywords relevant to this product type.
 
 4️⃣ **What's in the Box:**  
-- Include *all key components* (main + extras).  
-- Natural retail tone.  
-- Example: “1 x Samsung Galaxy A16 Smartphone, 1 x Free Pen”.
+- List *all components* (main + extras).  
+- Example:
+   - “1 x Samsung Galaxy A16 Smartphone, 1 x Free Pen”
+   - “1 x Laptop, 1 x Pair of Headphones”
+- Natural, retail-style tone.
 
 Output ONLY valid JSON:
 
 {
  "title": "SEO optimized, 60–70 char product title",
  "highlights": ["H1","H2","H3","H4","H5","H6","H7","H8"],
- "description": "Three+ detailed, markdown-bolded paragraphs including the gift mention.",
+ "description": "Three+ detailed, keyword-rich paragraphs including the gift mention.",
  "whatsInTheBox": "Natural marketplace-style contents"
 }
 `;
@@ -68,7 +72,7 @@ Output ONLY valid JSON:
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
-      max_tokens: 900,
+      max_tokens: 850,
       messages: [
         {
           role: "system",
@@ -91,18 +95,16 @@ Output ONLY valid JSON:
         ? data.highlights
         : [
             "High-quality performance",
-            "Optimized design",
+            "Optimized for everyday use",
             "Durable materials",
             ...(extras.length > 0 ? [`Includes ${extras.join(" & ")}`] : []),
           ];
 
     const description =
       data.description ||
-      `The **${mainProduct}** offers exceptional **performance** and **value** for everyday use.${
+      `The ${mainProduct} delivers outstanding performance and value for daily use.${
         extras.length > 0
-          ? ` As a special bonus, this bundle includes **${extras.join(
-              " and "
-            )}**, adding extra convenience and appeal.`
+          ? ` As a special bonus, it comes with ${extras.join(" and ")} — a thoughtful addition for added convenience.`
           : ""
       }`;
 
