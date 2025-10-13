@@ -687,8 +687,10 @@ function loginUser() {
   showSection("home");
   showPlan();
   updateProfile();
-}
 
+  // ✅ Auto-mark Sunday rest day if today is Sunday
+  handleSundayRestDay();
+}
 
 function savePlayer() {
   if (player && player.name) {
@@ -1242,6 +1244,7 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
 
 
 
