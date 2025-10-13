@@ -673,6 +673,64 @@ details[open] > *:not(summary) {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+  /* Toggle container */
+  .toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    font-size: 15px;
+    color: #2c3e50;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease-in-out;
+  }
+
+  .toggle-wrapper:hover {
+    color: #007bff;
+  }
+
+  /* Hidden checkbox */
+  .toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+
+  /* Toggle switch track */
+  .toggle-slider {
+    position: relative;
+    width: 42px;
+    height: 22px;
+    background-color: #ccc;
+    border-radius: 22px;
+    transition: background-color 0.3s;
+  }
+
+  /* Toggle knob */
+  .toggle-slider::before {
+    content: "";
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    top: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  /* Checked state */
+  .toggle-input:checked + .toggle-slider {
+    background-color: #007bff;
+  }
+
+  .toggle-input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+  }
 </style>
   
 </head>
@@ -876,10 +934,10 @@ details[open] > *:not(summary) {
     <input id="productInput" type="text" placeholder="e.g. Samsung Galaxy A15" 
            style="width:100%;padding:10px;margin-bottom:10px;">
     
-    <input id="colorInput" type="text" placeholder="e.g. Black, Blue, Red" 
-           style="width:100%;padding:10px;margin-bottom:10px;">
-    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-  <input type="checkbox" id="skuCheckbox" /> Generate SKUs
+<label class="toggle-wrapper" for="generateSKU">
+  <input type="checkbox" id="generateSKU" class="toggle-input" />
+  <span class="toggle-slider"></span>
+  Generate SKUs
 </label>
     
    <button id="generateBtn" onclick="generateListing()" style="margin-top:10px;padding:10px 20px;">
@@ -1462,6 +1520,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
