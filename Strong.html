@@ -1050,6 +1050,42 @@ function markMissedTasks() {
 // ✅ Start the scheduler when the app loads
 scheduleAutoMarkMissed();
 
+    // ✅ Start the scheduler when the app loads
+scheduleAutoMarkMissed();
+
+// --- AUTO REST SUNDAY HANDLER ---
+function handleSundayRestDay() {
+  const today = new Date();
+  const dayIndex = today.getDay(); // Sunday = 0
+  if (dayIndex !== 0) return; // Only run on Sunday
+
+  const currentPlan = getCurrentPlan();
+  const weekTasks = currentPlan[player.week - 1];
+  if (!weekTasks || !weekTasks[0]) return; // no week data
+
+  // Auto-tick all Sunday tasks
+  weekTasks[0].tasks.forEach((_, taskIdx) => {
+    const key = `${player.week}-0-${taskIdx}`;
+    player.completed[key] = true;
+  });
+
+  savePlayer();
+  showToast("🌅 Sunday — Rest, recharge, and prepare for the new week 💪");
+  console.log("Auto-marked Sunday as Rest Day ✅");
+}
+
+// ✅ Check every hour + run immediately on load
+setInterval(handleSundayRestDay, 60 * 60 * 1000);
+handleSundayRestDay();
+
+function formatDate(date) {
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+}
+
     function formatDate(date) {
   return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -1200,4 +1236,5 @@ function changeGoal(newGoal) {
 
 </body>
 </html>
+
 
