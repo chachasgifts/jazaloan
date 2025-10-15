@@ -928,8 +928,20 @@ details[open] > *:not(summary) {
   <input id="productInput" type="text" placeholder="e.g. Samsung Galaxy A15"
          style="width:100%;padding:10px;margin-bottom:10px;">
 
-  <input id="colorInput" type="text" placeholder="Enter color (optional)"
-         style="width:100%;padding:10px;margin-bottom:10px;">
+  <label for="colorInput" style="display:block;margin-bottom:6px;font-weight:600;">
+  Variant (Color, Size, or Type)
+</label>
+<input 
+  id="colorInput" 
+  type="text" 
+  placeholder="e.g. Red, Blue, XL, Cotton, Matte Finish" 
+  style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;"
+  title="Enter any product variation — color, size, material, finish, or type. For example: Red, XL, Cotton, Matte."
+/>
+<small style="display:block;color:#666;margin-bottom:10px;">
+  💡 Tip: Add multiple variations separated by commas if your product has more than one — e.g. <i>Red, Blue, Green</i>.
+</small>
+
 
   <!-- Toggle Switch -->
   <label class="toggle-wrapper" for="generateSKU">
@@ -1522,6 +1534,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
