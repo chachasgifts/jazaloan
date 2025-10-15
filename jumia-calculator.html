@@ -1335,7 +1335,6 @@ function formatWithCommas(input) {
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // ✅ Attach button event once DOM is ready
   document.getElementById("generateBtn").addEventListener("click", generateListing);
 });
 
@@ -1351,13 +1350,13 @@ async function generateListing() {
     return;
   }
 
-  // 🧩 Split variant input to ensure only the FIRST one goes to AI
+  // 🧩 Split variants - only FIRST one goes to AI, all go to SKU
   let variantList = colorInput
     ? colorInput.split(",").map(v => v.trim()).filter(Boolean)
     : [];
   const primaryVariant = variantList.length > 0 ? variantList[0] : "";
 
-  // Reset
+  // Reset UI
   resultDiv.innerHTML = "";
   generateBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
@@ -1389,15 +1388,15 @@ async function generateListing() {
   const startTime = Date.now();
 
   try {
-    // 🧠 Send only the FIRST variant to the AI, but keep all for SKUs
+    // 🧠 Send only primary variant to AI, keep all for SKU creation
     const response = await fetch("/.netlify/functions/listing-generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         product,
         color: primaryVariant,
-        generateSkus: generateSKU,
-        allVariants: variantList // for SKU use only
+        allVariants: variantList,
+        generateSkus: generateSKU
       }),
     });
 
@@ -1421,7 +1420,7 @@ async function generateListing() {
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
 
-    // 🧩 Ensure “What’s in the Box” does not repeat color/variant info
+    // 🧩 Clean “What’s in the Box” from color terms but keep single variant visible
     let whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
     if (primaryVariant) {
@@ -1433,7 +1432,7 @@ async function generateListing() {
       whatsInTheBoxText = whatsInTheBoxText.replace(/,\s*,/g, ",").replace(/,\s*$/, "");
     }
 
-    // 🧾 SKU Section (uses ALL variants)
+    // 🧾 SKU Section - using all variants, removing “Format” line
     let skuSectionHTML = "";
     if (data.skus) {
       const skuRows = data.skus.skus
@@ -1445,8 +1444,7 @@ async function generateListing() {
 
       skuSectionHTML = `
         <div style="border:1px solid #ddd;padding:10px;border-radius:6px;">
-          <h3>🧾 Simple SKU Format</h3>
-          <p><b>Format:</b> ${data.skus.format}</p>
+          <h3>🧾 SKU Reference Table</h3>
           <table style="width:100%;border-collapse:collapse;margin-top:10px;">
             <thead>
               <tr style="background:#f3f3f3;">
@@ -1460,7 +1458,7 @@ async function generateListing() {
       `;
     }
 
-    // 🧱 Assemble final UI output
+    // 🧱 Final Output UI
     resultDiv.innerHTML = `
       <div id="resultsBox" class="fade-in"
            style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
@@ -1493,6 +1491,7 @@ async function generateListing() {
       </div>
     `;
 
+    // Smooth scroll to results
     const resultsBox = document.getElementById("resultsBox");
     const yOffset = -60;
     const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -1507,7 +1506,16 @@ async function generateListing() {
   }
 }
 
+function restartTool() {
+  document.getElementById("listingResult").innerHTML = "";
+  document.getElementById("productInput").value = "";
+  document.getElementById("colorInput").value = "";
+  document.getElementById("generateSKU").checked = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.getElementById("productInput").focus();
+}
 </script>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
@@ -1564,6 +1572,7 @@ async function generateListing() {
 
 </body>
 </html>
+
 
 
 
