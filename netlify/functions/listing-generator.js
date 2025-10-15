@@ -34,6 +34,17 @@ export async function handler(event) {
           .filter(Boolean)
       : [];
 
+    // ⚠️ Error if user clicked “Generate SKUs” but did not specify any variant
+    if (generateSkus && variantList.length === 0) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error:
+            "Please enter at least one variant (e.g. Red, Blue, Small, Large) before generating SKUs.",
+        }),
+      };
+    }
+
     // 🧠 Build AI prompt
     const prompt = `
 You are an advanced AI trained in writing **SEO-optimized, structured, and marketplace-ready product listings** for online stores like **Jumia, Konga, Amazon, and Google Shopping**.
@@ -162,9 +173,21 @@ Ensure smooth transitions, professional tone, and no repeated lines.
           : ""
       }`;
 
-    const whatsInTheBox =
+    let whatsInTheBox =
       data.whatsInTheBox ||
       productParts.map((i) => `1 x ${i}`).join(", ");
+
+    // 🧹 Clean up variant terms from "What's in the Box" if no variants were specified
+    if (variantList.length === 0) {
+      const colorWords = [
+        "black", "white", "blue", "red", "green", "yellow", "pink", "purple",
+        "grey", "gray", "brown", "beige", "gold", "silver", "navy", "cream",
+        "orange", "maroon", "teal", "turquoise"
+      ];
+      const variantPattern = new RegExp(`\\b(${colorWords.join("|")})\\b`, "gi");
+      whatsInTheBox = whatsInTheBox.replace(variantPattern, "").replace(/\s{2,}/g, " ").trim();
+      whatsInTheBox = whatsInTheBox.replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ").trim();
+    }
 
     // 🧾 SKU generation logic (variant-based)
     let skuData = null;
@@ -182,21 +205,6 @@ Ensure smooth transitions, professional tone, and no repeated lines.
         skus: variantList.map((v) => ({
           variant: v,
           sku: `${acronym}-${v.toUpperCase().replace(/\s+/g, "")}`,
-        })),
-      };
-    } else if (generateSkus) {
-      // Default SKU fallback if no variants given
-      const acronym = mainProduct
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 3);
-      skuData = {
-        format: `${acronym}-[Size]`,
-        skus: ["XS", "S", "M", "L", "XL"].map((sz) => ({
-          size: sz,
-          sku: `${acronym}-${sz}`,
         })),
       };
     }
