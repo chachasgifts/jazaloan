@@ -7,7 +7,7 @@ const client = new OpenAI({
 
 export async function handler(event) {
   try {
-    const { product, color, size, variant, price, category, generateSkus } =
+    const { product, color: variantInput, size, variant, price, category, generateSkus } =
       JSON.parse(event.body || "{}");
 
     if (!product) {
@@ -23,42 +23,16 @@ export async function handler(event) {
     const extras = productParts.slice(1);
     const hasExtras = extras.length > 0;
 
-    // 🎨 Smart color consistency logic
-    const colorWordsRegex =
-      /red|blue|green|yellow|black|white|purple|orange|pink|gray|silver|gold|brown/i;
-    let effectiveColor = color || "Not specified";
+    // 🎨 Smart variant handling (flexible for colors, sizes, or styles)
+    let effectiveVariant = variantInput || "Not specified";
 
-    if (color && colorWordsRegex.test(product)) {
-      const titleColors =
-        product.match(/red|blue|green|yellow|black|white|purple|orange|pink|gray|silver|gold|brown/gi)?.map((c) =>
-          c.toLowerCase()
-        ) || [];
-      const inputColors = color
-        .split(/[,\s]+/)
-        .map((c) => c.toLowerCase().trim())
-        .filter(Boolean);
-
-      const isMultiColorSet = titleColors.length > 1;
-
-      if (!isMultiColorSet) {
-        // Single-color product in title
-        const mismatch = titleColors.length > 0 && !inputColors.includes(titleColors[0]);
-        if (mismatch) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({
-              error: `⚠️ Color mismatch detected. The title mentions "${titleColors[0]}", but the color input says "${color}". Please ensure they match for a well-optimized listing.`,
-            }),
-          };
-        }
-      } else {
-        // Multi-color set → prefer colors from title/description if user didn’t list all
-        const missingColors = titleColors.filter((c) => !inputColors.includes(c));
-        if (missingColors.length > 0) {
-          effectiveColor = titleColors.join(", ");
-        }
-      }
-    }
+    // If multiple variants are provided (e.g. "Red, Blue, Large"), normalize them
+    const variantList = variantInput
+      ? variantInput
+          .split(/[,\s]+/)
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : [];
 
     // 🧠 Build AI prompt
     const prompt = `
@@ -68,9 +42,9 @@ Your goal is to create realistic, keyword-rich, persuasive product listings that
 
 Main Product: "${mainProduct}"
 ${hasExtras ? `Additional/Bundled Items: ${extras.join(", ")}` : ""}
-Color: ${effectiveColor}
+Variants (color, size, or other): ${effectiveVariant}
 Size: ${size || "Not specified"}
-Variant: ${variant || "Not specified"}
+Variant Type: ${variant || "Not specified"}
 Category: ${category || "General"}
 Price: ${price || "N/A"}
 
@@ -110,7 +84,7 @@ Include the following layers of marketplace-relevant information:
   Mention *product identifiers* like model name or type when applicable.  
   Include *product category* context (e.g., electronics, apparel, etc.).  
   Talk about *availability* and *marketplace suitability* (e.g., ideal for Jumia or online shoppers).  
-  Ensure that the color "${effectiveColor}" is accurately reflected.
+  Reflect the following variant(s): "${effectiveVariant}".
 
 - **Paragraph 3 – Smart Buy Justification & Distribution Readiness**  
   Explain why it’s a smart choice or thoughtful gift.  
@@ -192,9 +166,9 @@ Ensure smooth transitions, professional tone, and no repeated lines.
       data.whatsInTheBox ||
       productParts.map((i) => `1 x ${i}`).join(", ");
 
-    // 🧾 Simple SKU generation
+    // 🧾 SKU generation logic (variant-based)
     let skuData = null;
-    if (generateSkus) {
+    if (generateSkus && variantList.length > 0) {
       const acronym = mainProduct
         .split(" ")
         .map((w) => w[0])
@@ -203,10 +177,24 @@ Ensure smooth transitions, professional tone, and no repeated lines.
         .replace(/[^A-Z]/g, "")
         .slice(0, 3);
 
-      const sizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+      skuData = {
+        format: `${acronym}-[Variant]`,
+        skus: variantList.map((v) => ({
+          variant: v,
+          sku: `${acronym}-${v.toUpperCase().replace(/\s+/g, "")}`,
+        })),
+      };
+    } else if (generateSkus) {
+      // Default SKU fallback if no variants given
+      const acronym = mainProduct
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 3);
       skuData = {
         format: `${acronym}-[Size]`,
-        skus: sizes.map((sz) => ({
+        skus: ["XS", "S", "M", "L", "XL"].map((sz) => ({
           size: sz,
           sku: `${acronym}-${sz}`,
         })),
