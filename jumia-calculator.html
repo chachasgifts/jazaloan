@@ -1342,7 +1342,7 @@ document.addEventListener("DOMContentLoaded", () => {
 async function generateListing() {
   const generateBtn = document.getElementById("generateBtn");
   const product = document.getElementById("productInput").value.trim();
-  const color = document.getElementById("colorInput").value.trim();
+  const colorInput = document.getElementById("colorInput").value.trim();
   const generateSKU = document.getElementById("generateSKU").checked;
   const resultDiv = document.getElementById("listingResult");
 
@@ -1350,6 +1350,12 @@ async function generateListing() {
     resultDiv.innerHTML = "<p style='color:red;'>Please enter a product name.</p>";
     return;
   }
+
+  // 🧩 Split variant input to ensure only the FIRST one goes to AI
+  let variantList = colorInput
+    ? colorInput.split(",").map(v => v.trim()).filter(Boolean)
+    : [];
+  const primaryVariant = variantList.length > 0 ? variantList[0] : "";
 
   // Reset
   resultDiv.innerHTML = "";
@@ -1383,10 +1389,16 @@ async function generateListing() {
   const startTime = Date.now();
 
   try {
+    // 🧠 Send only the FIRST variant to the AI, but keep all for SKUs
     const response = await fetch("/.netlify/functions/listing-generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product, color, generateSkus: generateSKU }),
+      body: JSON.stringify({
+        product,
+        color: primaryVariant,
+        generateSkus: generateSKU,
+        allVariants: variantList // for SKU use only
+      }),
     });
 
     const data = await response.json();
@@ -1409,27 +1421,24 @@ async function generateListing() {
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
 
-    // 🧩 NEW LOGIC: Ensure "What's in the Box" doesn’t repeat color/variant info from title
+    // 🧩 Ensure “What’s in the Box” does not repeat color/variant info
     let whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
-    if (color) {
-      const variantWords = color.split(/[,\s]+/).map(v => v.trim().toLowerCase()).filter(Boolean);
-      const lowerTitle = titleText.toLowerCase();
-      // Remove variant-related words from box listing
+    if (primaryVariant) {
+      const variantWords = primaryVariant.split(/[,\s]+/).map(v => v.trim().toLowerCase()).filter(Boolean);
       variantWords.forEach(v => {
         const regex = new RegExp(`\\b${v}\\b`, "gi");
         whatsInTheBoxText = whatsInTheBoxText.replace(regex, "").replace(/\s+/g, " ").trim();
       });
-      // Clean redundant commas
       whatsInTheBoxText = whatsInTheBoxText.replace(/,\s*,/g, ",").replace(/,\s*$/, "");
     }
 
-    // 🧾 SKU Section (existing)
+    // 🧾 SKU Section (uses ALL variants)
     let skuSectionHTML = "";
     if (data.skus) {
       const skuRows = data.skus.skus
         .map(s => {
-          const variantLabel = s.size || s.variant || "Variant";
+          const variantLabel = s.variant || "Variant";
           return `<tr><td style="border:1px solid #ddd;padding:6px;">${variantLabel}</td><td style="border:1px solid #ddd;padding:6px;"><code>${s.sku}</code></td></tr>`;
         })
         .join("");
@@ -1484,7 +1493,6 @@ async function generateListing() {
       </div>
     `;
 
-    // Scroll smoothly to result
     const resultsBox = document.getElementById("resultsBox");
     const yOffset = -60;
     const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -1499,17 +1507,8 @@ async function generateListing() {
   }
 }
 
-function restartTool() {
-  document.getElementById("listingResult").innerHTML = "";
-  document.getElementById("productInput").value = "";
-  document.getElementById("colorInput").value = "";
-  document.getElementById("generateSKU").checked = false;
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  document.getElementById("productInput").focus();
-}
 </script>
 
-  
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
 <footer class="site-footer">
@@ -1565,6 +1564,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
