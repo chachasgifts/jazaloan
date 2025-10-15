@@ -1361,18 +1361,29 @@ async function generateListing() {
     return;
   }
 
-  // 🧩 Split variants — first one goes to tool writing, all go to SKU generation
+  // 🧩 Detect color directly from product description
+  const colorWords = [
+    "black","white","red","blue","green","yellow","pink","purple","grey","gray",
+    "brown","gold","silver","navy","cream","orange","teal","maroon","beige","turquoise"
+  ];
+  const detectedColor = colorWords.find(c =>
+    new RegExp(`\\b${c}\\b`, "i").test(product)
+  );
+
+  // 🧩 Split variants (only for SKU table generation)
   let variantList = colorInput
     ? colorInput.split(",").map(v => v.trim()).filter(Boolean)
     : [];
-  const primaryVariant = variantList.length > 0 ? variantList[0] : "";
+
+  // 🧠 Use color from description if found; ignore variants for content
+  const primaryVariant = detectedColor || "";
 
   // Reset UI
   resultDiv.innerHTML = "";
   generateBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
 
-  // 🪄 Improved user progress flow
+  // 🪄 User progress steps
   const progressSteps = [
     "🔍 Collecting product insights...",
     "📊 Finding trending SEO keywords...",
@@ -1401,16 +1412,16 @@ async function generateListing() {
   const startTime = Date.now();
 
   try {
-    // 🧠 Send color + variants to backend
+    // 🧠 Send description color + all variants (for SKU generation only)
     const response = await fetch("/.netlify/functions/listing-generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         product,
-        color: primaryVariant,     // Only one used for listing content
-        allVariants: variantList,  // All used for SKU generation
+        color: primaryVariant,     // ✅ color extracted from description
+        allVariants: variantList,  // used only for SKU generation
         generateSkus: generateSKU,
-        seoTitleReuse: true        // 🔍 NEW FLAG: enforce title keyword in first paragraph
+        seoTitleReuse: true
       }),
     });
 
@@ -1418,7 +1429,7 @@ async function generateListing() {
     clearInterval(interval);
 
     const elapsed = Date.now() - startTime;
-    const minLoadTime = 2000; // a bit smoother
+    const minLoadTime = 2000;
     if (elapsed < minLoadTime) {
       await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
     }
@@ -1434,13 +1445,11 @@ async function generateListing() {
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
 
-    // 🧩 Keep “What’s in the Box” natural
     let whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
     if (!whatsInTheBoxText.trim()) {
       whatsInTheBoxText = `1 x ${titleText}`;
     }
 
-    // 🧾 SKU Section — dynamic label from backend
     let skuSectionHTML = "";
     if (data.skus && data.skus.skus && data.skus.skus.length > 0) {
       const detectedLabel = data.skus.label || "Variant";
@@ -1474,7 +1483,6 @@ async function generateListing() {
       `;
     }
 
-    // 🧱 Final Output UI
     resultDiv.innerHTML = `
       <div id="resultsBox" class="fade-in"
            style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
@@ -1507,7 +1515,6 @@ async function generateListing() {
       </div>
     `;
 
-    // Smooth scroll to results
     const resultsBox = document.getElementById("resultsBox");
     if (resultsBox) {
       const yOffset = -60;
@@ -1590,6 +1597,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
