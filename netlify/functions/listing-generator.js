@@ -1,4 +1,3 @@
-// /api/generateProductCopy.js
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -9,7 +8,8 @@ export async function handler(event) {
   try {
     const {
       product,
-      color: variantInput,
+      color: primaryVariant, // now clearly only the first variant for AI
+      allVariants = [], // new field for all variants (used for SKU table)
       size,
       variant,
       price,
@@ -24,22 +24,19 @@ export async function handler(event) {
       };
     }
 
-    // 🧩 Split into main + extras (if any)
+    // 🧩 Split into main + extras
     const productParts = product.split("+").map((p) => p.trim()).filter(Boolean);
     const mainProduct = productParts[0];
     const extras = productParts.slice(1);
     const hasExtras = extras.length > 0;
 
-    // 🎨 Variant handling
-    let effectiveVariant = variantInput || "";
-    const variantList = variantInput
-      ? variantInput
-          .split(/[,\s]+/)
-          .map((v) => v.trim())
-          .filter(Boolean)
+    // 🎨 Variant handling (AI uses only first)
+    const variantList = Array.isArray(allVariants)
+      ? allVariants.filter(Boolean)
       : [];
+    const variantLabel = variant || "Variant";
 
-    // ⚠️ Error if user clicked “Generate SKUs” but didn’t specify variants
+    // ⚠️ If user wants SKUs but no variants given
     if (generateSkus && variantList.length === 0) {
       return {
         statusCode: 400,
@@ -50,7 +47,7 @@ export async function handler(event) {
       };
     }
 
-    // 🧠 Build AI prompt (variants excluded from main text)
+    // 🧠 AI Prompt – include only primary variant in natural way
     const prompt = `
 You are an advanced AI trained in writing **SEO-optimized, structured, and marketplace-ready product listings** for online stores like **Jumia, Konga, Amazon, and Google Shopping**.
 
@@ -60,79 +57,53 @@ Main Product: "${mainProduct}"
 ${hasExtras ? `Additional/Bundled Items: ${extras.join(", ")}` : ""}
 Category: ${category || "General"}
 Price: ${price || "N/A"}
+${primaryVariant ? `Primary Variant Mention: ${primaryVariant}` : ""}
 
 ---
 
-### 🧩 Detailed Writing Instructions
+### 🧩 Writing Instructions
 
-1️⃣ **Title (60–70 characters)**
+**Title (60–70 characters)**
 ${hasExtras
-  ? `- Include both the main product and the additional item(s), separated by a plus sign (+).
-- Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM + Free Pen”.`
-  : `- Focus only on the main product (no extras or variant colors/sizes).
-- Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM”.`}
-- Do NOT mention color, size, or other variants in the title.
-- Maintain natural Jumia-style marketplace tone.
-- Must reflect what’s truly being sold.
+  ? `- Include main + extras separated by plus sign (+).
+- Example: “Samsung Galaxy A16 – 128GB, 4GB RAM + Free Pen”.`
+  : `- Focus on main product name and features.`}
+- Maintain marketplace tone.
+- Do NOT overemphasize the color/variant.
 
 ---
 
-2️⃣ **Highlights (6–8 bullets)**
+**Highlights (6–8 bullets)**
 - 6–10 words each.
-- Focus mainly on the main product’s **features and benefits**.
-- Do NOT mention colors, sizes, or variants.
+- Focus on features and benefits.
+${primaryVariant ? `- Naturally include mention of "${primaryVariant}" in one bullet.` : ""}
 ${hasExtras ? "- Optional final bullet can mention the bonus item if applicable." : ""}
 
 ---
 
-3️⃣ **Description (3 structured paragraphs)**
-Each paragraph should be natural, SEO-rich, and complete.
-
-- **Paragraph 1 – Overview / Value Hook**
-  Describe what the product is, who it’s for, and what makes it stand out.
-  Naturally mention value for money (without numbers).
-
-- **Paragraph 2 – Product Data & Benefits**
-  Include *basic specs, materials, and performance details*.
-  Mention *product identifiers* like model name or type if applicable.
-  Provide context in its category (e.g. electronics, apparel, etc.).
-  Do NOT mention variant or color.
-
-- **Paragraph 3 – Smart Buy Justification & Distribution Readiness**
-  Explain why it’s a smart choice or thoughtful gift.
-  Mention reliability, ease of use, delivery readiness, and online marketplace suitability.
-  Mention extras only if applicable.
-
-Ensure smooth transitions, professional tone, and no repeated lines.
+**Description (3 paragraphs)**
+- Paragraph 1: Hook, who it’s for, value, include variant naturally (${primaryVariant || "if provided"}).
+- Paragraph 2: Specs, materials, identifiers, performance, variant usage context.
+- Paragraph 3: Why it’s a smart buy or gift, and extras if any.
 
 ---
 
-4️⃣ **What's in the Box:**
-- Include *main product (and extras if any)*.
-- Write naturally in marketplace tone.
-- Do NOT include any variant, color, or size term.
+**What's in the Box:**
+- List all main components, extras, and (if a single variant like color) mention that variant once.
+${primaryVariant ? `- Include "${primaryVariant}" naturally.` : ""}
+- Avoid duplication.
 
-Example:
-   - “1 x Samsung Galaxy A16 Smartphone, 1 x Free Pen”
-   - “1 x Laptop, 1 x Pair of Headphones”
-
----
-
-🧠 **Important Rules**
-- Do **not** invent or assume free items or bundles.
-- Do **not** include color, size, or other variants in title, highlights, or box content.
-- Maintain clean, professional, marketplace tone.
-- Output **valid JSON only**, with this structure:
+Output JSON only:
 
 {
- "title": "SEO optimized, 60–70 char product title",
- "highlights": ["H1","H2","H3","H4","H5","H6","H7","H8"],
- "description": "Three detailed, keyword-rich paragraphs",
- "whatsInTheBox": "Natural marketplace-style contents"
+ "title": "SEO optimized title",
+ "highlights": ["H1","H2","H3","H4","H5","H6"],
+ "description": "3-paragraph detailed product text",
+ "whatsInTheBox": "Marketplace tone content"
 }
 `;
 
-    // 🧠 Send to OpenAI
+    // 🧠 AI Call
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
@@ -150,7 +121,7 @@ Example:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
-    // ✅ Safe fallbacks
+    // ✅ Fallbacks
     const title =
       data.title ||
       `${mainProduct}${hasExtras ? " + " + extras.join(" + ") : ""}`;
@@ -160,38 +131,30 @@ Example:
         ? data.highlights
         : [
             "High-quality build and performance",
-            "Optimized for everyday reliability",
+            ...(primaryVariant
+              ? [`Available in ${primaryVariant}`]
+              : []),
             ...(hasExtras ? [`Includes ${extras.join(" & ")}`] : []),
           ];
 
     const description =
       data.description ||
-      `The ${mainProduct} offers excellent value and reliability for online shoppers. Designed for modern needs, it fits well into the ${category} category and ensures top performance.${
+      `The ${mainProduct}${
+        primaryVariant ? ` (${primaryVariant})` : ""
+      } offers reliable quality and performance for online shoppers. Perfect for those seeking value and durability.${
         hasExtras
-          ? ` It also includes ${extras.join(
-              " and "
-            )}, adding convenience for those who appreciate extra value.`
+          ? ` Includes ${extras.join(" and ")} for extra convenience.`
           : ""
       }`;
 
     let whatsInTheBox =
       data.whatsInTheBox ||
-      productParts.map((i) => `1 x ${i}`).join(", ");
+      `1 x ${mainProduct}${primaryVariant ? ` (${primaryVariant})` : ""}${
+        hasExtras ? ", " + extras.map((i) => `1 x ${i}`).join(", ") : ""
+      }`;
 
-    // 🧹 Clean “what’s in the box” of color or size mentions
-    const colorWords = [
-      "black", "white", "blue", "red", "green", "yellow", "pink", "purple",
-      "grey", "gray", "brown", "beige", "gold", "silver", "navy", "cream",
-      "orange", "maroon", "teal", "turquoise"
-    ];
-    const variantPattern = new RegExp(`\\b(${colorWords.join("|")})\\b`, "gi");
-    whatsInTheBox = whatsInTheBox.replace(variantPattern, "").replace(/\s{2,}/g, " ").trim();
-    whatsInTheBox = whatsInTheBox.replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ").trim();
-
-    // 🧾 SKU generation (flexible, variant-only)
+    // 🧾 SKU generation (simple, using all variants)
     let skuData = null;
-    const variantLabel = variant || "Variant";
-
     if (generateSkus && variantList.length > 0) {
       const acronym = mainProduct
         .split(" ")
@@ -202,10 +165,8 @@ Example:
         .slice(0, 3);
 
       skuData = {
-        label: variantLabel,
-        format: `${acronym}-[${variantLabel}]`,
         skus: variantList.map((v) => ({
-          [variantLabel.toLowerCase()]: v,
+          variant: v,
           sku: `${acronym}-${v.toUpperCase().replace(/\s+/g, "")}`,
         })),
       };
