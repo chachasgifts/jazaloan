@@ -43,7 +43,7 @@ export async function handler(event) {
     ]);
     const finalVariants = Array.from(fullVariantSet);
 
-    // ⚠️ Only warn if SKUs requested but no variants at all
+    // ⚠️ If SKUs requested but no variants at all
     if (generateSkus && finalVariants.length === 0) {
       return {
         statusCode: 400,
@@ -54,27 +54,28 @@ export async function handler(event) {
       };
     }
 
-    // 🧠 AI Prompt setup based on color presence
+    // 🧠 Variant control logic — what to tell the model
     let variantNote = "";
     if (primaryVariant && variantList.length === 0) {
-      variantNote = `Include the color "${primaryVariant}" naturally throughout the listing (not in every line).`;
+      variantNote = `Include the color or variant "${primaryVariant}" naturally throughout the listing (title, highlights, description, and what's in the box).`;
     } else if (primaryVariant && variantList.length > 0) {
-      variantNote = `Mention only the color "${primaryVariant}" naturally in the text. Ignore other variants for the content.`;
+      variantNote = `Use only the color or variant "${primaryVariant}" for the listing content. 
+      Completely ignore any other variants provided. 
+      These other variants will only be used for SKU generation.`;
     } else {
-      variantNote = `Do not mention any colors or variants. Write a fully neutral listing.`;
+      variantNote = `Write a neutral, variant-free listing with no color or size mentions.`;
     }
 
     // 🧠 Construct the AI prompt
     const prompt = `
-You are an advanced AI trained in writing **SEO-optimized, structured, and marketplace-ready product listings** for online stores like **Jumia, Konga, and Amazon**.
-
-Your job: Write persuasive, keyword-rich product listings that sound natural and marketplace-appropriate.
+You are an expert copywriter for **SEO-optimized, marketplace-ready product listings** for platforms like **Jumia, Konga, and Amazon**.  
+Use **our tool’s expert formatting style** and generate listings that read like human-crafted, persuasive product copy.
 
 Main Product: "${mainProduct}"
 ${hasExtras ? `Additional/Bundled Items: ${extras.join(", ")}` : ""}
 Category: ${category || "General"}
 Price: ${price || "N/A"}
-${primaryVariant ? `Primary Variant (from user): ${primaryVariant}` : "No color or variant provided"}
+${primaryVariant ? `Primary Variant (from description): ${primaryVariant}` : "No primary color or variant provided"}
 
 ---
 
@@ -82,41 +83,67 @@ ${primaryVariant ? `Primary Variant (from user): ${primaryVariant}` : "No color 
 
 **1️⃣ Title (60–70 characters)**
 ${hasExtras
-  ? `- Include main + extras separated by plus sign (+).`
-  : `- Focus only on the main product name and features.`}
-- Maintain clean, professional marketplace tone.
-- ${primaryVariant ? `Include the color "${primaryVariant}" subtly.` : "Do NOT include color or variant mentions."}
+  ? `- Include the main product and any extras separated by a plus sign (+).`
+  : `- Focus on the main product and its key attributes.`}
+- Maintain a clean, professional marketplace tone.
+- ${
+      primaryVariant
+        ? `Include the color or variant "${primaryVariant}" naturally in the title and highlights.`
+        : "Do NOT include color, size, or variant mentions."
+    }
 
 ---
 
 **2️⃣ Highlights (6–8 bullets)**
-- Focus on benefits, specs, and performance.
-- Avoid listing variants.
+- Emphasize core benefits, materials, and key features.
+- Avoid variant mentions unless told otherwise.
 ${primaryVariant ? `- Include one bullet that mentions "${primaryVariant}" naturally.` : ""}
 ${hasExtras ? "- Add one bullet for extras if applicable." : ""}
 
 ---
 
-**3️⃣ Description (3 paragraphs)**
-- Paragraph 1: Overview and appeal (${primaryVariant ? `mention "${primaryVariant}" naturally` : "no color mention"}).
-- Paragraph 2: Specs, materials, category relevance.
-- Paragraph 3: Why it’s a smart buy, extras if any.
+**3️⃣ Description (3 paragraphs – Each paragraph must be natural, SEO-rich, and complete)**
+
+💡 **Important SEO Rule:**  
+Make sure **keywords or key phrases from the title** (such as product type, category, and any strong descriptors) appear naturally across the description.  
+Do not repeat them awkwardly — make the writing flow smoothly and sound like a professional marketplace listing.
+
+- **Paragraph 1 – Overview / Value Hook**  
+  Describe what the product is, who it’s for, and what makes it stand out.  
+  Naturally mention value for money (without numbers).  
+  ${
+    primaryVariant
+      ? `Mention "${primaryVariant}" naturally here once.`
+      : "Do NOT mention color or variant."
+  }
+
+- **Paragraph 2 – Product Data & Benefits**  
+  Include *basic specs, materials, and performance details*.  
+  Mention *product identifiers* like model name or type if applicable.  
+  Provide context in its category (e.g. electronics, apparel, etc.).  
+  Do NOT mention variant or color.
+
+- **Paragraph 3 – Smart Buy Justification & Distribution Readiness**  
+  Explain why it’s a smart choice or thoughtful gift.  
+  Mention reliability, ease of use, delivery readiness, and marketplace suitability.  
+  Mention extras only if applicable (${hasExtras ? "yes" : "no"}).  
 
 ${variantNote}
 
 ---
 
 **4️⃣ What's in the Box**
-- List what’s included clearly.
-${primaryVariant ? `- Mention the color "${primaryVariant}" once if appropriate.` : "- Write generically without colors or variants."}
-- Avoid repetition.
+- List the included items clearly and naturally.
+${primaryVariant ? `- Mention "${primaryVariant}" once if appropriate.` : "- Do not mention any color or variant."}
+- Keep tone professional and natural.
 
-Output strictly as valid JSON:
+Output strictly as **valid JSON** only:
+
 {
  "title": "SEO optimized title",
  "highlights": ["H1","H2","H3","H4","H5","H6"],
- "description": "3 natural paragraphs",
- "whatsInTheBox": "Marketplace-friendly contents"
+ "description": "3 structured, natural paragraphs including some title keywords",
+ "whatsInTheBox": "Marketplace-style contents"
 }
 `;
 
@@ -138,7 +165,7 @@ Output strictly as valid JSON:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
-    // ✅ Fallbacks
+    // ✅ Safe fallbacks
     const title =
       data.title ||
       (primaryVariant
@@ -150,7 +177,7 @@ Output strictly as valid JSON:
         ? data.highlights
         : [
             "High-quality build and reliable performance",
-            ...(primaryVariant ? [`Elegant ${primaryVariant} finish`] : []),
+            ...(primaryVariant ? [`Elegant ${primaryVariant} design`] : []),
             ...(hasExtras ? [`Includes ${extras.join(" & ")}`] : []),
           ];
 
@@ -158,8 +185,8 @@ Output strictly as valid JSON:
       data.description ||
       `The ${mainProduct}${
         primaryVariant ? ` in ${primaryVariant}` : ""
-      } offers excellent value and reliability for online shoppers. Designed for modern needs, it fits perfectly into the ${category} category.${
-        hasExtras ? ` Includes ${extras.join(" and ")} for extra convenience.` : ""
+      } offers great value, durability, and style for online shoppers. Perfectly suited for the ${category} category.${
+        hasExtras ? ` Includes ${extras.join(" and ")} for added value.` : ""
       }`;
 
     let whatsInTheBox =
@@ -168,12 +195,10 @@ Output strictly as valid JSON:
         primaryVariant ? ` (${primaryVariant})` : ""
       }${hasExtras ? ", " + extras.map((i) => `1 x ${i}`).join(", ") : ""}`;
 
-    // Remove empty parentheses or stray spaces if no color
-    if (!primaryVariant) {
-      whatsInTheBox = whatsInTheBox.replace(/\(\s*\)/g, "").trim();
-    }
+    // 🧹 Clean output
+    whatsInTheBox = whatsInTheBox.replace(/\(\s*\)/g, "").replace(/\s{2,}/g, " ").trim();
 
-    // 🧾 SKU generation (auto-detect type)
+    // 🧾 SKU generation logic
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
@@ -184,7 +209,6 @@ Output strictly as valid JSON:
         .replace(/[^A-Z]/g, "")
         .slice(0, 3);
 
-      // 🧠 Detect variant type based on words
       const colors = [
         "black","white","red","blue","green","yellow","pink","purple","grey","gray","brown",
         "gold","silver","navy","cream","orange","teal","maroon","beige","turquoise"
@@ -213,7 +237,7 @@ Output strictly as valid JSON:
       };
     }
 
-    // ✅ Final return
+    // ✅ Final response
     return {
       statusCode: 200,
       body: JSON.stringify({
