@@ -8,8 +8,8 @@ export async function handler(event) {
   try {
     const {
       product,
-      color: primaryVariant, // color or type entered in description input
-      allVariants = [], // all variants entered by user (for SKU use)
+      color: primaryVariant, // ✅ from description (frontend fix ensures this)
+      allVariants = [],
       size,
       variant,
       price,
@@ -24,26 +24,22 @@ export async function handler(event) {
       };
     }
 
-    // 🧩 Split main and extras
-    const productParts = product.split("+").map((p) => p.trim()).filter(Boolean);
+    const productParts = product.split("+").map(p => p.trim()).filter(Boolean);
     const mainProduct = productParts[0];
     const extras = productParts.slice(1);
     const hasExtras = extras.length > 0;
 
-    // 🎨 Variant handling
     const variantList = Array.isArray(allVariants)
       ? allVariants.filter(Boolean)
       : [];
     const variantLabelInput = variant || "Variant";
 
-    // ✅ Combine description color + variants (deduped)
     const fullVariantSet = new Set([
       ...(primaryVariant ? [primaryVariant] : []),
       ...variantList,
     ]);
     const finalVariants = Array.from(fullVariantSet);
 
-    // ⚠️ If SKUs requested but no variants at all
     if (generateSkus && finalVariants.length === 0) {
       return {
         statusCode: 400,
@@ -54,110 +50,63 @@ export async function handler(event) {
       };
     }
 
-    // 🧠 Variant control logic — what to tell the model
+    // 🧠 Stronger AI instruction enforcement
     let variantNote = "";
-    if (primaryVariant && variantList.length === 0) {
-      variantNote = `Include the color or variant "${primaryVariant}" naturally throughout the listing (title, highlights, description, and what's in the box).`;
-    } else if (primaryVariant && variantList.length > 0) {
-      variantNote = `Use only the color or variant "${primaryVariant}" for the listing content. 
-      Completely ignore any other variants provided. 
-      These other variants will only be used for SKU generation.`;
+    if (primaryVariant) {
+      variantNote = `Use only the color "${primaryVariant}" for all parts of the listing.
+Do not mention any other colors, sizes, or the word "variants" anywhere.`;
     } else {
-      variantNote = `Write a neutral, variant-free listing with no color or size mentions.`;
+      variantNote = `Write a neutral listing with no color or variant references.`;
     }
 
-    // 🧠 Construct the AI prompt
     const prompt = `
-You are an expert copywriter for **SEO-optimized, marketplace-ready product listings** for platforms like **Jumia, Konga, and Amazon**.  
-Use **our tool’s expert formatting style** and generate listings that read like human-crafted, persuasive product copy.
+You are an expert copywriter for **SEO-optimized, marketplace-ready product listings** (e.g. Jumia, Konga, Amazon).  
+Generate persuasive and natural product listings with human-quality tone.
 
 Main Product: "${mainProduct}"
 ${hasExtras ? `Additional/Bundled Items: ${extras.join(", ")}` : ""}
 Category: ${category || "General"}
 Price: ${price || "N/A"}
-${primaryVariant ? `Primary Variant (from description): ${primaryVariant}` : "No primary color or variant provided"}
+${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detected"}
 
 ---
 
 ### 🧩 Writing Instructions
 
 **1️⃣ Title (60–70 characters)**
-${hasExtras
-  ? `- Include the main product and any extras separated by a plus sign (+).`
-  : `- Focus on the main product and its key attributes.`}
-- Maintain a clean, professional marketplace tone.
-- ${
-      primaryVariant
-        ? `Include the color or variant "${primaryVariant}" naturally in the title and highlights.`
-        : "Do NOT include color, size, or variant mentions."
-    }
-
----
+- Focus on main product name.
+${primaryVariant ? `- Mention the color "${primaryVariant}" naturally.` : "- Do not mention color or variant."}
 
 **2️⃣ Highlights (6–8 bullets)**
-- Emphasize core benefits, materials, and key features.
-- Avoid variant mentions unless told otherwise.
-${primaryVariant ? `- Include one bullet that mentions "${primaryVariant}" naturally.` : ""}
-${hasExtras ? "- Add one bullet for extras if applicable." : ""}
+- Showcase benefits and materials.
+${primaryVariant ? `- Include one bullet mentioning "${primaryVariant}" naturally.` : "- Exclude color references."}
+${hasExtras ? "- Include a bullet for extras." : ""}
 
----
-
-**3️⃣ Description (3 paragraphs – Each paragraph must be natural, SEO-rich, and complete)**
-
-💡 **Important SEO Rule:**  
-Make sure **keywords or key phrases from the title** (such as product type, category, and any strong descriptors) appear naturally across the description.  
-Do not repeat them awkwardly — make the writing flow smoothly and sound like a professional marketplace listing.
-
-- **Paragraph 1 – Overview / Value Hook**  
-  Describe what the product is, who it’s for, and what makes it stand out.  
-  Naturally mention value for money (without numbers).  
-  ${
-    primaryVariant
-      ? `Mention "${primaryVariant}" naturally here once.`
-      : "Do NOT mention color or variant."
-  }
-
-- **Paragraph 2 – Product Data & Benefits**  
-  Include *basic specs, materials, and performance details*.  
-  Mention *product identifiers* like model name or type if applicable.  
-  Provide context in its category (e.g. electronics, apparel, etc.).  
-  Do NOT mention variant or color.
-
-- **Paragraph 3 – Smart Buy Justification & Distribution Readiness**  
-  Explain why it’s a smart choice or thoughtful gift.  
-  Mention reliability, ease of use, delivery readiness, and marketplace suitability.  
-  Mention extras only if applicable (${hasExtras ? "yes" : "no"}).  
-
+**3️⃣ Description (3 natural paragraphs)**
+- Write engaging and SEO-rich copy.
+${primaryVariant ? `- Mention "${primaryVariant}" only once naturally in the first paragraph.` : "- Avoid color mentions."}
 ${variantNote}
-
----
 
 **4️⃣ What's in the Box**
 - List the included items clearly and naturally.
-${primaryVariant ? `- Mention "${primaryVariant}" once if appropriate.` : "- Do not mention any color or variant."}
-- Keep tone professional and natural.
+${primaryVariant ? `- Mention "${primaryVariant}" once if appropriate.` : "- No color mentions."}
 
-Output strictly as **valid JSON** only:
+Output strictly as valid JSON:
 
 {
  "title": "SEO optimized title",
  "highlights": ["H1","H2","H3","H4","H5","H6"],
- "description": "3 structured, natural paragraphs including some title keywords",
- "whatsInTheBox": "Marketplace-style contents"
+ "description": "3 paragraphs",
+ "whatsInTheBox": "Box contents"
 }
 `;
 
-    // 🧠 Call OpenAI
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
       max_tokens: 900,
       messages: [
-        {
-          role: "system",
-          content:
-            "You are a JSON-only assistant that outputs valid structured data optimized for online marketplaces.",
-        },
+        { role: "system", content: "You are a JSON-only assistant that outputs structured data optimized for eCommerce listings." },
         { role: "user", content: prompt },
       ],
       response_format: { type: "json_object" },
@@ -165,12 +114,11 @@ Output strictly as **valid JSON** only:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
-    // ✅ Safe fallbacks
     const title =
       data.title ||
       (primaryVariant
         ? `${mainProduct} (${primaryVariant})`
-        : `${mainProduct}${hasExtras ? " + " + extras.join(" + ") : ""}`);
+        : mainProduct);
 
     const highlights =
       Array.isArray(data.highlights) && data.highlights.length > 0
@@ -183,27 +131,20 @@ Output strictly as **valid JSON** only:
 
     const description =
       data.description ||
-      `The ${mainProduct}${
-        primaryVariant ? ` in ${primaryVariant}` : ""
-      } offers great value, durability, and style for online shoppers. Perfectly suited for the ${category} category.${
-        hasExtras ? ` Includes ${extras.join(" and ")} for added value.` : ""
-      }`;
+      `The ${mainProduct}${primaryVariant ? ` in ${primaryVariant}` : ""} offers great value and reliable performance for shoppers. Perfect for ${category || "any"} category.${hasExtras ? ` Includes ${extras.join(" and ")}.` : ""}`;
 
     let whatsInTheBox =
       data.whatsInTheBox ||
-      `1 x ${mainProduct}${
-        primaryVariant ? ` (${primaryVariant})` : ""
-      }${hasExtras ? ", " + extras.map((i) => `1 x ${i}`).join(", ") : ""}`;
+      `1 x ${mainProduct}${primaryVariant ? ` (${primaryVariant})` : ""}${hasExtras ? ", " + extras.map(i => `1 x ${i}`).join(", ") : ""}`;
 
-    // 🧹 Clean output
     whatsInTheBox = whatsInTheBox.replace(/\(\s*\)/g, "").replace(/\s{2,}/g, " ").trim();
 
-    // 🧾 SKU generation logic
+    // 🧾 SKU generation
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
         .split(" ")
-        .map((w) => w[0])
+        .map(w => w[0])
         .join("")
         .toUpperCase()
         .replace(/[^A-Z]/g, "")
@@ -230,14 +171,13 @@ Output strictly as **valid JSON** only:
 
       skuData = {
         label: detectedLabel,
-        skus: finalVariants.map((v) => ({
+        skus: finalVariants.map(v => ({
           [detectedLabel.toLowerCase()]: v,
           sku: `${acronym}-${v.toUpperCase().replace(/\s+/g, "")}`,
         })),
       };
     }
 
-    // ✅ Final response
     return {
       statusCode: 200,
       body: JSON.stringify({
