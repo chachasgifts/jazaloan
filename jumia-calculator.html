@@ -1361,7 +1361,7 @@ async function generateListing() {
     return;
   }
 
-  // 🧩 Split variants — first one goes to AI, all go to SKU
+  // 🧩 Split variants — first one goes to tool writing, all go to SKU generation
   let variantList = colorInput
     ? colorInput.split(",").map(v => v.trim()).filter(Boolean)
     : [];
@@ -1372,12 +1372,14 @@ async function generateListing() {
   generateBtn.disabled = true;
   generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
 
+  // 🪄 Improved user progress flow
   const progressSteps = [
     "🔍 Collecting product insights...",
     "📊 Finding trending SEO keywords...",
     "✍️ Writing persuasive marketplace title...",
     "✨ Creating benefit-driven highlights...",
-    "📝 Building engaging, structured description..."
+    "📝 Building engaging, structured description...",
+    "🚀 Finalizing listing for SEO alignment..."
   ];
 
   resultDiv.innerHTML = `
@@ -1399,15 +1401,16 @@ async function generateListing() {
   const startTime = Date.now();
 
   try {
-    // 🧠 Send color + all variants
+    // 🧠 Send color + variants to backend
     const response = await fetch("/.netlify/functions/listing-generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         product,
-        color: primaryVariant,     // only one used for AI writing
-        allVariants: variantList,  // all used for SKU generation
-        generateSkus: generateSKU
+        color: primaryVariant,     // Only one used for listing content
+        allVariants: variantList,  // All used for SKU generation
+        generateSkus: generateSKU,
+        seoTitleReuse: true        // 🔍 NEW FLAG: enforce title keyword in first paragraph
       }),
     });
 
@@ -1415,7 +1418,7 @@ async function generateListing() {
     clearInterval(interval);
 
     const elapsed = Date.now() - startTime;
-    const minLoadTime = 1800;
+    const minLoadTime = 2000; // a bit smoother
     if (elapsed < minLoadTime) {
       await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsed));
     }
@@ -1431,7 +1434,7 @@ async function generateListing() {
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
 
-    // 🧩 Keep what's in the box natural
+    // 🧩 Keep “What’s in the Box” natural
     let whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
     if (!whatsInTheBoxText.trim()) {
       whatsInTheBoxText = `1 x ${titleText}`;
@@ -1531,6 +1534,7 @@ function restartTool() {
 }
 </script>
 
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
 <footer class="site-footer">
@@ -1586,6 +1590,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
