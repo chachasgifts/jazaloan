@@ -23,6 +23,43 @@ export async function handler(event) {
     const extras = productParts.slice(1);
     const hasExtras = extras.length > 0;
 
+    // 🎨 Smart color consistency logic
+    const colorWordsRegex =
+      /red|blue|green|yellow|black|white|purple|orange|pink|gray|silver|gold|brown/i;
+    let effectiveColor = color || "Not specified";
+
+    if (color && colorWordsRegex.test(product)) {
+      const titleColors =
+        product.match(/red|blue|green|yellow|black|white|purple|orange|pink|gray|silver|gold|brown/gi)?.map((c) =>
+          c.toLowerCase()
+        ) || [];
+      const inputColors = color
+        .split(/[,\s]+/)
+        .map((c) => c.toLowerCase().trim())
+        .filter(Boolean);
+
+      const isMultiColorSet = titleColors.length > 1;
+
+      if (!isMultiColorSet) {
+        // Single-color product in title
+        const mismatch = titleColors.length > 0 && !inputColors.includes(titleColors[0]);
+        if (mismatch) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              error: `⚠️ Color mismatch detected. The title mentions "${titleColors[0]}", but the color input says "${color}". Please ensure they match for a well-optimized listing.`,
+            }),
+          };
+        }
+      } else {
+        // Multi-color set → prefer colors from title/description if user didn’t list all
+        const missingColors = titleColors.filter((c) => !inputColors.includes(c));
+        if (missingColors.length > 0) {
+          effectiveColor = titleColors.join(", ");
+        }
+      }
+    }
+
     // 🧠 Build AI prompt
     const prompt = `
 You are an advanced AI trained in writing **SEO-optimized, structured, and marketplace-ready product listings** for online stores like **Jumia, Konga, Amazon, and Google Shopping**.
@@ -31,7 +68,7 @@ Your goal is to create realistic, keyword-rich, persuasive product listings that
 
 Main Product: "${mainProduct}"
 ${hasExtras ? `Additional/Bundled Items: ${extras.join(", ")}` : ""}
-Color: ${color || "Not specified"}
+Color: ${effectiveColor}
 Size: ${size || "Not specified"}
 Variant: ${variant || "Not specified"}
 Category: ${category || "General"}
@@ -73,6 +110,7 @@ Include the following layers of marketplace-relevant information:
   Mention *product identifiers* like model name or type when applicable.  
   Include *product category* context (e.g., electronics, apparel, etc.).  
   Talk about *availability* and *marketplace suitability* (e.g., ideal for Jumia or online shoppers).  
+  Ensure that the color "${effectiveColor}" is accurately reflected.
 
 - **Paragraph 3 – Smart Buy Justification & Distribution Readiness**  
   Explain why it’s a smart choice or thoughtful gift.  
