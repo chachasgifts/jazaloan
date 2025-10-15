@@ -923,25 +923,24 @@ details[open] > *:not(summary) {
     Perfect for boosting visibility and maximizing sales.
   </p>
 
- <!-- 🔹 Input Fields -->
+<!-- 🔹 Input Fields -->
 <div style="margin-top:20px;">
   <input id="productInput" type="text" placeholder="e.g. Samsung Galaxy A15"
          style="width:100%;padding:10px;margin-bottom:10px;">
 
   <label for="colorInput" style="display:block;margin-bottom:6px;font-weight:600;">
-  Variant (Color, Size, or Type)
-</label>
-<input 
-  id="colorInput" 
-  type="text" 
-  placeholder="e.g. Red, Blue, XL, Cotton, Matte Finish" 
-  style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;"
-  title="Enter any product variation — color, size, material, finish, or type. For example: Red, XL, Cotton, Matte."
-/>
-<small style="display:block;color:#666;margin-bottom:10px;">
-  💡 Tip: Add multiple variations separated by commas if your product has more than one — e.g. <i>Red, Blue, Green</i>.
-</small>
-
+    Variant (Color, Size, or Type)
+  </label>
+  <input 
+    id="colorInput" 
+    type="text" 
+    placeholder="e.g. Red, Blue, XL, Cotton, Matte Finish" 
+    style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;"
+    title="Enter any product variation — color, size, material, finish, or type. For example: Red, XL, Cotton, Matte."
+  />
+  <small style="display:block;color:#666;margin-bottom:10px;">
+    💡 Tip: Add multiple variations separated by commas if your product has more than one — e.g. <i>Red, Blue, Green</i>.
+  </small>
 
   <!-- Toggle Switch -->
   <label class="toggle-wrapper" for="generateSKU">
@@ -954,13 +953,25 @@ details[open] > *:not(summary) {
   <button id="generateBtn" style="margin-top:15px;padding:10px 20px;">
     ⚡ Generate Listing
   </button>
+
+  <!-- 🔴 Error Message Box -->
+  <div id="errorMsg" style="
+    display:none;
+    margin-top:10px;
+    color:#b91c1c;
+    background:#fee2e2;
+    border:1px solid #fecaca;
+    padding:10px;
+    border-radius:8px;
+  "></div>
 </div>
 
 <!-- Where results appear -->
 <div id="listingResult" style="margin-top:25px;"></div>
-  <!-- Seller Education / Best Practices -->
-<div id="listingTips" style="margin-top:25px;border:1px solid #d6eaf8;border-radius:10px;overflow:hidden;">
-  
+
+<!-- Seller Education / Best Practices -->
+<div id="listingTips" style="margin-top:25px;border:1px solid #d6eaf8;border-radius:10px;overflow:hidden;"></div>
+
   <!-- Header Bar -->
   <div style="background:#eaf4fc;color:#03457b;padding:12px 16px;font-weight:600;display:flex;align-items:center;gap:8px;font-size:16px;">
     ℹ️ Seller Guide: Get the Best Results
@@ -1397,13 +1408,30 @@ async function generateListing() {
     const highlightsHTML = Array.isArray(data.highlights)
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
-    const whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
 
-    // 🧾 SKU Section (new)
+    // 🧩 NEW LOGIC: Ensure "What's in the Box" doesn’t repeat color/variant info from title
+    let whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
+
+    if (color) {
+      const variantWords = color.split(/[,\s]+/).map(v => v.trim().toLowerCase()).filter(Boolean);
+      const lowerTitle = titleText.toLowerCase();
+      // Remove variant-related words from box listing
+      variantWords.forEach(v => {
+        const regex = new RegExp(`\\b${v}\\b`, "gi");
+        whatsInTheBoxText = whatsInTheBoxText.replace(regex, "").replace(/\s+/g, " ").trim();
+      });
+      // Clean redundant commas
+      whatsInTheBoxText = whatsInTheBoxText.replace(/,\s*,/g, ",").replace(/,\s*$/, "");
+    }
+
+    // 🧾 SKU Section (existing)
     let skuSectionHTML = "";
     if (data.skus) {
       const skuRows = data.skus.skus
-        .map(s => `<tr><td style="border:1px solid #ddd;padding:6px;">${s.size}</td><td style="border:1px solid #ddd;padding:6px;"><code>${s.sku}</code></td></tr>`)
+        .map(s => {
+          const variantLabel = s.size || s.variant || "Variant";
+          return `<tr><td style="border:1px solid #ddd;padding:6px;">${variantLabel}</td><td style="border:1px solid #ddd;padding:6px;"><code>${s.sku}</code></td></tr>`;
+        })
         .join("");
 
       skuSectionHTML = `
@@ -1413,7 +1441,7 @@ async function generateListing() {
           <table style="width:100%;border-collapse:collapse;margin-top:10px;">
             <thead>
               <tr style="background:#f3f3f3;">
-                <th style="border:1px solid #ddd;padding:6px;text-align:left;">Size</th>
+                <th style="border:1px solid #ddd;padding:6px;text-align:left;">Variant</th>
                 <th style="border:1px solid #ddd;padding:6px;text-align:left;">SKU</th>
               </tr>
             </thead>
@@ -1423,6 +1451,7 @@ async function generateListing() {
       `;
     }
 
+    // 🧱 Assemble final UI output
     resultDiv.innerHTML = `
       <div id="resultsBox" class="fade-in"
            style="background:#f9f9f9;padding:20px;border-radius:10px;display:flex;flex-direction:column;gap:20px;">
@@ -1455,6 +1484,7 @@ async function generateListing() {
       </div>
     `;
 
+    // Scroll smoothly to result
     const resultsBox = document.getElementById("resultsBox");
     const yOffset = -60;
     const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
@@ -1478,6 +1508,7 @@ function restartTool() {
   document.getElementById("productInput").focus();
 }
 </script>
+
   
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
@@ -1534,6 +1565,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
