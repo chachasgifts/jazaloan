@@ -1350,7 +1350,7 @@ async function generateListing() {
     return;
   }
 
-  // 🧩 Split variants - only FIRST one goes to AI, all go to SKU
+  // 🧩 Split variants — first one goes to AI, all go to SKU
   let variantList = colorInput
     ? colorInput.split(",").map(v => v.trim()).filter(Boolean)
     : [];
@@ -1364,9 +1364,9 @@ async function generateListing() {
   const progressSteps = [
     "🔍 Collecting product insights...",
     "📊 Finding trending SEO keywords...",
-    "✍️ Writing persuasive Jumia-style title...",
+    "✍️ Writing persuasive marketplace title...",
     "✨ Creating benefit-driven highlights...",
-    "📝 Building bold, engaging description..."
+    "📝 Building engaging, structured description..."
   ];
 
   resultDiv.innerHTML = `
@@ -1388,14 +1388,14 @@ async function generateListing() {
   const startTime = Date.now();
 
   try {
-    // 🧠 Send only primary variant to AI, keep all for SKU creation
+    // 🧠 Send color + all variants
     const response = await fetch("/.netlify/functions/listing-generator", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         product,
-        color: primaryVariant,
-        allVariants: variantList,
+        color: primaryVariant,     // only one used for AI writing
+        allVariants: variantList,  // all used for SKU generation
         generateSkus: generateSKU
       }),
     });
@@ -1420,25 +1420,27 @@ async function generateListing() {
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
 
-    // 🧩 Clean “What’s in the Box” from color terms but keep single variant visible
+    // 🧩 Keep what's in the box natural
     let whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
-
-    if (primaryVariant) {
-      const variantWords = primaryVariant.split(/[,\s]+/).map(v => v.trim().toLowerCase()).filter(Boolean);
-      variantWords.forEach(v => {
-        const regex = new RegExp(`\\b${v}\\b`, "gi");
-        whatsInTheBoxText = whatsInTheBoxText.replace(regex, "").replace(/\s+/g, " ").trim();
-      });
-      whatsInTheBoxText = whatsInTheBoxText.replace(/,\s*,/g, ",").replace(/,\s*$/, "");
+    if (!whatsInTheBoxText.trim()) {
+      whatsInTheBoxText = `1 x ${titleText}`;
     }
 
-    // 🧾 SKU Section - using all variants, removing “Format” line
+    // 🧾 SKU Section — dynamic label from backend
     let skuSectionHTML = "";
-    if (data.skus) {
+    if (data.skus && data.skus.skus && data.skus.skus.length > 0) {
+      const detectedLabel = data.skus.label || "Variant";
       const skuRows = data.skus.skus
         .map(s => {
-          const variantLabel = s.variant || "Variant";
-          return `<tr><td style="border:1px solid #ddd;padding:6px;">${variantLabel}</td><td style="border:1px solid #ddd;padding:6px;"><code>${s.sku}</code></td></tr>`;
+          const variantValue =
+            s[detectedLabel.toLowerCase()] || s.variant || "";
+          return `
+            <tr>
+              <td style="border:1px solid #ddd;padding:6px;">${variantValue}</td>
+              <td style="border:1px solid #ddd;padding:6px;">
+                <code>${s.sku}</code>
+              </td>
+            </tr>`;
         })
         .join("");
 
@@ -1448,7 +1450,7 @@ async function generateListing() {
           <table style="width:100%;border-collapse:collapse;margin-top:10px;">
             <thead>
               <tr style="background:#f3f3f3;">
-                <th style="border:1px solid #ddd;padding:6px;text-align:left;">Variant</th>
+                <th style="border:1px solid #ddd;padding:6px;text-align:left;">${detectedLabel}</th>
                 <th style="border:1px solid #ddd;padding:6px;text-align:left;">SKU</th>
               </tr>
             </thead>
@@ -1493,9 +1495,11 @@ async function generateListing() {
 
     // Smooth scroll to results
     const resultsBox = document.getElementById("resultsBox");
-    const yOffset = -60;
-    const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
-    window.scrollTo({ top: y, behavior: "smooth" });
+    if (resultsBox) {
+      const yOffset = -60;
+      const y = resultsBox.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
 
   } catch (err) {
     clearInterval(interval);
@@ -1515,7 +1519,6 @@ function restartTool() {
   document.getElementById("productInput").focus();
 }
 </script>
-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
@@ -1572,6 +1575,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
