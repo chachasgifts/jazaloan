@@ -25,17 +25,13 @@ export async function handler(event) {
       };
     }
 
-    // 🧩 Split main and extras
     const productParts = product.split("+").map(p => p.trim()).filter(Boolean);
     const mainProduct = productParts[0];
     const extras = productParts.slice(1);
     const hasExtras = extras.length > 0;
-
-    // 🧠 Detect warranty in user input
     const inputText = [product, category, ...extras].join(" ").toLowerCase();
     const hasWarranty = inputText.includes("warranty");
 
-    // 🎨 Variants
     const variantList = Array.isArray(allVariants)
       ? allVariants.filter(Boolean)
       : [];
@@ -55,7 +51,6 @@ export async function handler(event) {
       };
     }
 
-    // 🧩 Smart count detection (extended)
     const countMatch =
       mainProduct.match(/(\d+)\s*(in|x|pack)/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
@@ -63,7 +58,6 @@ export async function handler(event) {
       ? parseInt(countMatch[1] || countMatch[2], 10)
       : 1;
 
-    // 🧠 AI Prompt (structured)
     const prompt = `
 You are an expert copywriter for SEO-optimized, marketplace-ready product listings.
 Generate persuasive, natural listings with human-quality tone.
@@ -124,7 +118,6 @@ Output in **pure JSON** with keys:
 }
 `;
 
-    // 🧠 AI call
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
@@ -142,7 +135,6 @@ Output in **pure JSON** with keys:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
-    // 🧠 Base values
     let title =
       data.title ||
       (primaryVariant
@@ -161,7 +153,6 @@ Output in **pure JSON** with keys:
       data.description ||
       `The ${mainProduct} offers great value and reliable performance for online shoppers. Perfect for ${category || "any"} category.${hasExtras ? ` Includes ${extras.join(" and ")}.` : ""}`;
 
-    // 🎨 COLOR ENFORCEMENT (normalized capitalization)
     if (primaryVariant) {
       const colorNorm =
         primaryVariant.charAt(0).toUpperCase() +
@@ -175,7 +166,6 @@ Output in **pure JSON** with keys:
         highlights.push(`Stylish design in elegant ${colorNorm} color`);
     }
 
-    // 🧠 WARRANTY DETECTION HANDLER
     if (hasWarranty) {
       if (!highlights.some(h => /warranty/i.test(h))) {
         highlights.push("Comes with a reliable product warranty");
@@ -185,41 +175,29 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // 🧩 getCoreName() – smarter cleaner (no keywordMap)
+    // ✅ Simplified + precise cleaner
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
+        .replace(/\bwith.*$/i, "")
+        .replace(/\bfor.*$/i, "")
+        .replace(/\b(multimedia|system|set|bundle|pack|pcs?|pieces?)\b/gi, "")
         .replace(/\b\d+GB\b/gi, "")
         .replace(/\b\d+TB\b/gi, "")
-        .replace(/\b\d+MHZ\b/gi, "")
-        .replace(/\b\d+GHZ\b/gi, "")
         .replace(/\b\d{4}\b/g, "")
-        .replace(/\b(refurbished|renewed|color|silver|black|white|blue|red|green|gold|grey|gray)\b/gi, "")
         .replace(/[–\-]+/g, " ")
         .replace(/\s{2,}/g, " ")
         .trim();
 
-      // remove bundle/count phrases
-      cleaned = cleaned
-        .replace(/\b\d+\s*(in\s*\d*|x|pack|pcs?|pieces?)\b/gi, "")
-        .replace(/\b(set|bundle|pack)\s*(of)?\s*\d+\b/gi, "")
-        .trim();
-
-      const words = cleaned.split(" ");
-
-      const commonNouns = [
-        "laptop", "phone", "speaker", "watch", "bag", "shirt", "tv", "tablet",
-        "iron", "kettle", "dress", "jeans", "fan", "blender", "set", "pair", "router", "drive", "subwoofer", "theatre"
-      ];
-      const found = words.find(w => commonNouns.includes(w.toLowerCase()));
-      if (found)
-        return `${cleaned} ${found.charAt(0).toUpperCase() + found.slice(1)}`;
-
-      const lastWord = words[words.length - 1];
-      return `${cleaned} ${lastWord.charAt(0).toUpperCase() + lastWord.slice(1)}`;
+      // Extract model + one main noun (e.g. Subwoofer, Speaker)
+      const parts = cleaned.split(" ");
+      const model = parts.find(p => /^[A-Z0-9-]{3,}$/.test(p));
+      const nouns = ["Subwoofer","Speaker","Theatre","Laptop","Phone","Blender","Iron","Fan","Television","Watch"];
+      const found = parts.find(p => nouns.includes(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()));
+      const keep = [model, found].filter(Boolean).join(" ");
+      return keep || cleaned.split(" ").slice(0, 4).join(" ");
     }
 
-    // 🧠 Core name & WhatsInTheBox
     let coreProductName = getCoreName(mainProduct);
     if (primaryVariant) {
       const colorCap =
@@ -233,13 +211,11 @@ Output in **pure JSON** with keys:
       ? `${itemCount}*${coreProductName}${extras.map(e => ` + 1*${e.trim()}`).join("")}`
       : `${itemCount}*${coreProductName}`;
 
-    // remove warranty mentions
     if (hasWarranty)
       whatsInTheBox = whatsInTheBox.replace(/warranty/gi, "").trim();
 
     whatsInTheBox = whatsInTheBox.replace(/\s{2,}/g, " ").trim();
 
-    // 🧾 SKU generation (with color normalization)
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
@@ -286,7 +262,6 @@ Output in **pure JSON** with keys:
       };
     }
 
-    // ✅ Final output
     return {
       statusCode: 200,
       body: JSON.stringify({
