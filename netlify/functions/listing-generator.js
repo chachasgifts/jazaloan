@@ -1,3 +1,4 @@
+// file: /api/generateProductListing.js
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -50,17 +51,15 @@ export async function handler(event) {
       };
     }
 
-    // 🧠 Stronger AI instruction enforcement
-    const variantNote = primaryVariant
-      ? `Use only the color "${primaryVariant}" for all parts of the listing.
-Do not mention any other colors, sizes, or the word "variants" anywhere.`
-      : `Write a neutral listing with no color or variant references.`;
+    // 🧩 Smart count detection (extended)
+    const countMatch =
+      mainProduct.match(/(\d+)\s*(in|x|pack)/i) ||
+      mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
+    const itemCount = countMatch
+      ? parseInt(countMatch[1] || countMatch[2], 10)
+      : 1;
 
-    // 🧩 Smart count detection
-    const countMatch = mainProduct.match(/(\d+)\s*(in|x|pack)/i);
-    const itemCount = countMatch ? parseInt(countMatch[1], 10) : 1;
-
-    // 🧠 AI Prompt — With strict writing rules
+    // 🧠 AI Prompt
     const prompt = `
 You are an expert copywriter for SEO-optimized, marketplace-ready product listings.
 Generate persuasive, natural listings with human-quality tone.
@@ -77,7 +76,6 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
 (omitted for brevity — identical to previous version)
 `;
 
-    // 🧠 Generate via OpenAI
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
@@ -113,9 +111,8 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
       data.description ||
       `The ${mainProduct} offers great value and reliable performance for online shoppers. Perfect for ${category || "any"} category.${hasExtras ? ` Includes ${extras.join(" and ")}.` : ""}`;
 
-    // 🧠 Advanced Intelligent getCoreName()
+    // 🧠 Enhanced getCoreName() — handles “4in1”, “3x”, “Set of 3”, “Bundle of 2”
     function getCoreName(name) {
-      // 🧹 Clean raw noise
       let cleaned = name
         .replace(/\(.*?\)/g, "")
         .replace(/\b\d+GB\b/gi, "")
@@ -128,10 +125,15 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
         .replace(/\s{2,}/g, " ")
         .trim();
 
+      // 🧩 NEW: remove bundle/count phrases
+      cleaned = cleaned
+        .replace(/\b\d+\s*(in\s*\d*|x|pack|pcs?|pieces?)\b/gi, "")
+        .replace(/\b(set|bundle|pack)\s*(of)?\s*\d+\b/gi, "")
+        .trim();
+
       const words = cleaned.split(" ");
       const lower = cleaned.toLowerCase();
 
-      // 🧠 Smart mapping of known terms to product categories
       const keywordMap = {
         macbook: "Laptop",
         dell: "Laptop",
@@ -171,7 +173,6 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
         laptop: "Laptop",
       };
 
-      // 🧠 Step 1: Try direct mapping from name
       for (const [key, type] of Object.entries(keywordMap)) {
         if (lower.includes(key)) {
           cleaned = cleaned.replace(new RegExp(`\\b${key}\\b`, "i"), key);
@@ -179,7 +180,6 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
         }
       }
 
-      // 🧠 Step 2: Try to detect the last noun-like term
       const commonNouns = [
         "laptop", "phone", "speaker", "watch", "bag", "shirt", "tv", "tablet",
         "iron", "kettle", "dress", "jeans", "fan", "blender", "set", "pair", "router"
@@ -187,7 +187,6 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
       const found = words.find(w => commonNouns.includes(w.toLowerCase()));
       if (found) return `${cleaned} ${found.charAt(0).toUpperCase() + found.slice(1)}`;
 
-      // 🧠 Step 3: Default fallback
       const lastWord = words[words.length - 1];
       return `${cleaned} ${lastWord.charAt(0).toUpperCase() + lastWord.slice(1)}`;
     }
@@ -242,7 +241,6 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
       };
     }
 
-    // ✅ Return final JSON
     return {
       statusCode: 200,
       body: JSON.stringify({
