@@ -59,7 +59,7 @@ export async function handler(event) {
       ? parseInt(countMatch[1] || countMatch[2], 10)
       : 1;
 
-    // 🧠 AI Prompt
+    // 🧠 AI Prompt (full structured instruction)
     const prompt = `
 You are an expert copywriter for SEO-optimized, marketplace-ready product listings.
 Generate persuasive, natural listings with human-quality tone.
@@ -72,14 +72,59 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
 
 ---
 
-### 🧩 Detailed Writing Instructions
-(omitted for brevity — identical to previous version)
+1️⃣ **Title (60–70 characters)**
+${hasExtras
+  ? `- Include both the main product and the additional item(s), separated by a plus sign (+).
+- Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM + Free Pen”.`
+  : `- Focus only on the main product (no extras or variant colors/sizes).
+- Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM”.`}
+- Do NOT mention color, size, or other variants in the title.
+- Maintain natural Jumia-style marketplace tone.
+- Must reflect what’s truly being sold.
+
+---
+
+2️⃣ **Highlights (6–8 bullets)**
+- 6–10 words each.
+- Focus mainly on the main product’s **features and benefits**.
+- Do NOT mention colors, sizes, or variants.
+${hasExtras ? "- Optional final bullet can mention the bonus item if applicable." : ""}
+
+---
+
+3️⃣ **Description (3 structured paragraphs)**
+Each paragraph should be natural, SEO-rich, and complete.
+
+- **Paragraph 1 – Overview / Value Hook**
+  Describe what the product is, who it’s for, and what makes it stand out.
+  Naturally mention value for money (without numbers).
+
+- **Paragraph 2 – Product Data & Benefits**
+  Include *basic specs, materials, and performance details*.
+  Mention *product identifiers* like model name or type if applicable.
+  Provide context in its category (e.g. electronics, apparel, etc.).
+  Do NOT mention variant or color.
+
+- **Paragraph 3 – Smart Buy Justification & Distribution Readiness**
+  Explain why it’s a smart choice or thoughtful gift.
+  Mention reliability, ease of use, delivery readiness, and online marketplace suitability.
+  Mention extras only if applicable.
+
+Ensure smooth transitions, professional tone, and no repeated lines.
+
+Output in **pure JSON** with keys:
+{
+  "title": "",
+  "highlights": ["", "", ...],
+  "description": ""
+}
 `;
 
+    // 🧠 AI call
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
-      max_tokens: 900,
+      max_tokens: 1200, // ✅ Increased for richer, full-length outputs
       messages: [
         {
           role: "system",
@@ -153,9 +198,6 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
         iron: "Dry Iron",
         shoe: "Shoes",
         sneakers: "Shoes",
-        t: "T-Shirt",
-        shirt: "Shirt",
-        hoodie: "Hoodie",
         bag: "Bag",
         backpack: "Backpack",
         watch: "Watch",
@@ -171,6 +213,8 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
         fan: "Fan",
         phone: "Smartphone",
         laptop: "Laptop",
+        usb: "Flash Drive",
+        flash: "Flash Drive",
       };
 
       for (const [key, type] of Object.entries(keywordMap)) {
@@ -182,10 +226,11 @@ ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detect
 
       const commonNouns = [
         "laptop", "phone", "speaker", "watch", "bag", "shirt", "tv", "tablet",
-        "iron", "kettle", "dress", "jeans", "fan", "blender", "set", "pair", "router"
+        "iron", "kettle", "dress", "jeans", "fan", "blender", "set", "pair", "router", "drive"
       ];
       const found = words.find(w => commonNouns.includes(w.toLowerCase()));
-      if (found) return `${cleaned} ${found.charAt(0).toUpperCase() + found.slice(1)}`;
+      if (found)
+        return `${cleaned} ${found.charAt(0).toUpperCase() + found.slice(1)}`;
 
       const lastWord = words[words.length - 1];
       return `${cleaned} ${lastWord.charAt(0).toUpperCase() + lastWord.slice(1)}`;
