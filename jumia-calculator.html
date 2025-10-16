@@ -990,7 +990,11 @@ details[open] > *:not(summary) {
 
       <li><strong>Include all items in the title if bundled:</strong> If your product comes with extras (e.g., phone + charger + earphones), mention them clearly in the product input field so our tool can reflect that in the title and “What’s in the Box” section.</li>
 
-      <li><strong>Use the variant field for colors, sizes, or types:</strong> Enter variations like “Red, Blue, Large, 64GB” separated by commas. Our tool will generate a clean SKU reference table automatically — but the main listing will remain color-neutral to meet Jumia’s formatting standards.</li>
+      <li><strong>Use the variant field for colors, sizes, or types:</strong> Enter variations like “Red, Blue, Large, 64GB” separated by commas. Our tool will generate a clean SKU reference table automatically — but the <strong>main description will only feature the first color</strong> to keep it natural and marketplace-ready. All other colors will still appear in the SKU table so you can easily create their listings later.</li>
+
+      <li style="background:#fff8e6;border-left:4px solid #f5b041;padding:8px 10px;border-radius:6px;">
+        ⚠️ <strong>Important for SKU generation:</strong> When entering multiple variants, <u>always separate each one with a comma</u> — for example: <em>Red, Blue, Green, 128GB, 256GB</em>. This ensures our tool detects each variant correctly and builds an accurate SKU table for you.
+      </li>
 
       <li><strong>Be clear about quantity:</strong> If selling more than one item, specify it (e.g., “2-Pack Cotton T-Shirts” or “Set of 3 Storage Containers”). This helps our tool create accurate and buyer-friendly titles.</li>
 
@@ -999,16 +1003,18 @@ details[open] > *:not(summary) {
       <li><strong>Select the right category:</strong> Always match your product type with the correct Jumia category (e.g., “Electronics › Smartphones” or “Home & Kitchen › Cookware”). This ensures your listing appears in the right search results.</li>
 
       <li><strong>Upload clear, professional images:</strong> Use high-resolution photos showing the product from multiple angles. Listings with lifestyle or in-use images perform better and build buyer trust.</li>
+
+      <li><strong>Not satisfied with the output?</strong> You can <em>instantly regenerate</em> the listing by clicking the <strong>“⚡ Generate Listing”</strong> button again after the results appear. Each run provides a fresh, unique, and more refined version.</li>
     </ul>
 
     <p style="margin-top:15px;color:#555;font-style:italic;">
-      💡 <strong>Pro Tip:</strong> The more detailed and accurate your inputs are, the better our tool can optimize your listing for Jumia search visibility and conversion. Describe your product like you would explain it to a buyer for best results.
+      💡 <strong>Pro Tip:</strong> The more detailed and accurate your inputs are, the better our tool can optimize your listing for Jumia search visibility and conversion. 
+      Describe your product like you would explain it to a buyer for best results — and feel free to re-generate if you’d like a new creative take!
     </p>
   </div>
 </div>
 </div>
-
-
+  
 <script>
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -1606,6 +1612,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
