@@ -55,7 +55,7 @@ export async function handler(event) {
       };
     }
 
-    // 🧩 Smart count detection
+    // 🧩 Smart count detection (extended)
     const countMatch =
       mainProduct.match(/(\d+)\s*(in|x|pack)/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
@@ -63,7 +63,7 @@ export async function handler(event) {
       ? parseInt(countMatch[1] || countMatch[2], 10)
       : 1;
 
-    // 🧠 AI Prompt
+    // 🧠 AI Prompt (structured)
     const prompt = `
 You are an expert copywriter for SEO-optimized, marketplace-ready product listings.
 Generate persuasive, natural listings with human-quality tone.
@@ -75,6 +75,7 @@ Price: ${price || "N/A"}
 ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detected"}
 
 ---
+
 1️⃣ **Title (60–70 characters)**
 ${hasExtras
   ? `- Include both the main product and the additional item(s), separated by a plus sign (+).
@@ -86,6 +87,7 @@ ${hasExtras
 - Must reflect what’s truly being sold.
 
 ---
+
 2️⃣ **Highlights (6–8 bullets)**
 - 6–10 words each.
 - Focus mainly on the main product’s **features and benefits**.
@@ -93,6 +95,7 @@ ${hasExtras
 ${hasExtras ? "- Optional final bullet can mention the bonus item if applicable." : ""}
 
 ---
+
 3️⃣ **Description (3 structured paragraphs)**
 Each paragraph should be natural, SEO-rich, and complete.
 
@@ -142,7 +145,9 @@ Output in **pure JSON** with keys:
     // 🧠 Base values
     let title =
       data.title ||
-      (primaryVariant ? `${mainProduct} (${primaryVariant})` : mainProduct);
+      (primaryVariant
+        ? `${mainProduct} (${primaryVariant})`
+        : mainProduct);
 
     let highlights =
       Array.isArray(data.highlights) && data.highlights.length > 0
@@ -180,7 +185,7 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // 🧩 getCoreName() – smarter cleaner with warranty & fluff removal
+    // 🧩 getCoreName() – smarter cleaner (no keywordMap)
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
@@ -190,72 +195,21 @@ Output in **pure JSON** with keys:
         .replace(/\b\d+GHZ\b/gi, "")
         .replace(/\b\d{4}\b/g, "")
         .replace(/\b(refurbished|renewed|color|silver|black|white|blue|red|green|gold|grey|gray)\b/gi, "")
-        // 🧽 Remove any warranty-related or time-related text
-        .replace(/\b(with\s*)?\d*\s*(year|years)?\s*warranty\b/gi, "")
-        .replace(/\bcomes\s*with\s*warranty\b/gi, "")
-        .replace(/\bincludes\s*warranty\b/gi, "")
-        .replace(/\bwith\s*warranty\b/gi, "")
-        // 🧽 Remove bundle/count patterns
-        .replace(/\b\d+\s*(in\s*\d*|x|pack|pcs?|pieces?)\b/gi, "")
-        .replace(/\b(set|bundle|pack)\s*(of)?\s*\d+\b/gi, "")
-        // 🧽 Remove trailing system/redundant words like "speaker system"
-        .replace(/\b(home\s*)?theatre\s*multi\s*media\s*bluetooth\s*speaker\s*system\b/gi, "Subwoofer Home Theatre")
-        .replace(/\bspeaker\s*system\b/gi, "Speaker")
         .replace(/[–\-]+/g, " ")
         .replace(/\s{2,}/g, " ")
         .trim();
 
+      // remove bundle/count phrases
+      cleaned = cleaned
+        .replace(/\b\d+\s*(in\s*\d*|x|pack|pcs?|pieces?)\b/gi, "")
+        .replace(/\b(set|bundle|pack)\s*(of)?\s*\d+\b/gi, "")
+        .trim();
+
       const words = cleaned.split(" ");
-      const lower = cleaned.toLowerCase();
-
-      const keywordMap = {
-        macbook: "Laptop",
-        dell: "Laptop",
-        hp: "Laptop",
-        lenovo: "Laptop",
-        infinix: "Smartphone",
-        samsung: "Smartphone",
-        tecno: "Smartphone",
-        itel: "Smartphone",
-        iphone: "Smartphone",
-        oppo: "Smartphone",
-        vivo: "Smartphone",
-        xiaomi: "Smartphone",
-        blender: "Blender",
-        juicer: "Blender",
-        kettle: "Electric Kettle",
-        iron: "Dry Iron",
-        shoe: "Shoes",
-        sneakers: "Shoes",
-        bag: "Bag",
-        backpack: "Backpack",
-        watch: "Watch",
-        television: "Television",
-        tv: "Television",
-        soundbar: "Speaker",
-        speaker: "Speaker",
-        perfume: "Perfume",
-        trouser: "Trouser",
-        jeans: "Jeans",
-        short: "Shorts",
-        dress: "Dress",
-        fan: "Fan",
-        phone: "Smartphone",
-        laptop: "Laptop",
-        usb: "Flash Drive",
-        flash: "Flash Drive",
-      };
-
-      for (const [key, type] of Object.entries(keywordMap)) {
-        if (lower.includes(key)) {
-          cleaned = cleaned.replace(new RegExp(`\\b${key}\\b`, "i"), key);
-          return `${cleaned} ${type}`.trim();
-        }
-      }
 
       const commonNouns = [
         "laptop", "phone", "speaker", "watch", "bag", "shirt", "tv", "tablet",
-        "iron", "kettle", "dress", "jeans", "fan", "blender", "set", "pair", "router", "drive"
+        "iron", "kettle", "dress", "jeans", "fan", "blender", "set", "pair", "router", "drive", "subwoofer", "theatre"
       ];
       const found = words.find(w => commonNouns.includes(w.toLowerCase()));
       if (found)
@@ -285,7 +239,7 @@ Output in **pure JSON** with keys:
 
     whatsInTheBox = whatsInTheBox.replace(/\s{2,}/g, " ").trim();
 
-    // 🧾 SKU generation
+    // 🧾 SKU generation (with color normalization)
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
