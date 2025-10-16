@@ -31,6 +31,10 @@ export async function handler(event) {
     const extras = productParts.slice(1);
     const hasExtras = extras.length > 0;
 
+    // 🧠 Detect warranty in user input
+    const inputText = [product, category, ...extras].join(" ").toLowerCase();
+    const hasWarranty = inputText.includes("warranty");
+
     // 🎨 Variants
     const variantList = Array.isArray(allVariants)
       ? allVariants.filter(Boolean)
@@ -59,7 +63,7 @@ export async function handler(event) {
       ? parseInt(countMatch[1] || countMatch[2], 10)
       : 1;
 
-    // 🧠 AI Prompt (full structured instruction)
+    // 🧠 AI Prompt (structured)
     const prompt = `
 You are an expert copywriter for SEO-optimized, marketplace-ready product listings.
 Generate persuasive, natural listings with human-quality tone.
@@ -138,7 +142,7 @@ Output in **pure JSON** with keys:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
-    // 🧠 Build base text values
+    // 🧠 Base values
     let title =
       data.title ||
       (primaryVariant
@@ -157,28 +161,31 @@ Output in **pure JSON** with keys:
       data.description ||
       `The ${mainProduct} offers great value and reliable performance for online shoppers. Perfect for ${category || "any"} category.${hasExtras ? ` Includes ${extras.join(" and ")}.` : ""}`;
 
-    // 🎨 COLOR ENFORCEMENT SECTION
+    // 🎨 COLOR ENFORCEMENT (normalized capitalization)
     if (primaryVariant) {
-      const color = primaryVariant.trim();
-      const colorRegex = new RegExp(`\\b${color}\\b`, "i");
+      const colorNorm =
+        primaryVariant.charAt(0).toUpperCase() +
+        primaryVariant.slice(1).toLowerCase();
+      const colorRegex = new RegExp(`\\b${primaryVariant}\\b`, "i");
 
-      // 1️⃣ Add color to title if not already there
-      if (!colorRegex.test(title)) {
-        title = `${title} - ${color}`;
+      if (!colorRegex.test(title)) title = `${title} - ${colorNorm}`;
+      if (!colorRegex.test(description))
+        description += ` Available in elegant ${colorNorm} color.`;
+      if (!highlights.some(h => colorRegex.test(h)))
+        highlights.push(`Stylish design in elegant ${colorNorm} color`);
+    }
+
+    // 🧠 WARRANTY DETECTION HANDLER
+    if (hasWarranty) {
+      if (!highlights.some(h => /warranty/i.test(h))) {
+        highlights.push("Comes with a reliable product warranty");
       }
-
-      // 2️⃣ Add color mention to description if not already there
-      if (!colorRegex.test(description)) {
-        description += ` Available in elegant ${color} color.`;
-      }
-
-      // 3️⃣ Add a highlight mentioning color
-      if (!highlights.some(h => colorRegex.test(h))) {
-        highlights.push(`Stylish design in elegant ${color} color`);
+      if (!/warranty/i.test(description)) {
+        description += " This product includes an official warranty for added peace of mind.";
       }
     }
 
-    // 🧠 Enhanced getCoreName() — handles “4in1”, “3x”, “Set of 3”, “Bundle of 2”
+    // 🧩 getCoreName() – smarter cleaner
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
@@ -192,7 +199,7 @@ Output in **pure JSON** with keys:
         .replace(/\s{2,}/g, " ")
         .trim();
 
-      // 🧩 Remove bundle/count phrases
+      // remove bundle/count phrases
       cleaned = cleaned
         .replace(/\b\d+\s*(in\s*\d*|x|pack|pcs?|pieces?)\b/gi, "")
         .replace(/\b(set|bundle|pack)\s*(of)?\s*\d+\b/gi, "")
@@ -258,31 +265,32 @@ Output in **pure JSON** with keys:
       return `${cleaned} ${lastWord.charAt(0).toUpperCase() + lastWord.slice(1)}`;
     }
 
+    // 🧠 Core name & WhatsInTheBox
     let coreProductName = getCoreName(mainProduct);
-
-    // 🎨 Add color to coreProductName for WhatsInTheBox
     if (primaryVariant) {
-      const color = primaryVariant.trim();
-      if (!new RegExp(`\\b${color}\\b`, "i").test(coreProductName)) {
-        coreProductName = `${color} ${coreProductName}`;
-      }
+      const colorCap =
+        primaryVariant.charAt(0).toUpperCase() +
+        primaryVariant.slice(1).toLowerCase();
+      if (!new RegExp(`\\b${colorCap}\\b`, "i").test(coreProductName))
+        coreProductName = `${colorCap} ${coreProductName}`;
     }
 
-    // 🧠 Final Box Construction
     let whatsInTheBox = hasExtras
-      ? `${itemCount}*${coreProductName}${extras
-          .map((e) => ` + 1*${e.trim()}`)
-          .join("")}`
+      ? `${itemCount}*${coreProductName}${extras.map(e => ` + 1*${e.trim()}`).join("")}`
       : `${itemCount}*${coreProductName}`;
+
+    // remove warranty mentions
+    if (hasWarranty)
+      whatsInTheBox = whatsInTheBox.replace(/warranty/gi, "").trim();
 
     whatsInTheBox = whatsInTheBox.replace(/\s{2,}/g, " ").trim();
 
-    // 🧾 SKU Generation
+    // 🧾 SKU generation (with color normalization)
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
         .split(" ")
-        .map((w) => w[0])
+        .map(w => w[0])
         .join("")
         .toUpperCase()
         .replace(/[^A-Z]/g, "")
@@ -307,7 +315,6 @@ Output in **pure JSON** with keys:
       else if (lowerVariants.some(v => sizes.includes(v))) detectedLabel = "Size";
       else if (lowerVariants.some(v => materials.includes(v))) detectedLabel = "Type";
 
-      // 🧩 Ensure primary color is in SKUs
       const allForSkus = new Set(finalVariants);
       if (primaryVariant && !lowerVariants.includes(primaryVariant.toLowerCase())) {
         allForSkus.add(primaryVariant);
@@ -315,13 +322,17 @@ Output in **pure JSON** with keys:
 
       skuData = {
         label: detectedLabel,
-        skus: Array.from(allForSkus).map(v => ({
-          [detectedLabel.toLowerCase()]: v,
-          sku: `${acronym}-${v.toUpperCase().replace(/\s+/g, "")}`,
-        })),
+        skus: Array.from(allForSkus).map(v => {
+          const norm = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+          return {
+            [detectedLabel.toLowerCase()]: norm,
+            sku: `${acronym}-${norm.toUpperCase().replace(/\s+/g, "")}`,
+          };
+        }),
       };
     }
 
+    // ✅ Final output
     return {
       statusCode: 200,
       body: JSON.stringify({
