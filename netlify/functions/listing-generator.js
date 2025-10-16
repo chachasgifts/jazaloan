@@ -124,7 +124,7 @@ Output in **pure JSON** with keys:
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 1.0,
-      max_tokens: 1200, // ✅ Increased for richer, full-length outputs
+      max_tokens: 1200,
       messages: [
         {
           role: "system",
@@ -138,13 +138,14 @@ Output in **pure JSON** with keys:
 
     const data = JSON.parse(response.choices[0].message.content || "{}");
 
-    const title =
+    // 🧠 Build base text values
+    let title =
       data.title ||
       (primaryVariant
         ? `${mainProduct} (${primaryVariant})`
         : mainProduct);
 
-    const highlights =
+    let highlights =
       Array.isArray(data.highlights) && data.highlights.length > 0
         ? data.highlights
         : [
@@ -152,9 +153,30 @@ Output in **pure JSON** with keys:
             ...(hasExtras ? [`Includes ${extras.join(" & ")}`] : []),
           ];
 
-    const description =
+    let description =
       data.description ||
       `The ${mainProduct} offers great value and reliable performance for online shoppers. Perfect for ${category || "any"} category.${hasExtras ? ` Includes ${extras.join(" and ")}.` : ""}`;
+
+    // 🎨 COLOR ENFORCEMENT SECTION
+    if (primaryVariant) {
+      const color = primaryVariant.trim();
+      const colorRegex = new RegExp(`\\b${color}\\b`, "i");
+
+      // 1️⃣ Add color to title if not already there
+      if (!colorRegex.test(title)) {
+        title = `${title} - ${color}`;
+      }
+
+      // 2️⃣ Add color mention to description if not already there
+      if (!colorRegex.test(description)) {
+        description += ` Available in elegant ${color} color.`;
+      }
+
+      // 3️⃣ Add a highlight mentioning color
+      if (!highlights.some(h => colorRegex.test(h))) {
+        highlights.push(`Stylish design in elegant ${color} color`);
+      }
+    }
 
     // 🧠 Enhanced getCoreName() — handles “4in1”, “3x”, “Set of 3”, “Bundle of 2”
     function getCoreName(name) {
@@ -170,7 +192,7 @@ Output in **pure JSON** with keys:
         .replace(/\s{2,}/g, " ")
         .trim();
 
-      // 🧩 NEW: remove bundle/count phrases
+      // 🧩 Remove bundle/count phrases
       cleaned = cleaned
         .replace(/\b\d+\s*(in\s*\d*|x|pack|pcs?|pieces?)\b/gi, "")
         .replace(/\b(set|bundle|pack)\s*(of)?\s*\d+\b/gi, "")
@@ -236,7 +258,15 @@ Output in **pure JSON** with keys:
       return `${cleaned} ${lastWord.charAt(0).toUpperCase() + lastWord.slice(1)}`;
     }
 
-    const coreProductName = getCoreName(mainProduct);
+    let coreProductName = getCoreName(mainProduct);
+
+    // 🎨 Add color to coreProductName for WhatsInTheBox
+    if (primaryVariant) {
+      const color = primaryVariant.trim();
+      if (!new RegExp(`\\b${color}\\b`, "i").test(coreProductName)) {
+        coreProductName = `${color} ${coreProductName}`;
+      }
+    }
 
     // 🧠 Final Box Construction
     let whatsInTheBox = hasExtras
@@ -247,7 +277,7 @@ Output in **pure JSON** with keys:
 
     whatsInTheBox = whatsInTheBox.replace(/\s{2,}/g, " ").trim();
 
-    // 🧾 SKU Generation (unchanged)
+    // 🧾 SKU Generation
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
@@ -277,9 +307,15 @@ Output in **pure JSON** with keys:
       else if (lowerVariants.some(v => sizes.includes(v))) detectedLabel = "Size";
       else if (lowerVariants.some(v => materials.includes(v))) detectedLabel = "Type";
 
+      // 🧩 Ensure primary color is in SKUs
+      const allForSkus = new Set(finalVariants);
+      if (primaryVariant && !lowerVariants.includes(primaryVariant.toLowerCase())) {
+        allForSkus.add(primaryVariant);
+      }
+
       skuData = {
         label: detectedLabel,
-        skus: finalVariants.map(v => ({
+        skus: Array.from(allForSkus).map(v => ({
           [detectedLabel.toLowerCase()]: v,
           sku: `${acronym}-${v.toUpperCase().replace(/\s+/g, "")}`,
         })),
