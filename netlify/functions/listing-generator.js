@@ -55,7 +55,7 @@ export async function handler(event) {
       };
     }
 
-    // 🧩 Smart count detection (extended)
+    // 🧩 Smart count detection
     const countMatch =
       mainProduct.match(/(\d+)\s*(in|x|pack)/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
@@ -63,7 +63,7 @@ export async function handler(event) {
       ? parseInt(countMatch[1] || countMatch[2], 10)
       : 1;
 
-    // 🧠 AI Prompt (structured)
+    // 🧠 AI Prompt
     const prompt = `
 You are an expert copywriter for SEO-optimized, marketplace-ready product listings.
 Generate persuasive, natural listings with human-quality tone.
@@ -75,7 +75,6 @@ Price: ${price || "N/A"}
 ${primaryVariant ? `Primary Color: ${primaryVariant}` : "No primary color detected"}
 
 ---
-
 1️⃣ **Title (60–70 characters)**
 ${hasExtras
   ? `- Include both the main product and the additional item(s), separated by a plus sign (+).
@@ -87,7 +86,6 @@ ${hasExtras
 - Must reflect what’s truly being sold.
 
 ---
-
 2️⃣ **Highlights (6–8 bullets)**
 - 6–10 words each.
 - Focus mainly on the main product’s **features and benefits**.
@@ -95,7 +93,6 @@ ${hasExtras
 ${hasExtras ? "- Optional final bullet can mention the bonus item if applicable." : ""}
 
 ---
-
 3️⃣ **Description (3 structured paragraphs)**
 Each paragraph should be natural, SEO-rich, and complete.
 
@@ -145,9 +142,7 @@ Output in **pure JSON** with keys:
     // 🧠 Base values
     let title =
       data.title ||
-      (primaryVariant
-        ? `${mainProduct} (${primaryVariant})`
-        : mainProduct);
+      (primaryVariant ? `${mainProduct} (${primaryVariant})` : mainProduct);
 
     let highlights =
       Array.isArray(data.highlights) && data.highlights.length > 0
@@ -185,7 +180,7 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // 🧩 getCoreName() – smarter cleaner
+    // 🧩 getCoreName() – smarter cleaner with warranty & fluff removal
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
@@ -195,14 +190,19 @@ Output in **pure JSON** with keys:
         .replace(/\b\d+GHZ\b/gi, "")
         .replace(/\b\d{4}\b/g, "")
         .replace(/\b(refurbished|renewed|color|silver|black|white|blue|red|green|gold|grey|gray)\b/gi, "")
-        .replace(/[–\-]+/g, " ")
-        .replace(/\s{2,}/g, " ")
-        .trim();
-
-      // remove bundle/count phrases
-      cleaned = cleaned
+        // 🧽 Remove any warranty-related or time-related text
+        .replace(/\b(with\s*)?\d*\s*(year|years)?\s*warranty\b/gi, "")
+        .replace(/\bcomes\s*with\s*warranty\b/gi, "")
+        .replace(/\bincludes\s*warranty\b/gi, "")
+        .replace(/\bwith\s*warranty\b/gi, "")
+        // 🧽 Remove bundle/count patterns
         .replace(/\b\d+\s*(in\s*\d*|x|pack|pcs?|pieces?)\b/gi, "")
         .replace(/\b(set|bundle|pack)\s*(of)?\s*\d+\b/gi, "")
+        // 🧽 Remove trailing system/redundant words like "speaker system"
+        .replace(/\b(home\s*)?theatre\s*multi\s*media\s*bluetooth\s*speaker\s*system\b/gi, "Subwoofer Home Theatre")
+        .replace(/\bspeaker\s*system\b/gi, "Speaker")
+        .replace(/[–\-]+/g, " ")
+        .replace(/\s{2,}/g, " ")
         .trim();
 
       const words = cleaned.split(" ");
@@ -285,7 +285,7 @@ Output in **pure JSON** with keys:
 
     whatsInTheBox = whatsInTheBox.replace(/\s{2,}/g, " ").trim();
 
-    // 🧾 SKU generation (with color normalization)
+    // 🧾 SKU generation
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
