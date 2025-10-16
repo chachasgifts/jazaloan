@@ -925,9 +925,23 @@ details[open] > *:not(summary) {
 
 <!-- 🔹 Input Fields -->
 <div style="margin-top:20px;">
-  <input id="productInput" type="text" placeholder="e.g. Samsung Galaxy A15"
-         style="width:100%;padding:10px;margin-bottom:10px;">
 
+  <!-- Product Input -->
+  <label for="productInput" style="display:block;margin-bottom:6px;font-weight:600;">
+    Product Name / Model
+  </label>
+  <input 
+    id="productInput" 
+    type="text" 
+    placeholder="e.g. Samsung Galaxy A15, Men’s Cotton T-Shirt, 3-Piece Cookware Set"
+    style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;"
+    title="Enter the full name of your product — include brand, model, or type for best results."
+  />
+  <small style="display:block;color:#666;margin-bottom:12px;">
+    🟢 Tip: Include the full product name and model for better accuracy (e.g. <i>Infinix Note 40 Pro 5G Smartphone</i> or <i>Men’s Casual Short Sleeve Polo</i>).
+  </small>
+
+  <!-- Variant Input -->
   <label for="colorInput" style="display:block;margin-bottom:6px;font-weight:600;">
     Variant (Color, Size, or Type)
   </label>
@@ -939,7 +953,7 @@ details[open] > *:not(summary) {
     title="Enter any product variation — color, size, material, finish, or type. For example: Red, XL, Cotton, Matte."
   />
   <small style="display:block;color:#666;margin-bottom:10px;">
-    💡 Tip: Add multiple variations separated by commas if your product has more than one — e.g. <i>Red, Blue, Green</i>.
+    💡 Tip: Add multiple variations separated by commas for best SKU generation — e.g. <i>Red, Blue, Green</i>.
   </small>
 
   <!-- Toggle Switch -->
@@ -968,6 +982,7 @@ details[open] > *:not(summary) {
 
 <!-- Where results appear -->
 <div id="listingResult" style="margin-top:25px;"></div>
+
 
 <!-- Seller Education / Best Practices -->
 <div id="listingTips" style="margin-top:25px;border:1px solid #d6eaf8;border-radius:10px;overflow:hidden;">
@@ -1612,6 +1627,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
