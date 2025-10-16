@@ -1343,7 +1343,6 @@ function formatWithCommas(input) {
     });
   });
 </script>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("generateBtn").addEventListener("click", generateListing);
@@ -1384,12 +1383,15 @@ async function generateListing() {
   generateBtn.innerHTML = `<span class="spinner"></span> Generating...`;
 
   // 🪄 User progress steps
-  const progressSteps = [
+   const progressSteps = [
     "🔍 Collecting product insights...",
     "📊 Finding trending SEO keywords...",
     "✍️ Writing persuasive marketplace title...",
     "✨ Creating benefit-driven highlights...",
+    "🧩 Detecting bundles, sets & color patterns...",
     "📝 Building engaging, structured description...",
+    "🧠 Structuring specifications and box contents...",
+    "🪄 Generating smart SKU reference table...",
     "🚀 Finalizing listing for SEO alignment..."
   ];
 
@@ -1445,9 +1447,15 @@ async function generateListing() {
       ? "<ul>" + data.highlights.map(h => `<li>${h}</li>`).join("") + "</ul>"
       : "<p>No highlights available</p>";
 
-    let whatsInTheBoxText = data.whatsInTheBox || `1 x ${titleText}`;
-    if (!whatsInTheBoxText.trim()) {
-      whatsInTheBoxText = `1 x ${titleText}`;
+    // ✅ Smart fallback for what's in the box
+    let whatsInTheBoxText = data.whatsInTheBox?.trim();
+    if (!whatsInTheBoxText || whatsInTheBoxText.length < 5) {
+      const shortTitle = titleText
+        .split("–")[0]
+        .split(",")[0]
+        .split("with")[0]
+        .trim();
+      whatsInTheBoxText = `1*${shortTitle}`;
     }
 
     let skuSectionHTML = "";
@@ -1542,6 +1550,7 @@ function restartTool() {
 </script>
 
 
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Footer -->
 <footer class="site-footer">
@@ -1597,6 +1606,7 @@ function restartTool() {
 
 </body>
 </html>
+
 
 
 
