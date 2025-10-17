@@ -52,7 +52,7 @@ export async function handler(event) {
     }
 
     const countMatch =
-      mainProduct.match(/(\d+)\s*(in|x|pack)/i) ||
+      mainProduct.match(/(\d+)\s*(in|x|pack|pcs|pieces|set)/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
     const itemCount = countMatch
       ? parseInt(countMatch[1] || countMatch[2], 10)
@@ -175,7 +175,7 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // ✅ Simplified + precise cleaner
+    // ✅ Product name cleaner
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
@@ -189,16 +189,27 @@ Output in **pure JSON** with keys:
         .replace(/\s{2,}/g, " ")
         .trim();
 
-      // Extract model + one main noun (e.g. Subwoofer, Speaker)
       const parts = cleaned.split(" ");
       const model = parts.find(p => /^[A-Z0-9-]{3,}$/.test(p));
-      const nouns = ["Subwoofer","Speaker","Theatre","Laptop","Phone","Blender","Iron","Fan","Television","Watch"];
+      const nouns = ["Subwoofer","Speaker","Theatre","Laptop","Phone","Blender","Iron","Fan","Television","Watch","Boxers","Lotion"];
       const found = parts.find(p => nouns.includes(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()));
       const keep = [model, found].filter(Boolean).join(" ");
       return keep || cleaned.split(" ").slice(0, 4).join(" ");
     }
 
+    // ✅ Improved logic for correct “what’s in the box” counts
     let coreProductName = getCoreName(mainProduct);
+
+    // Fix for patterns like "6Pcs", "Pack of 2", etc.
+    const pcsMatch = mainProduct.match(/(\d+)\s*(pcs?|pieces?)/i);
+    const packMatch = mainProduct.match(/pack\s*(of)?\s*(\d+)/i);
+    const realCount = pcsMatch
+      ? parseInt(pcsMatch[1])
+      : packMatch
+      ? parseInt(packMatch[2])
+      : itemCount;
+
+    // Handle color variant inclusion
     if (primaryVariant) {
       const colorCap =
         primaryVariant.charAt(0).toUpperCase() +
@@ -208,14 +219,15 @@ Output in **pure JSON** with keys:
     }
 
     let whatsInTheBox = hasExtras
-      ? `${itemCount}*${coreProductName}${extras.map(e => ` + 1*${e.trim()}`).join("")}`
-      : `${itemCount}*${coreProductName}`;
+      ? `${realCount}*${coreProductName}${extras.map(e => ` + 1*${e.trim()}`).join("")}`
+      : `${realCount}*${coreProductName}`;
 
     if (hasWarranty)
       whatsInTheBox = whatsInTheBox.replace(/warranty/gi, "").trim();
 
     whatsInTheBox = whatsInTheBox.replace(/\s{2,}/g, " ").trim();
 
+    // ✅ SKU generation logic unchanged
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
