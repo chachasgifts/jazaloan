@@ -175,30 +175,67 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // ✅ Product name cleaner
-    function getCoreName(name) {
+    // ✅ Smarter core name cleaner (with NLP-style fallback if no variants)
+    function getCoreName(name, variants = []) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
         .replace(/\bwith.*$/i, "")
-        .replace(/\bfor.*$/i, "")
         .replace(/\b(multimedia|system|set|bundle|pack|pcs?|pieces?)\b/gi, "")
-        .replace(/\b\d+GB\b/gi, "")
-        .replace(/\b\d+TB\b/gi, "")
-        .replace(/\b\d{4}\b/g, "")
         .replace(/[–\-]+/g, " ")
         .replace(/\s{2,}/g, " ")
         .trim();
 
-      const parts = cleaned.split(" ");
-      const model = parts.find(p => /^[A-Z0-9-]{3,}$/.test(p));
-      const nouns = ["Subwoofer","Speaker","Theatre","Laptop","Phone","Blender","Iron","Fan","Television","Watch","Boxers","Lotion"];
-      const found = parts.find(p => nouns.includes(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()));
-      const keep = [model, found].filter(Boolean).join(" ");
-      return keep || cleaned.split(" ").slice(0, 4).join(" ");
+      // If there are variants, use distinction-based logic
+      if (variants.length > 0) {
+        const mainTokens = cleaned.toLowerCase().split(/\s+/);
+        const variantTokens = variants
+          .flatMap(v => v.toLowerCase().split(/\s+/))
+          .filter(Boolean);
+        const uniqueTokens = mainTokens.filter(
+          t => !variantTokens.includes(t) || t.length > 3
+        );
+        return uniqueTokens.join(" ");
+      }
+
+      // Fallback: NLP-like adjective phrase keeper
+      const adjectivePhrases = [
+        "rich nourishing",
+        "shea smooth",
+        "radiant & beauty",
+        "repair & care",
+        "advanced care",
+        "deep moisture",
+        "extra fresh",
+        "intensive care",
+        "even tone",
+        "nourishing cocoa",
+        "protect & care",
+        "smooth & silky"
+      ];
+
+      let lower = cleaned.toLowerCase();
+      const foundPhrase = adjectivePhrases.find(p => lower.includes(p));
+
+      if (foundPhrase) {
+        const capPhrase = foundPhrase
+          .split(" ")
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+        cleaned = cleaned.replace(foundPhrase, capPhrase);
+      }
+
+      cleaned = cleaned
+        .replace(/\bfor women\b/gi, "For Women")
+        .replace(/\bfor men\b/gi, "For Men")
+        .replace(/\bml\b/gi, "ml")
+        .replace(/\bl\b/gi, "L")
+        .trim();
+
+      return cleaned;
     }
 
     // ✅ Improved logic for correct “what’s in the box” counts
-    let coreProductName = getCoreName(mainProduct);
+    let coreProductName = getCoreName(mainProduct, variantList);
 
     // Fix for patterns like "6Pcs", "Pack of 2", etc.
     const pcsMatch = mainProduct.match(/(\d+)\s*(pcs?|pieces?)/i);
