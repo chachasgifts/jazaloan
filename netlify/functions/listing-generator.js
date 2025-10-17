@@ -51,23 +51,22 @@ export async function handler(event) {
       };
     }
 
-    // ✅ Improved count detection logic:
-    // - Detects pack/set/bundle counts properly.
-    // - Allows “3 in 1 Blender Set” but skips “10 in 1 Repair Oil”.
+    // ✅ Improved count detection logic (skip “in 1” feature patterns)
     const countMatch =
-      mainProduct.match(/(\d+)\s*(?:(in\s*1|in\s*one)\s*(set|kit|bundle))|(\d+)\s*(in|x|pack|pcs|pieces|set)\b/i) ||
+      mainProduct.match(/(\d+)\s*(in|x|pack|pcs|pieces|set|bundle)/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
 
     let itemCount = 1;
+
     if (countMatch) {
-      if (countMatch[1] && /(set|kit|bundle)/i.test(countMatch[3])) {
-        // “3 in 1 Blender Set” → 3 items
-        itemCount = parseInt(countMatch[1], 10);
-      } else if (countMatch[4]) {
-        // Normal matches like “2x”, “Pack of 3”, etc.
-        itemCount = parseInt(countMatch[4] || countMatch[5] || countMatch[2], 10);
-      } else if (countMatch[2]) {
-        itemCount = parseInt(countMatch[2], 10);
+      const phrase = countMatch[0].toLowerCase();
+      const isFunctionalPhrase =
+        /(in\s*1|in\s*one)\b/.test(phrase) &&
+        !/(set|bundle|pack|pcs|pieces)/.test(phrase);
+
+      if (!isFunctionalPhrase) {
+        const matchedNumber = parseInt(countMatch[1] || countMatch[2], 10);
+        if (!isNaN(matchedNumber)) itemCount = matchedNumber;
       }
     }
 
@@ -188,7 +187,7 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // ✅ Product name cleaner
+    // ✅ Product name cleaner (preserves key product nouns)
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
@@ -204,13 +203,21 @@ Output in **pure JSON** with keys:
 
       const parts = cleaned.split(" ");
       const model = parts.find(p => /^[A-Z0-9-]{3,}$/.test(p));
-      const nouns = ["Subwoofer","Speaker","Theatre","Laptop","Phone","Blender","Iron","Fan","Television","Watch","Boxers","Lotion"];
-      const found = parts.find(p => nouns.includes(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()));
+
+      const nouns = [
+        "Subwoofer", "Speaker", "Theatre", "Laptop", "Phone", "Blender", "Iron", "Fan",
+        "Television", "Watch", "Boxers", "Lotion", "Machine", "Cooker", "Toaster", 
+        "Mixer", "Maker", "Grill", "Oven", "Fryer", "Microwave", "Processor"
+      ];
+
+      const found = parts.find(p =>
+        nouns.includes(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+      );
+
       const keep = [model, found].filter(Boolean).join(" ");
       return keep || cleaned.split(" ").slice(0, 4).join(" ");
     }
 
-    // ✅ Improved logic for correct “what’s in the box” counts
     let coreProductName = getCoreName(mainProduct);
 
     const pcsMatch = mainProduct.match(/(\d+)\s*(pcs?|pieces?)/i);
@@ -225,7 +232,6 @@ Output in **pure JSON** with keys:
       ? parseInt(inOneMatch[1])
       : itemCount;
 
-    // Handle color variant inclusion
     if (primaryVariant) {
       const colorCap =
         primaryVariant.charAt(0).toUpperCase() +
