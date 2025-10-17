@@ -57,7 +57,6 @@ export async function handler(event) {
       mainProduct.match(/(\d+)\s*(x|pack|pcs|pieces|set|bundle)/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
 
-    // Skip “in 1” and “in one” phrases completely (functional combos)
     if (/\d+\s*(in\s*1|in\s*one)\b/i.test(mainProduct)) {
       itemCount = 1;
     } else if (countMatch) {
@@ -182,9 +181,9 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // ✅ Smarter core name extractor (keeps descriptive phrases like “3 In 1 Breakfast Machine”)
+    // ✅ Simplified and safer name cleaner + pluralization support
     function getCoreName(name) {
-      let cleaned = name
+      return name
         .replace(/\(.*?\)/g, "")
         .replace(/\bwith.*$/i, "")
         .replace(/\bfor.*$/i, "")
@@ -195,39 +194,10 @@ Output in **pure JSON** with keys:
         .replace(/[–\-]+/g, " ")
         .replace(/\s{2,}/g, " ")
         .trim();
-
-      const parts = cleaned.split(" ");
-      const nouns = [
-        "Subwoofer", "Speaker", "Theatre", "Laptop", "Phone", "Blender", "Iron", "Fan",
-        "Television", "Watch", "Boxers", "Lotion", "Machine", "Cooker", "Toaster", 
-        "Mixer", "Maker", "Grill", "Oven", "Fryer", "Microwave", "Processor"
-      ];
-
-      const nounIndex = parts.findIndex(p =>
-        nouns.includes(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-      );
-
-      if (nounIndex >= 0) {
-        // Keep everything up to and including the noun — preserves “3 In 1 Breakfast Machine”
-        return parts.slice(0, nounIndex + 1).join(" ");
-      }
-
-      return cleaned.split(" ").slice(0, 5).join(" ");
     }
 
     let coreProductName = getCoreName(mainProduct);
-
-    const pcsMatch = mainProduct.match(/(\d+)\s*(pcs?|pieces?)/i);
-    const packMatch = mainProduct.match(/pack\s*(of)?\s*(\d+)/i);
-    const inOneMatch = mainProduct.match(/(\d+)\s*(in\s*1|in\s*one)\s*(set|kit|bundle)/i);
-
-    const realCount = pcsMatch
-      ? parseInt(pcsMatch[1])
-      : packMatch
-      ? parseInt(packMatch[2])
-      : inOneMatch
-      ? parseInt(inOneMatch[1])
-      : itemCount;
+    coreProductName = coreProductName.replace(/^\d+\s*\*?/, "").trim();
 
     if (primaryVariant) {
       const colorCap =
@@ -237,9 +207,22 @@ Output in **pure JSON** with keys:
         coreProductName = `${colorCap} ${coreProductName}`;
     }
 
+    // ✅ Add pluralization if count > 1
+    function pluralize(name, count) {
+      if (count <= 1) return name;
+      if (/\bT-?shirt\b/i.test(name)) return name.replace(/T-?shirt/i, "T-shirts");
+      if (/\bShorts?\b/i.test(name)) return name.replace(/Shorts?/i, "Shorts");
+      if (/\bSocks?\b/i.test(name)) return name.replace(/Socks?/i, "Socks");
+      return name; // no generic plural rule to avoid breaking brand names
+    }
+
+    coreProductName = pluralize(coreProductName, itemCount);
+
     let whatsInTheBox = hasExtras
-      ? `${realCount}*${coreProductName}${extras.map(e => ` + 1*${e.trim()}`).join("")}`
-      : `${realCount}*${coreProductName}`;
+      ? `${itemCount}*${coreProductName}${extras
+          .map(e => ` + 1*${pluralize(getCoreName(e), 1)}`)
+          .join("")}`
+      : `${itemCount}*${coreProductName}`;
 
     if (hasWarranty)
       whatsInTheBox = whatsInTheBox.replace(/warranty/gi, "").trim();
