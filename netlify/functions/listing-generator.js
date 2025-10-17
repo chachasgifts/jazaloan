@@ -51,23 +51,18 @@ export async function handler(event) {
       };
     }
 
-    // ✅ Improved count detection logic (skip “in 1” feature patterns)
+    // ✅ Improved count detection (skips “in 1” feature phrases properly)
+    let itemCount = 1;
     const countMatch =
-      mainProduct.match(/(\d+)\s*(in|x|pack|pcs|pieces|set|bundle)/i) ||
+      mainProduct.match(/(\d+)\s*(x|pack|pcs|pieces|set|bundle)/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
 
-    let itemCount = 1;
-
-    if (countMatch) {
-      const phrase = countMatch[0].toLowerCase();
-      const isFunctionalPhrase =
-        /(in\s*1|in\s*one)\b/.test(phrase) &&
-        !/(set|bundle|pack|pcs|pieces)/.test(phrase);
-
-      if (!isFunctionalPhrase) {
-        const matchedNumber = parseInt(countMatch[1] || countMatch[2], 10);
-        if (!isNaN(matchedNumber)) itemCount = matchedNumber;
-      }
+    // Skip “in 1” and “in one” phrases completely (functional combos)
+    if (/\d+\s*(in\s*1|in\s*one)\b/i.test(mainProduct)) {
+      itemCount = 1;
+    } else if (countMatch) {
+      const matchedNumber = parseInt(countMatch[1] || countMatch[2], 10);
+      if (!isNaN(matchedNumber)) itemCount = matchedNumber;
     }
 
     const prompt = `
@@ -187,7 +182,7 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // ✅ Product name cleaner (preserves key product nouns)
+    // ✅ Smarter core name extractor (keeps descriptive phrases like “3 In 1 Breakfast Machine”)
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
@@ -202,20 +197,22 @@ Output in **pure JSON** with keys:
         .trim();
 
       const parts = cleaned.split(" ");
-      const model = parts.find(p => /^[A-Z0-9-]{3,}$/.test(p));
-
       const nouns = [
         "Subwoofer", "Speaker", "Theatre", "Laptop", "Phone", "Blender", "Iron", "Fan",
         "Television", "Watch", "Boxers", "Lotion", "Machine", "Cooker", "Toaster", 
         "Mixer", "Maker", "Grill", "Oven", "Fryer", "Microwave", "Processor"
       ];
 
-      const found = parts.find(p =>
+      const nounIndex = parts.findIndex(p =>
         nouns.includes(p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
       );
 
-      const keep = [model, found].filter(Boolean).join(" ");
-      return keep || cleaned.split(" ").slice(0, 4).join(" ");
+      if (nounIndex >= 0) {
+        // Keep everything up to and including the noun — preserves “3 In 1 Breakfast Machine”
+        return parts.slice(0, nounIndex + 1).join(" ");
+      }
+
+      return cleaned.split(" ").slice(0, 5).join(" ");
     }
 
     let coreProductName = getCoreName(mainProduct);
