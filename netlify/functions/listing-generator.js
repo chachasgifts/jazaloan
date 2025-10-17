@@ -51,13 +51,25 @@ export async function handler(event) {
       };
     }
 
-    // ✅ FIXED count detection: avoids misreading “10 in 1” or similar as quantity
+    // ✅ Improved count detection logic:
+    // - Detects pack/set/bundle counts properly.
+    // - Allows “3 in 1 Blender Set” but skips “10 in 1 Repair Oil”.
     const countMatch =
-      mainProduct.match(/(\d+)\s*(?!(in\s*1|in\s*one))\b(in|x|pack|pcs|pieces|set)\b/i) ||
+      mainProduct.match(/(\d+)\s*(?:(in\s*1|in\s*one)\s*(set|kit|bundle))|(\d+)\s*(in|x|pack|pcs|pieces|set)\b/i) ||
       mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
-    const itemCount = countMatch
-      ? parseInt(countMatch[1] || countMatch[2], 10)
-      : 1;
+
+    let itemCount = 1;
+    if (countMatch) {
+      if (countMatch[1] && /(set|kit|bundle)/i.test(countMatch[3])) {
+        // “3 in 1 Blender Set” → 3 items
+        itemCount = parseInt(countMatch[1], 10);
+      } else if (countMatch[4]) {
+        // Normal matches like “2x”, “Pack of 3”, etc.
+        itemCount = parseInt(countMatch[4] || countMatch[5] || countMatch[2], 10);
+      } else if (countMatch[2]) {
+        itemCount = parseInt(countMatch[2], 10);
+      }
+    }
 
     const prompt = `
 You are an expert copywriter for SEO-optimized, marketplace-ready product listings.
@@ -201,13 +213,16 @@ Output in **pure JSON** with keys:
     // ✅ Improved logic for correct “what’s in the box” counts
     let coreProductName = getCoreName(mainProduct);
 
-    // Fix for patterns like "6Pcs", "Pack of 2", etc. (also applies improved regex)
-    const pcsMatch = mainProduct.match(/(\d+)\s*(?!(in\s*1|in\s*one))\b(pcs?|pieces?)\b/i);
+    const pcsMatch = mainProduct.match(/(\d+)\s*(pcs?|pieces?)/i);
     const packMatch = mainProduct.match(/pack\s*(of)?\s*(\d+)/i);
+    const inOneMatch = mainProduct.match(/(\d+)\s*(in\s*1|in\s*one)\s*(set|kit|bundle)/i);
+
     const realCount = pcsMatch
       ? parseInt(pcsMatch[1])
       : packMatch
       ? parseInt(packMatch[2])
+      : inOneMatch
+      ? parseInt(inOneMatch[1])
       : itemCount;
 
     // Handle color variant inclusion
