@@ -183,7 +183,7 @@ Output in **pure JSON** with keys:
 
     // ✅ Simplified and safer name cleaner + pluralization support
     function getCoreName(name) {
-      return name
+      let cleaned = name
         .replace(/\(.*?\)/g, "")
         .replace(/\bwith.*$/i, "")
         .replace(/\bfor.*$/i, "")
@@ -194,10 +194,16 @@ Output in **pure JSON** with keys:
         .replace(/[–\-]+/g, " ")
         .replace(/\s{2,}/g, " ")
         .trim();
+
+      // ✅ New: Handle prefixes like “2 Set”, “x2”, “2pcs”, “2 pack”, etc.
+      cleaned = cleaned
+        .replace(/^(?:x?\s*\d+|\d+\s*(x|pcs?|pieces?|pack|set|bundle|in\s*1|in\s*one))\b\s*/i, "")
+        .trim();
+
+      return cleaned;
     }
 
     let coreProductName = getCoreName(mainProduct);
-    coreProductName = coreProductName.replace(/^\d+\s*\*?/, "").trim();
 
     if (primaryVariant) {
       const colorCap =
