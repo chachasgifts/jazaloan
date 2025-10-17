@@ -51,16 +51,20 @@ export async function handler(event) {
       };
     }
 
-    // ✅ Improved count detection (skips “in 1” feature phrases properly)
+    // ✅ Improved count detection (includes prefixes like x2, 2pcs, etc.)
     let itemCount = 1;
     const countMatch =
       mainProduct.match(/(\d+)\s*(x|pack|pcs|pieces|set|bundle)/i) ||
-      mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i);
+      mainProduct.match(/(?:set|bundle|pack)\s*(of)?\s*(\d+)/i) ||
+      mainProduct.match(/x\s*(\d+)/i);
 
     if (/\d+\s*(in\s*1|in\s*one)\b/i.test(mainProduct)) {
       itemCount = 1;
     } else if (countMatch) {
-      const matchedNumber = parseInt(countMatch[1] || countMatch[2], 10);
+      const matchedNumber = parseInt(
+        countMatch[1] || countMatch[2] || countMatch[3],
+        10
+      );
       if (!isNaN(matchedNumber)) itemCount = matchedNumber;
     }
 
@@ -195,9 +199,9 @@ Output in **pure JSON** with keys:
         .replace(/\s{2,}/g, " ")
         .trim();
 
-      // ✅ New: Handle prefixes like “2 Set”, “x2”, “2pcs”, “2 pack”, etc.
+      // ✅ Enhanced prefix handler for "x2", "2pcs", "2 pack", etc.
       cleaned = cleaned
-        .replace(/^(?:x?\s*\d+|\d+\s*(x|pcs?|pieces?|pack|set|bundle|in\s*1|in\s*one))\b\s*/i, "")
+        .replace(/^(?:\d+\s*(x|pcs?|pieces?|pack|set|bundle)\b|x\s*\d+)/i, "")
         .trim();
 
       return cleaned;
@@ -219,7 +223,7 @@ Output in **pure JSON** with keys:
       if (/\bT-?shirt\b/i.test(name)) return name.replace(/T-?shirt/i, "T-shirts");
       if (/\bShorts?\b/i.test(name)) return name.replace(/Shorts?/i, "Shorts");
       if (/\bSocks?\b/i.test(name)) return name.replace(/Socks?/i, "Socks");
-      return name; // no generic plural rule to avoid breaking brand names
+      return name;
     }
 
     coreProductName = pluralize(coreProductName, itemCount);
