@@ -86,7 +86,8 @@ ${hasExtras
 - Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM + Free Pen”.`
   : `- Focus only on the main product (no extras or variant colors/sizes).
 - Example: “Samsung Galaxy A16 Smartphone – 128GB, 4GB RAM”.`}
-- Do NOT mention color, size, or other variants in the title.
+- You may naturally mention the product color (if provided) when relevant.
+- Avoid repeating the color unnecessarily.
 - Maintain natural Jumia-style marketplace tone.
 - Must reflect what’s truly being sold.
 
@@ -95,7 +96,8 @@ ${hasExtras
 2️⃣ **Highlights (6–8 bullets)**
 - 6–10 words each.
 - Focus mainly on the main product’s **features and benefits**.
-- Do NOT mention colors, sizes, or variants.
+- You may naturally mention the product color (if provided) when relevant.
+- Avoid repeating the color unnecessarily.
 ${hasExtras ? "- Optional final bullet can mention the bonus item if applicable." : ""}
 
 ---
@@ -111,7 +113,8 @@ Each paragraph should be natural, SEO-rich, and complete.
   Include *basic specs, materials, and performance details*.
   Mention *product identifiers* like model name or type if applicable.
   Provide context in its category (e.g. electronics, apparel, etc.).
-  Do NOT mention variant or color.
+  You may naturally mention the product color (if provided) when relevant.
+  Avoid repeating the color unnecessarily.
 
 - **Paragraph 3 – Smart Buy Justification & Distribution Readiness**
   Explain why it’s a smart choice or thoughtful gift.
@@ -185,7 +188,6 @@ Output in **pure JSON** with keys:
       }
     }
 
-    // ✅ Simplified and safer name cleaner + pluralization support
     function getCoreName(name) {
       let cleaned = name
         .replace(/\(.*?\)/g, "")
@@ -199,7 +201,6 @@ Output in **pure JSON** with keys:
         .replace(/\s{2,}/g, " ")
         .trim();
 
-      // ✅ Enhanced prefix handler for "x2", "2pcs", "2 pack", etc.
       cleaned = cleaned
         .replace(/^(?:\d+\s*(x|pcs?|pieces?|pack|set|bundle)\b|x\s*\d+)/i, "")
         .trim();
@@ -217,7 +218,6 @@ Output in **pure JSON** with keys:
         coreProductName = `${colorCap} ${coreProductName}`;
     }
 
-    // ✅ Add pluralization if count > 1
     function pluralize(name, count) {
       if (count <= 1) return name;
       if (/\bT-?shirt\b/i.test(name)) return name.replace(/T-?shirt/i, "T-shirts");
@@ -239,7 +239,6 @@ Output in **pure JSON** with keys:
 
     whatsInTheBox = whatsInTheBox.replace(/\s{2,}/g, " ").trim();
 
-    // ✅ SKU generation logic unchanged
     let skuData = null;
     if (generateSkus && finalVariants.length > 0) {
       const acronym = mainProduct
