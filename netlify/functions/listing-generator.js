@@ -254,7 +254,7 @@ Output in **pure JSON** with keys:
         "gold","silver","navy","cream","orange","teal","maroon","beige","turquoise"
       ];
       const sizes = [
-        "xs","s","m","l","xl","xxl","small","medium","large","extra large",
+        "xs","s","m","l","xl","xxl","xxxl","small","medium","large","extra large",
         "32","34","36","38","40","42","44","46"
       ];
       const materials = [
@@ -277,9 +277,28 @@ Output in **pure JSON** with keys:
         label: detectedLabel,
         skus: Array.from(allForSkus).map(v => {
           const norm = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+
+          // ✅ Format SKU as PRODUCTCODE-SIZE-COLOR
+          const upperNorm = norm.toUpperCase().replace(/\s+/g, "");
+          let skuParts = [acronym];
+
+          if (sizes.includes(v.toLowerCase())) {
+            skuParts.push(upperNorm);
+            if (primaryVariant && colors.includes(primaryVariant.toLowerCase())) {
+              skuParts.push(primaryVariant.toUpperCase().replace(/\s+/g, ""));
+            }
+          } else if (colors.includes(v.toLowerCase())) {
+            if (size && sizes.includes(size.toLowerCase())) {
+              skuParts.push(size.toUpperCase().replace(/\s+/g, ""));
+            }
+            skuParts.push(upperNorm);
+          } else {
+            skuParts.push(upperNorm);
+          }
+
           return {
             [detectedLabel.toLowerCase()]: norm,
-            sku: `${acronym}-${norm.toUpperCase().replace(/\s+/g, "")}`,
+            sku: skuParts.join("-"),
           };
         }),
       };
