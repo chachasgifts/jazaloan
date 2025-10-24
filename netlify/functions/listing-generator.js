@@ -228,11 +228,8 @@ Output in **pure JSON** with keys:
 
     coreProductName = pluralize(coreProductName, itemCount);
 
-    let whatsInTheBox = hasExtras
-      ? `${itemCount}*${coreProductName}${extras
-          .map(e => ` + 1*${pluralize(getCoreName(e), 1)}`)
-          .join("")}`
-      : `${itemCount}*${coreProductName}`;
+    // ✅ UPDATED: Smart combination of structure + AI title
+    let whatsInTheBox = `${itemCount} x ${coreProductName} (as described in title: ${title})`;
 
     if (hasWarranty)
       whatsInTheBox = whatsInTheBox.replace(/warranty/gi, "").trim();
