@@ -10,7 +10,7 @@ const motivations = [
 ];
 
 // ---------- Rewards ----------
-let rewards = ["Nyama choma 🍖","Swimming 🏊","Hiking 🌳","Cycling 🚴","Music 🎶"];
+let rewards = ["Nyama choma 🍖", "Swimming 🏊", "Hiking 🌳", "Cycling 🚴", "Music 🎶"];
 
 // ---------- Training Plans ----------
 const weeksMuscleGain = { 1:[
@@ -238,152 +238,238 @@ const weeksFocusOMAD = {
 let player = JSON.parse(localStorage.getItem("fitness90Day_currentUser")) || null;
 
 // ---------- Navigation ----------
-function openNav(){document.getElementById("sidebar").style.width="250px";}
-function closeNav(){document.getElementById("sidebar").style.width="0";}
-function showSection(id){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active-section","slide-in"));
-  const newSection=document.getElementById(id);
-  if(newSection)newSection.classList.add("active-section","slide-in");
+function openNav() {
+  document.getElementById("sidebar").style.width = "250px";
+}
+function closeNav() { document.getElementById("sidebar").style.width = "0"; }
+
+function showSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active-section", "slide-in"));
+  const newSection = document.getElementById(id);
+  if (newSection) newSection.classList.add("active-section", "slide-in");
   closeNav();
-  if(id==="home" && player) loadToday();
-  if(id==="profile" && player) updateProfile();
-  if(id==="settings" && player) loadJournal();
+
+  if (id === "home" && player) loadToday();
+  if (id === "profile" && player) updateProfile();
+  if (id === "settings" && player) loadJournal();
 }
 
 // ---------- Signup / Login ----------
-function showSignup(){
-  document.getElementById("signupForm").style.display="block";
-  document.getElementById("loginForm").style.display="none";
+function showSignup() {
+  document.getElementById("signupForm").style.display = "block";
+  document.getElementById("loginForm").style.display = "none";
 }
-function showLogin(){
-  document.getElementById("signupForm").style.display="none";
-  document.getElementById("loginForm").style.display="block";
-}
-
-function saveSetup(){
-  const name=document.getElementById("signupUsername").value.trim();
-  const goal=document.getElementById("goalInput").value;
-  if(!name)return alert("Enter username");
-
-  const key=`fitness90Day_${name}`;
-  if(localStorage.getItem(key))return alert("⚠️ User already exists. Please log in.");
-
-  player={name,goal,week:1,day:1,points:0,rewards:[],journal:[],lastDate:"",checklist:{}};
-  persist(); showSection("home"); updateSidebarUser(); showRewardReminder();
+function showLogin() {
+  document.getElementById("signupForm").style.display = "none";
+  document.getElementById("loginForm").style.display = "block";
 }
 
-function loginUser(){
-  const name=document.getElementById("loginUsername").value.trim();
-  const data=localStorage.getItem(`fitness90Day_${name}`);
-  if(!data)return alert("⚠️ No account found. Please sign up first.");
+function saveSetup() {
+  const name = document.getElementById("signupUsername").value.trim();
+  const goal = document.getElementById("goalInput").value;
+  if (!name) return alert("Enter username");
 
-  player=JSON.parse(data);
-  persist(); showSection("home"); updateSidebarUser(); showRewardReminder();
+  const key = `fitness90Day_${name}`;
+  if (localStorage.getItem(key)) return alert("⚠️ User already exists. Please log in.");
+
+  player = { name, goal, week: 1, day: 1, points: 0, rewards: [], journal: [], lastDate: "", checklist: {} };
+  persist();
+  showSection("home");
+  updateSidebarUser();
+  showRewardReminder();
+}
+
+function loginUser() {
+  const name = document.getElementById("loginUsername").value.trim();
+  const data = localStorage.getItem(`fitness90Day_${name}`);
+  if (!data) return alert("⚠️ No account found. Please sign up first.");
+
+  player = JSON.parse(data);
+  persist();
+  showSection("home");
+  updateSidebarUser();
+  showRewardReminder();
 }
 
 // ---------- Sidebar Username ----------
-function updateSidebarUser(){
-  const sidebarUserLink=document.querySelector('#sidebar a[onclick*="profile"]');
-  if(sidebarUserLink && player) sidebarUserLink.textContent=`👤 ${player.name}`;
+function updateSidebarUser() {
+  const sidebarUserLink = document.querySelector('#sidebar a[onclick*="profile"]');
+  if (sidebarUserLink && player) sidebarUserLink.textContent = `👤 ${player.name}`;
 }
 
 // ---------- Daily Plan ----------
-function loadToday(){
-  const today=new Date().toDateString();
-  document.getElementById("todayDate").textContent=today;
-  document.getElementById("motivation").textContent=motivations[Math.floor(Math.random()*motivations.length)];
-  if(player.lastDate!==today){player.lastDate=today;player.checklist={};}
-  const weekPlan=(player.goal==="Muscle Gain"?weeksMuscleGain:weeksFocusOMAD)[player.week]||[{day:"Any",tasks:["Rest day"]}];
-  const todayPlan=weekPlan[new Date().getDay()]||weekPlan[0];
-  const ul=document.getElementById("dailyChecklist");ul.innerHTML="";
-  todayPlan.tasks.forEach(task=>{
-    const li=document.createElement("li");
-    const box=document.createElement("input");box.type="checkbox";
-    box.checked=!!player.checklist[task];
-    box.onchange=()=>{player.checklist[task]=box.checked;persist();};
-    li.append(task,box);
-    ul.append(li);
+function loadToday() {
+  const today = new Date().toDateString();
+  document.getElementById("todayDate").textContent = today;
+  document.getElementById("motivation").textContent =
+    motivations[Math.floor(Math.random() * motivations.length)];
+
+  if (player.lastDate !== today) {
+    player.lastDate = today;
+    player.checklist = {};
+  }
+
+  const weekPlan =
+    (player.goal === "Muscle Gain" ? weeksMuscleGain : weeksFocusOMAD)[player.week] ||
+    [{ day: "Any", tasks: ["Rest day"] }];
+
+  const dayIndex = new Date().getDay(); // 0 = Sunday
+  const todayPlan = weekPlan[dayIndex] || weekPlan[0];
+
+  const ul = document.getElementById("dailyChecklist");
+  ul.innerHTML = "";
+
+  // Previous day snippet
+  if (dayIndex > 0) {
+    const prevPlan = weekPlan[dayIndex - 1];
+    const prevHeader = document.createElement("li");
+    prevHeader.innerHTML = `<strong>⬅️ Yesterday (${prevPlan.day})</strong>`;
+    ul.appendChild(prevHeader);
+    prevPlan.tasks.forEach(task => {
+      const li = document.createElement("li");
+      li.textContent = "• " + task;
+      li.style.opacity = "0.6";
+      ul.appendChild(li);
+    });
+  }
+
+  // Today’s editable checklist
+  const todayHeader = document.createElement("li");
+  todayHeader.innerHTML = `<strong>📅 Today (${todayPlan.day})</strong>`;
+  ul.appendChild(todayHeader);
+  todayPlan.tasks.forEach(task => {
+    const li = document.createElement("li");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = !!player.checklist[task];
+    box.onchange = () => {
+      player.checklist[task] = box.checked;
+      persist();
+    };
+    li.append(task, box);
+    ul.appendChild(li);
   });
+
+  // Next day snippet
+  if (dayIndex < weekPlan.length - 1) {
+    const nextPlan = weekPlan[dayIndex + 1];
+    const nextHeader = document.createElement("li");
+    nextHeader.innerHTML = `<strong>➡️ Tomorrow (${nextPlan.day})</strong>`;
+    ul.appendChild(nextHeader);
+    nextPlan.tasks.forEach(task => {
+      const li = document.createElement("li");
+      li.textContent = "• " + task;
+      li.style.opacity = "0.6";
+      ul.appendChild(li);
+    });
+  }
 }
 
 // ---------- Complete Day ----------
-function completeDay(){
-  const allDone=Object.values(player.checklist).every(Boolean);
-  if(!allDone)return alert("Finish all tasks first!");
-  player.points+=50; player.day++; if(player.day>7){player.day=1;player.week++;}
-  if(player.points%300===0)player.rewards.push(rewards[Math.floor(Math.random()*rewards.length)]);
-  persist(); document.getElementById("homeStatus").textContent="✅ Great job! +50 pts!"; updateProfile();
+function completeDay() {
+  const allDone = Object.values(player.checklist).every(Boolean);
+  if (!allDone) return alert("Finish all tasks first!");
+
+  player.points += 50;
+  player.day++;
+  if (player.day > 7) { player.day = 1; player.week++; }
+  if (player.points % 300 === 0)
+    player.rewards.push(rewards[Math.floor(Math.random() * rewards.length)]);
+
+  persist();
+  updateProfile();
+
+  // 🎉 Congratulatory message
+  const msg = document.getElementById("homeStatus");
+  msg.textContent = "🎉 Awesome work! You’ve completed today’s quest!";
+  setTimeout(() => (msg.textContent = ""), 3500);
 }
 
 // ---------- Profile ----------
-function updateProfile(){
-  document.getElementById("profileName").textContent=player.name;
-  document.getElementById("profileGoal").textContent=player.goal;
-  document.getElementById("profileWeek").textContent=player.week;
-  document.getElementById("profilePoints").textContent=player.points;
-  const rewardsList=document.getElementById("rewardsList");
-  if(player.rewards.length){
-    rewardsList.innerHTML=player.rewards.map(r=>`<li>${r}</li>`).join("");
-  }else{
-    rewardsList.innerHTML=`<li>🎯 Upcoming Reward: ${getUpcomingReward()}</li>`;
+function updateProfile() {
+  document.getElementById("profileName").textContent = player.name;
+  document.getElementById("profileGoal").textContent = player.goal;
+  document.getElementById("profileWeek").textContent = player.week;
+  document.getElementById("profilePoints").textContent = player.points;
+
+  const rewardsList = document.getElementById("rewardsList");
+  if (player.rewards.length) {
+    rewardsList.innerHTML = player.rewards.map(r => `<li>${r}</li>`).join("");
+  } else {
+    rewardsList.innerHTML = `<li>🎯 Upcoming Reward: ${getUpcomingReward()}</li>`;
   }
 }
 
 // ---------- Journal ----------
-function saveJournal(){
-  const text=document.getElementById("journalInput").value.trim();
-  if(!text)return alert("Write something first!");
-  player.journal.unshift({date:new Date().toLocaleDateString(),text});
-  document.getElementById("journalInput").value=""; persist(); loadJournal();
+function saveJournal() {
+  const text = document.getElementById("journalInput").value.trim();
+  if (!text) return alert("Write something first!");
+  player.journal.unshift({ date: new Date().toLocaleDateString(), text });
+  document.getElementById("journalInput").value = "";
+  persist();
+  loadJournal();
 }
-function loadJournal(){
-  const div=document.getElementById("journalEntries");
-  if(!player.journal.length)return div.innerHTML="<p style='color:#777;'>No entries yet.</p>";
-  div.innerHTML=player.journal.map(j=>`<div style='text-align:left;margin-bottom:0.5rem;'><strong>${j.date}</strong><br>${j.text}</div>`).join("");
+function loadJournal() {
+  const div = document.getElementById("journalEntries");
+  if (!player.journal.length)
+    return (div.innerHTML = "<p style='color:#777;'>No entries yet.</p>");
+  div.innerHTML = player.journal
+    .map(
+      j =>
+        `<div style='text-align:left;margin-bottom:0.5rem;'><strong>${j.date}</strong><br>${j.text}</div>`
+    )
+    .join("");
 }
-function clearJournal(){
-  if(confirm("Clear all entries?")){player.journal=[];persist();loadJournal();}
+function clearJournal() {
+  if (confirm("Clear all entries?")) {
+    player.journal = [];
+    persist();
+    loadJournal();
+  }
 }
 
 // ---------- Settings ----------
-function changeGoal(val){player.goal=val;persist();alert("Goal changed!");}
-function resetProgress(){
-  if(confirm("Reset all data?")){
-    localStorage.clear();player=null;
-    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active-section"));
+function changeGoal(val) {
+  player.goal = val;
+  persist();
+  alert("Goal changed!");
+}
+function resetProgress() {
+  if (confirm("Reset all data?")) {
+    localStorage.clear();
+    player = null;
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active-section"));
     document.getElementById("setup").classList.add("active-section");
   }
 }
 
 // ---------- Rewards + Reminder ----------
-function getUpcomingReward(){
-  const weekIndex=(player.week-1)%rewards.length;
-  return rewards[weekIndex]||"Surprise Reward 🎁";
+function getUpcomingReward() {
+  const weekIndex = (player.week - 1) % rewards.length;
+  return rewards[weekIndex] || "Surprise Reward 🎁";
 }
-function showRewardReminder(){
-  const daysLeft=7-player.day+1;
-  alert(`🎯 Only ${daysLeft} day${daysLeft>1?"s":""} until your next reward! Keep going!`);
+function showRewardReminder() {
+  const daysLeft = 7 - player.day + 1;
+  alert(`🎯 Only ${daysLeft} day${daysLeft > 1 ? "s" : ""} until your next reward! Keep going!`);
 }
 
 // ---------- Logo Navigation ----------
-function logoutUser(){
-  // Allows switching user safely
-  player=null;
+function logoutUser() {
+  player = null;
   localStorage.removeItem("fitness90Day_currentUser");
   showSection("setup");
   showLogin();
 }
 
 // ---------- Storage ----------
-function persist(){
-  localStorage.setItem(`fitness90Day_${player.name}`,JSON.stringify(player));
-  localStorage.setItem("fitness90Day_currentUser",JSON.stringify(player));
+function persist() {
+  localStorage.setItem(`fitness90Day_${player.name}`, JSON.stringify(player));
+  localStorage.setItem("fitness90Day_currentUser", JSON.stringify(player));
 }
 
 // ---------- Init ----------
-document.addEventListener("DOMContentLoaded",()=>{
-  // ✅ No extra tagline or floating logo — the HTML already has them
-  if(player && player.name){
+document.addEventListener("DOMContentLoaded", () => {
+  if (player && player.name) {
     showSection("home");
     loadToday();
     updateProfile();
@@ -395,18 +481,32 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 });
 
-// ---------- Theme toggle ----------
-const themeToggle=document.getElementById('themeToggle');
-const body=document.body;
-const savedTheme=localStorage.getItem('theme');
-if(savedTheme==='dark'){body.setAttribute('data-theme','dark');themeToggle.textContent='🌞';}
-themeToggle.addEventListener('click',()=>{
-  const isDark=body.getAttribute('data-theme')==='dark';
-  if(isDark){body.removeAttribute('data-theme');themeToggle.textContent='🌙';localStorage.setItem('theme','light');}
-  else{body.setAttribute('data-theme','dark');themeToggle.textContent='🌞';localStorage.setItem('theme','dark');}
-});
+// ---------- THEME TOGGLE (Desktop + Mobile) ----------
+const themeToggle = document.getElementById("themeToggle");
+const themeToggleMobile = document.getElementById("themeToggleMobile");
+const root = document.documentElement;
 
-// ---------- Animations ----------
-const style=document.createElement('style');
-style.textContent=`@keyframes pulse {0%{transform:scale(1);opacity:1;}50%{transform:scale(1.1);opacity:0.8;}100%{transform:scale(1);opacity:1;}}`;
-document.head.appendChild(style);
+// Load saved theme
+if (localStorage.getItem("theme") === "dark") {
+  root.setAttribute("data-theme", "dark");
+  themeToggle.textContent = "☀️";
+  themeToggleMobile.textContent = "☀️ Toggle Theme";
+}
+
+function toggleTheme() {
+  const isDark = root.getAttribute("data-theme") === "dark";
+  if (isDark) {
+    root.removeAttribute("data-theme");
+    localStorage.setItem("theme", "light");
+    themeToggle.textContent = "🌙";
+    themeToggleMobile.textContent = "🌙 Toggle Theme";
+  } else {
+    root.setAttribute("data-theme", "dark");
+    localStorage.setItem("theme", "dark");
+    themeToggle.textContent = "☀️";
+    themeToggleMobile.textContent = "☀️ Toggle Theme";
+  }
+}
+
+themeToggle.addEventListener("click", toggleTheme);
+themeToggleMobile.addEventListener("click", toggleTheme);
