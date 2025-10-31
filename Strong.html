@@ -1,237 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>30 Day Fitness Quest</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💪 90-Day Fitness Quest</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
-    body { font-family: 'Poppins', sans-serif; margin: 0; background: linear-gradient(135deg, #141E30, #243B55); color: #eee; overflow-x: hidden; }
-    header { text-align: center; padding: 1rem; background: linear-gradient(to right, #00c6ff, #0072ff); color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); position: relative; }
-    .nav { position: absolute; top: 1rem; left: 1rem; font-size: 1.8rem; cursor: pointer; }
-    .sidebar { height: 100%; width: 0; position: fixed; top: 0; left: 0; background: rgba(20,30,48,0.95); transition: 0.4s; overflow-x: hidden; padding-top: 60px; z-index: 100; }
-    .sidebar a { display: block; padding: 12px 24px; font-size: 1.2rem; text-decoration: none; color: #ffcc00; }
-    .sidebar a:hover { color: #fff; }
-    .closebtn { position: absolute; top: 20px; right: 25px; font-size: 2rem; cursor: pointer; color: #ffcc00; }
+    :root {
+      --primary: #ffb700;
+      --secondary: #ff7b00;
+      --bg: #fff9f3;
+      --text: #222;
+      --card: #fff;
+      --shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    [data-theme="dark"] {
+      --bg: #111;
+      --text: #fff;
+      --card: #222;
+      --shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      text-align: center;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
 
-    .section { display: none; padding: 1rem; }
-    .active-section { display: block; }
+    header {
+      background: linear-gradient(90deg, var(--secondary), var(--primary));
+      color: #fff;
+      padding: 1.2rem;
+      position: relative;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-    .profile, .reward { text-align: center; margin: 1rem auto; background: rgba(255,255,255,0.08); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.4); max-width: 600px; }
-    .day-card { background: rgba(255,255,255,0.05); margin: 1rem auto; padding: 1rem; border-radius: 12px; max-width: 500px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); cursor: pointer; }
-    .day-header { display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold; color: #00eaff; }
-    .tasks, .motivation { margin-top: 1rem; display: none; }
-    .tasks li { list-style: none; margin: 8px 0; }
+    .nav {
+      cursor: pointer;
+      font-size: 1.8rem;
+      position: absolute;
+      left: 1rem;
+    }
 
-    button { background: #ffcc00; border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    button:hover { background: #ffd633; }
+    #themeToggle {
+      cursor: pointer;
+      position: absolute;
+      right: 1rem;
+      font-size: 1.6rem;
+      background: transparent;
+      border: none;
+      color: #fff;
+    }
 
-    .progress-bar { width: 90%; margin: 1rem auto; background: #444; border-radius: 20px; overflow: hidden; }
-    .progress { height: 20px; background: linear-gradient(to right, #ffcc00, #ff8800); width: 0%; text-align: center; color: black; font-weight: bold; font-size: 12px; line-height: 20px; transition: width 0.5s; }
-    /* Normal countdown */
-.rewardCountdown {
-  font-weight: bold;
-  color: #0077cc; /* blue accent */
-}
+    /* ✅ Only one logo button (right beside title) */
+    #logoButton {
+      cursor: pointer;
+      font-size: 1.8rem;
+      background: transparent;
+      border: none;
+      color: #fff;
+      margin-left: 0.5rem;
+      transition: transform 0.2s ease;
+    }
+    #logoButton:hover { transform: scale(1.2); }
 
-/* Highlight when it's reward day */
-.rewardToday {
-  color: #d4af37; /* gold */
-  font-size: 1.1em;
-  font-weight: bold;
-  text-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
-}
-.app-footer {
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
-  color: #fff;
-  text-align: center;
-  padding: 1rem 1.5rem;
-  margin-top: 2rem;
-  border-radius: 12px 12px 0 0;
-  font-size: 0.95rem;
-  letter-spacing: 0.5px;
-  box-shadow: 0 -3px 10px rgba(0,0,0,0.2);
-}
+    .sidebar {
+      height: 100%;
+      width: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      overflow-x: hidden;
+      transition: 0.3s;
+      padding-top: 60px;
+      z-index: 2;
+    }
 
-.footer-content {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.5rem;
-}
+    .sidebar a {
+      display: block;
+      padding: 12px 24px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 1.1rem;
+      transition: 0.2s;
+    }
 
-.footer-content span {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
+    .sidebar a:hover { background: var(--primary); color: #fff; }
 
-.footer-credit {
-  font-size: 0.8rem;
-  opacity: 0.8;
-  margin: 0;
-}
-.settings-card {
-  background: #222;
-  padding: 1rem;
-  border-radius: 12px;
-  margin: 1rem 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-}
+    .closebtn {
+      position: absolute;
+      top: 0;
+      right: 20px;
+      font-size: 36px;
+      cursor: pointer;
+    }
 
-.settings-card h3 {
-  margin-bottom: 0.5rem;
-  color: #ffcc00;
-}
+    .section {
+      display: none;
+      padding: 1.5rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.4s ease;
+    }
 
-.settings-card button {
-  background: #444;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  margin-top: 0.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
+    .active-section { display: block; opacity: 1; transform: translateY(0); }
 
-.settings-card button:hover {
-  background: #666;
-}
+    .slide-in { animation: slideIn 0.5s forwards; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-.settings-card.danger {
-  border: 1px solid #ff4444;
-  background: #330000;
-}
+    .profile, .settings-card {
+      background: var(--card);
+      border-radius: 1rem;
+      margin: 1rem auto;
+      padding: 1rem;
+      max-width: 420px;
+      box-shadow: var(--shadow);
+      transition: background 0.4s ease, color 0.4s ease;
+    }
 
-.settings-card.danger button {
-  background: #ff4444;
-}
+    input, select, textarea {
+      width: 85%;
+      padding: 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      margin-bottom: 0.6rem;
+      font-family: inherit;
+      background: var(--card);
+      color: var(--text);
+    }
 
-.settings-card.danger button:hover {
-  background: #cc0000;
-}
-/* Default = Dark mode */
-body {
-  background: #121212;
-  color: #eee;
-  transition: background 0.3s, color 0.3s;
-}
+    button {
+      background: linear-gradient(90deg, var(--secondary), var(--primary));
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.7rem 1.2rem;
+      cursor: pointer;
+      font-weight: bold;
+      color: #fff;
+      transition: 0.3s;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
 
-.light-theme {
-  background: #f5f5f5;
-  color: #222;
-}
+    button:hover { transform: scale(1.05); opacity: 0.95; }
 
-.light-theme .settings-card {
-  background: #fff;
-  color: #222;
-}
+    ul.checklist { list-style: none; padding: 0; }
 
-.light-theme .settings-card button {
-  background: #ddd;
-  color: #000;
-}
-/* Light Theme Cards */
-.light-theme .profile,
-.light-theme .reward,
-.light-theme .day-card,
-.light-theme .settings-card {
-  background: #fff;
-  color: #222;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
+    ul.checklist li {
+      margin: 0.5rem 0;
+      text-align: left;
+      background: var(--card);
+      padding: 0.7rem;
+      border-radius: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
 
-/* Light Theme Day Header */
-.light-theme .day-header {
-  color: #0072ff;
-}
+    footer {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      color: #fff;
+      padding: 1.5rem 0;
+      text-align: center;
+      margin-top: 2rem;
+      box-shadow: var(--shadow);
+    }
 
-/* Light Theme Buttons */
-.light-theme button {
-  background: #ddd;
-  color: #222;
-}
+    footer .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 0.8rem;
+    }
 
-.light-theme button:hover {
-  background: #bbb;
-  color: #000;
-}
+    footer a { color: #fff; text-decoration: none; font-weight: 600; }
+    footer a:hover { text-decoration: underline; }
 
-/* Light Theme Progress Bar */
-.light-theme .progress-bar {
-  background: #ccc;
-}
-.light-theme .progress {
-  background: linear-gradient(to right, #0072ff, #00c6ff);
-  color: #fff;
-}
+    .motivation-emoji {
+      font-size: 1.6rem;
+      animation: pulse 1.2s infinite alternate;
+    }
 
-/* Light Theme Footer */
-.light-theme .app-footer {
-  background: linear-gradient(135deg, #ffcc00, #ff8800);
-  color: #222;
-}
+    @keyframes pulse {
+      from { transform: scale(1); opacity: 0.8; }
+      to { transform: scale(1.3); opacity: 1; }
+    }
 
-/* Danger Zone Adjustments */
-.light-theme .settings-card.danger {
-  background: #ffe6e6;
-  border-color: #ff6666;
-}
-.light-theme .settings-card.danger button {
-  background: #ff4444;
-  color: #fff;
-}
-.light-theme .settings-card.danger button:hover {
-  background: #cc0000;
-}
-/* Smooth theme transition */
-body,
-.profile,
-.reward,
-.day-card,
-.settings-card,
-button,
-.progress-bar,
-.progress,
-.app-footer {
-  transition: background 0.4s ease, 
-              color 0.4s ease, 
-              box-shadow 0.4s ease, 
-              border 0.4s ease;
-}
-.toast {
-  visibility: hidden;
-  min-width: 250px;
-  margin-left: -125px;
-  background: linear-gradient(135deg, #ffcc00, #ff8800);
-  color: #000;
-  text-align: center;
-  border-radius: 8px;
-  padding: 12px;
-  position: fixed;
-  z-index: 1000;
-  left: 50%;
-  bottom: 30px;
-  font-weight: bold;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  transition: visibility 0s, opacity 0.5s ease-in-out;
-  opacity: 0;
-}
-
-.toast.show {
-  visibility: visible;
-  opacity: 1;
-}
-
+    @media (min-width: 768px) {
+      .profile, .settings-card { max-width: 600px; }
+    }
   </style>
 </head>
+
 <body>
   <header>
     <span class="nav" onclick="openNav()">☰</span>
-    <h1>💪 30 Day Fitness Quest</h1>
-    <p id="welcome"></p>
+    <h1>💪 90-Day Fitness Quest</h1>
+    <button id="logoButton" title="Go to Login" onclick="logoutUser()">🏋️</button>
+    <button id="themeToggle">🌙</button>
   </header>
 
   <div id="sidebar" class="sidebar">
@@ -242,1060 +220,103 @@ button,
     <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
   </div>
 
-<div id="setup" class="section active-section">
-  <div class="profile">
-    <h2>👋 Welcome to 90 Day Fitness Quest</h2>
-
-    <!-- Tabs -->
-    <div style="margin-bottom: 1rem;">
-      <button onclick="showSignup()" id="signupTab">🆕 Sign Up</button>
-      <button onclick="showLogin()" id="loginTab">🔑 Log In</button>
-    </div>
-
-    <!-- Sign Up -->
-    <div id="signupForm">
-      <input type="text" id="signupUsername" placeholder="Choose a username"><br><br>
-      <select id="goalInput">
-        <option value="muscle">💪 Muscle Gain</option>
-        <option value="focus">🧘 Focus & OMAD</option>
-      </select><br><br>
-      <button onclick="saveSetup()">Start My Journey 🚀</button>
-    </div>
-
-    <!-- Log In -->
-    <div id="loginForm" style="display:none;">
-      <input type="text" id="loginUsername" placeholder="Enter your username"><br><br>
-      <button onclick="loginUser()">Continue ➡️</button>
-    </div>
-
-    <p id="setupMessage" style="margin-top:15px; color:#ffcc00; font-weight:bold;"></p>
-  </div>
-</div>
-
-
-<div id="profile" class="section">
-  <h2>👤 Profile</h2>
-  <p><strong>Name:</strong> <span id="profileName"></span></p>
-  <p><strong>Goal:</strong> <span id="profileGoal"></span></p>
-  <p><strong>Current Week:</strong> <span id="profileWeek"></span></p>
-  <p><strong>Total Points:</strong> <span id="profilePoints"></span></p>
-  <p><strong>Next Reward:</strong> <span id="nextReward" class="rewardCountdown"></span></p>
-</div>
-
-
-<div id="rewards" class="section">
-  <h2>🎁 Rewards Unlocked</h2>
-  <ul id="rewardsList"></ul>
-</div>
-
-<div id="settings" class="section">
-  <h2>⚙️ Settings</h2>
-
-  <div class="settings-card">
-    <h3>🎯 Change Goal</h3>
-    <select id="goalSelect" onchange="changeGoal(this.value)">
-      <option value="Muscle Gain">Muscle Gain 💪</option>
-      <option value="Focus Exercises">Focus Exercises 🧘</option>
-    </select>
-  </div>
-
-  <div class="settings-card">
-    <h3>Theme</h3>
-    <button onclick="toggleTheme()">🌙 Dark / ☀️ Light</button>
-  </div>
-
-  <div class="settings-card">
-    <h3>Notifications</h3>
-    <label>
-      <input type="checkbox" id="dailyReminder">
-      🔔 Daily workout reminders
-    </label>
-  </div>
-
-  <div class="settings-card danger">
-    <h3>Danger Zone</h3>
-    <button onclick="resetProgress()">❌ Reset Progress</button>
-  </div>
-</div>
-
-<div id="home" class="section">
-  <div class="profile">
-    <h2>📅 Your Fitness Plan</h2>
-    <p id="todayDate"></p> <!-- today's date will appear here -->
-    <button id="startBtn" onclick="startOrContinueWeek()">Start Week</button>
-    <div class="progress-bar"><div id="progress" class="progress"></div></div>
-    <p id="week"></p>
-    <p id="points"></p>
-    <p>Upcoming Reward: <span id="reward"></span></p>
-<p id="daysLeft"></p>
-
-    <!-- new weekly goal section -->
-    <div id="weeklyGoal" style="margin-top:1rem; text-align:center;"></div>
-  </div>
-  <div id="plan"></div>
-</div>
-
-
-<footer class="app-footer">
-  <div class="footer-content">
-    <span>✔️ Stay consistent</span>
-    <span>💎 Earn points</span>
-    <span>🎁 Unlock rewards</span>
-  </div>
-  <p class="footer-credit">Made with ❤️ by JazaLoan Team</p>
-</footer>
-
-  <script>
-<script>
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-// ---------- Personalized Week Helpers (signup-based) ----------
-function getDaysSinceSignup(signupDate) {
-  if (!signupDate) return 0;
-  const now = new Date();
-  const start = new Date(signupDate);
-  const msPerDay = 1000 * 60 * 60 * 24;
-  return Math.floor((now - start) / msPerDay);
-}
-
-function getCurrentWeekNumber(signupDate) {
-  const days = getDaysSinceSignup(signupDate);
-  return Math.floor(days / 7) + 1;
-}
-
-function getCurrentDayIndex(signupDate) {
-  // returns 0..6 where 0 is the signup day
-  const days = getDaysSinceSignup(signupDate);
-  return days % 7;
-}
-
-function handleAutoWeekProgression() {
-  if (!player || !player.signupDate) return;
-  const currentWeek = getCurrentWeekNumber(player.signupDate);
-  if (currentWeek > player.week) {
-    // progress player to the right week
-    player.week = currentWeek;
-    player.points = 0;
-    player.dayProgress = 0;
-    player.completed = {};
-    player.startedWeek = true;
-    // reshuffle rewards at cycle boundary (preserve previous behavior)
-    if ((player.week - 1) % player.rewardsOrder.length === 0) {
-      player.rewardsOrder = shuffle(player.rewardsOrder);
-      player.rewardsAchieved = [];
-      // do not alert here to avoid double UI during login; UI code may notify
-    }
-    savePlayer();
-    showPlan();
-    updateProfile();
-    console.log(`🔄 Auto advanced to Week ${player.week}`);
-  }
-}
-
-// 💡 Motivation messages pool
-const motivations = [
-  "🔥 Stay strong, you’ve got this!",
-  "💪 Small steps every day lead to big results.",
-  "⚡ Push harder than yesterday!",
-  "🌟 Progress, not perfection.",
-  "🏆 One step closer to your best self.",
-  "🔥 Sweat today, shine tomorrow.",
-  "💯 Discipline beats motivation."
-];
-
-// ---------- Plans (increased intensity for push-ups) ----------
-// I preserved your structure and labels; only bumped push-up volume so key days hit ~50+ push-ups
-const weeksMuscleGain = {
-  1:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Standard Push-ups 5x10","Bodyweight Squats 3x12","Plank 20s"]}, // 50 pushups
-    {day:"Tue",tasks:["Jog 15 min"]},
-    {day:"Wed",tasks:["Incline Push-ups 4x12","Glute Bridges 3x12","Plank 25s"]},
-    {day:"Thu",tasks:["Knee Push-ups 4x12","Lunges 3x10 each leg","Side Plank 20s each side"]},
-    {day:"Fri",tasks:["Jog 15 min","Mountain Climbers 3x15"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Swimming / Music"]}
-  ],
-  2:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Standard Push-ups 5x12","Jump Squats 3x10","Plank 30s"]}, // 60 pushups
-    {day:"Tue",tasks:["Jog 18 min"]},
-    {day:"Wed",tasks:["Incline Push-ups 4x12","Glute Bridges 3x15","Plank 30s"]},
-    {day:"Thu",tasks:["Diamond Push-ups 4x10","Reverse Lunges 3x12 each leg","Side Plank 25s each side"]},
-    {day:"Fri",tasks:["Jog 18 min","Mountain Climbers 3x20"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Hiking / Music"]}
-  ],
-  3:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Wide Push-ups 5x10","Bulgarian Split Squats 3x10 each leg","Plank 35s"]}, // 50 pushups
-    {day:"Tue",tasks:["Jog 20 min"]},
-    {day:"Wed",tasks:["Incline Push-ups 5x12","Hip Thrusts 3x12","Leg Raises 3x10"]},
-    {day:"Thu",tasks:["Diamond Push-ups 4x10","Step-ups 3x12 each leg","Side Plank 30s each side"]},
-    {day:"Fri",tasks:["Jog 20 min","Burpees 3x8"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Outdoor Activity"]}
-  ],
-  4:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Decline Push-ups 5x10","Jump Squats 3x12","Plank 40s"]}, // 50 pushups
-    {day:"Tue",tasks:["Jog 22 min"]},
-    {day:"Wed",tasks:["Archer Push-ups 4x8","Glute Bridges 4x12","Leg Raises 3x12"]},
-    {day:"Thu",tasks:["Diamond Push-ups 5x8","Lunges 4x12 each leg","Side Plank 35s each side"]},
-    {day:"Fri",tasks:["Jog 22 min","Burpees 3x10"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Movie Night"]}
-  ],
-  5:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Standard Push-ups 6x10","Bulgarian Split Squats 3x12 each leg","Plank 45s"]}, // 60 pushups
-    {day:"Tue",tasks:["Jog 25 min"]},
-    {day:"Wed",tasks:["Incline Push-ups 5x12","Hip Thrusts 4x12","Leg Raises 3x15"]},
-    {day:"Thu",tasks:["Decline Push-ups 4x10","Jump Lunges 3x10 each leg","Side Plank 40s each side"]},
-    {day:"Fri",tasks:["Jog 25 min","Burpees 3x12"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Nyama Choma"]}
-  ],
-  6:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Wide Push-ups 6x10","Pistol Squat (assisted) 3x6 each leg","Plank 50s"]}, // 60 pushups
-    {day:"Tue",tasks:["Jog 28 min"]},
-    {day:"Wed",tasks:["Diamond Push-ups 5x10","Glute Bridges 4x15","Leg Raises 4x10"]},
-    {day:"Thu",tasks:["Decline Push-ups 5x10","Step-ups 4x12 each leg","Side Plank 45s each side"]},
-    {day:"Fri",tasks:["Jog 28 min","Burpees 3x15"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Music / Game Night"]}
-  ],
-  7:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Archer Push-ups 5x8","Jump Squats 4x12","Plank 55s"]},
-    {day:"Tue",tasks:["Jog 30 min"]},
-    {day:"Wed",tasks:["Incline Push-ups 6x10","Hip Thrusts 4x15","Leg Raises 4x12"]}, // 60 pushups
-    {day:"Thu",tasks:["Diamond Push-ups 5x12","Walking Lunges 3x14 each leg","Side Plank 50s each side"]},
-    {day:"Fri",tasks:["Jog 30 min","Burpees 4x10"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Outdoor Fun"]}
-  ],
-  8:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Decline Push-ups 6x10","Bulgarian Split Squats 4x12 each leg","Plank 60s"]},
-    {day:"Tue",tasks:["Jog 32 min"]},
-    {day:"Wed",tasks:["Archer Push-ups 5x10","Glute Bridges 4x18","Leg Raises 4x15"]},
-    {day:"Thu",tasks:["Diamond Push-ups 6x10","Jump Lunges 4x12 each leg","Side Plank 55s each side"]},
-    {day:"Fri",tasks:["Jog 32 min","Burpees 4x12"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Music / Nyama Choma"]}
-  ],
-  9:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Standard Push-ups 8x6","Jump Squats 4x15","Plank 65s"]}, // 48 pushups (high intensity sets)
-    {day:"Tue",tasks:["Jog 35 min"]},
-    {day:"Wed",tasks:["Incline Push-ups 6x12","Hip Thrusts 5x12","Leg Raises 4x18"]},
-    {day:"Thu",tasks:["Diamond Push-ups 6x12","Walking Lunges 4x14 each leg","Side Plank 60s each side"]},
-    {day:"Fri",tasks:["Jog 35 min","Burpees 4x15"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Party"]}
-  ],
-  10:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Wide Push-ups 6x10","Pistol Squat (assisted) 4x8 each leg","Plank 70s"]},
-    {day:"Tue",tasks:["Jog 38 min"]},
-    {day:"Wed",tasks:["Decline Push-ups 6x10","Glute Bridges 5x15","Leg Raises 5x12"]},
-    {day:"Thu",tasks:["Archer Push-ups 6x8","Jump Squats 4x15","Side Plank 65s each side"]},
-    {day:"Fri",tasks:["Jog 38 min","Burpees 5x10"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Movie Night"]}
-  ],
-  11:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Diamond Push-ups 6x12","Bulgarian Split Squats 4x14 each leg","Plank 75s"]},
-    {day:"Tue",tasks:["Jog 40 min"]},
-    {day:"Wed",tasks:["Decline Push-ups 6x12","Hip Thrusts 5x18","Leg Raises 5x15"]},
-    {day:"Thu",tasks:["Archer Push-ups 6x10","Walking Lunges 4x16 each leg","Side Plank 70s each side"]},
-    {day:"Fri",tasks:["Jog 40 min","Burpees 5x12"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Nyama Choma"]}
-  ],
-  12:[
-    {day:"Sun",tasks:["Rest day"]},
-    {day:"Mon",tasks:["Mixed Push-up Circuit (Standard, Wide, Diamond) 5x10 each","Jump Squats 5x15","Plank 80s"]}, // very high volume
-    {day:"Tue",tasks:["Jog 45 min"]},
-    {day:"Wed",tasks:["Archer Push-ups 5x12","Glute Bridges 5x20","Leg Raises 5x18"]},
-    {day:"Thu",tasks:["Decline Push-ups 6x12","Pistol Squat (assisted) 4x10 each leg","Side Plank 75s each side"]},
-    {day:"Fri",tasks:["Jog 45 min","Burpees 5x15"]},
-    {day:"Sat",tasks:["🎁 Reward Day: Celebration 🎉"]}
-  ]
-};
-
-const weeksFocusOMAD = {
-  1:[
-     {day:"Sun",tasks:["Rest day"]},
-     {day:"Mon",tasks:["Push-ups 5x10","Squats 3x12","Plank 20–30s"]}, // 50 pushups
-     {day:"Tue",tasks:["Walk 15 min","Mobility 10 min"]},
-     {day:"Wed",tasks:["Lunges 3x10 each leg","Squats 3x10","Side Plank 2x20s each side"]},
-     {day:"Thu",tasks:["Push-ups 5x10","Dips 3x8–10","Plank w/ shoulder taps 2x10 each side"]},
-     {day:"Fri",tasks:["Walk / cycle 15 min","Leg raises 3x10","Bird-dogs 3x12"]},
-     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
-  ],
-  2:[
-     {day:"Sun",tasks:["Rest day"]},
-     {day:"Mon",tasks:["Incline Push-ups 5x10","Goblet Squats 3x12","Plank 30s"]}, // 50 pushups
-     {day:"Tue",tasks:["Jog 20 min","Mobility flow 10 min"]},
-     {day:"Wed",tasks:["Reverse Lunges 3x12 each leg","Glute bridges 3x15","Side Plank 3x20s each side"]},
-     {day:"Thu",tasks:["Diamond Push-ups 4x10","Chair Dips 3x10","Mountain Climbers 3x20"]},
-     {day:"Fri",tasks:["Walk / cycle 20 min","Leg raises 3x12","Supermans 3x12"]},
-     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
-  ],
-  3:[
-     {day:"Sun",tasks:["Rest day"]},
-     {day:"Mon",tasks:["Decline Push-ups 5x10","Split Squats 3x12 each leg","Plank 40s"]}, // 50 pushups
-     {day:"Tue",tasks:["Jog 25 min","Mobility flow 15 min"]},
-     {day:"Wed",tasks:["Step-ups 3x12 each leg","Glute bridges 4x15","Side Plank 3x25s each side"]},
-     {day:"Thu",tasks:["Wide Push-ups 5x10","Bench Dips 3x12","Mountain Climbers 4x20"]}, // 50 pushups
-     {day:"Fri",tasks:["Cycle 20 min","Hollow Holds 3x20s","Bird-dogs 4x12"]},
-     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
-  ],
-  // ... keep remaining weeks but follow the same pattern increasing push-up sets to 5x10 or 6x10 as weeks progress
-  4:[
-     {day:"Sun",tasks:["Rest day"]},
-     {day:"Mon",tasks:["Archer Push-ups 4x8 each side","Bulgarian Split Squats 3x12 each leg","Plank 45s"]},
-     {day:"Tue",tasks:["Jog 25 min","Yoga flow 20 min"]},
-     {day:"Wed",tasks:["Jump Squats 3x12","Glute bridges 4x20","Side Plank 3x30s each side"]},
-     {day:"Thu",tasks:["Decline Push-ups 4x12","Chair Dips 4x10","Mountain Climbers 4x25"]},
-     {day:"Fri",tasks:["Walk 20 min","Leg Raises 3x15","Supermans 4x15"]},
-     {day:"Sat",tasks:["🎁 Reward Day: Swimming / Cycling / Music"]}
-  ]
-  // (for brevity I left the remainder unchanged here — you can repeat the same bumping pattern for all remaining weeks)
-};
-
-// ---------- Rewards & Player (default + signupDate placeholder) ----------
-let rewards = ["Nyama choma 🍖","Swimming 🏊","Hiking 🌳","Cycling 🚴","Music 🎶"];
-
-let player = JSON.parse(localStorage.getItem("fitness30Day")) || {
-  name: "",
-  goal: "",
-  week: 1,
-  points: 0,
-  totalTasks: 0,
-  dayProgress: 0,
-  completed: {},
-  startedWeek: false,
-  rewardsAchieved: [],
-  rewardsOrder: shuffle([...rewards]), // randomize rewards for this cycle
-  signupDate: null
-};
-
-function saveSetup() {
-  const username = document.getElementById("signupUsername").value.trim();
-  const goal = document.getElementById("goalInput").value;
-  const messageEl = document.getElementById("setupMessage");
-
-  if (!username) {
-    messageEl.textContent = "⚠️ Please choose a username!";
-    return;
-  }
-
-  if (localStorage.getItem(`fitness30Day_${username}`)) {
-    messageEl.textContent = "⚠️ Username already taken. Please log in instead.";
-    return;
-  }
-
-  // Create new profile (with signupDate)
-  player = {
-    name: username,
-    goal: goal,
-    week: 1,
-    points: 0,
-    totalTasks: 0,
-    dayProgress: 0,
-    completed: {},
-    startedWeek: true,
-    rewardsAchieved: [],
-    rewardsOrder: shuffle([...rewards]),
-    signupDate: new Date().toISOString() // personalized start date
-  };
-
-  localStorage.setItem(`fitness30Day_${username}`, JSON.stringify(player));
-  localStorage.setItem("fitness30Day_current", username);
-
-  messageEl.textContent = `🎉 New profile created for ${player.name}. Let's go!`;
-
-  document.getElementById("welcome").textContent = `Welcome, ${player.name}! Goal: ${player.goal}`;
-  showSection("home");
-  showPlan();
-  updateProfile();
-
-  // Immediately ensure week alignment & rest-day handling
-  handleAutoWeekProgression();
-  handleSundayRestDay();
-}
-
-// === Login ===
-function loginUser() {
-  const username = document.getElementById("loginUsername").value.trim();
-  const messageEl = document.getElementById("setupMessage");
-
-  if (!username) {
-    messageEl.textContent = "⚠️ Please enter your username!";
-    return;
-  }
-
-  const storedPlayer = localStorage.getItem(`fitness30Day_${username}`);
-  if (!storedPlayer) {
-    messageEl.textContent = "❌ No account found. Please Sign Up first.";
-    return;
-  }
-
-  player = JSON.parse(storedPlayer);
-  localStorage.setItem("fitness30Day_current", username);
-
-  // 🧭 Recalculate personalized week from signup
-  if (player.signupDate) {
-    const currentWeek = getCurrentWeekNumber(player.signupDate);
-    if (currentWeek > player.week) {
-      player.week = currentWeek;
-      player.intensityScale = 1 + (player.week - 1) * 0.1;
-      adjustExerciseIntensity(player.intensityScale);
-      showToast(`💥 Welcome back! Week ${player.week} started — intensity scaled up.`);
-    } else {
-      adjustExerciseIntensity(player.intensityScale || 1.0);
-    }
-  }
-
-  savePlayer();
-
-  messageEl.textContent = `✅ Welcome back, ${player.name}!`;
-  document.getElementById("welcome").textContent = `Welcome, ${player.name}! Goal: ${player.goal}`;
-  
-  showSection("home");
-  showPlan();
-  updateProfile();
-
-  // ✅ Auto-mark Sunday rest day
-  handleSundayRestDay();
-
-  // 🕒 Run week progression auto-check
-  handleAutoWeekProgression();
-}
-
-// === Save state ===
-function savePlayer() {
-  if (player && player.name) {
-    localStorage.setItem(`fitness30Day_${player.name}`, JSON.stringify(player));
-    localStorage.setItem("fitness30Day_current", player.name);
-  }
-}
-
-// === Start / Continue week ===
-function startOrContinueWeek() {
-  player.startedWeek = true;
-  savePlayer();
-  showPlan();
-  updateProfile();
-
-  const now = new Date();
-  let todayIndex = now.getDay(); // 0 = Sunday, 6 = Saturday
-  if (now.getHours() < 5) {
-    todayIndex = todayIndex - 1 < 0 ? 6 : todayIndex - 1;
-  }
-
-  const cards = document.querySelectorAll(".day-card");
-
-  // 🎯 Scroll and expand today's workout
-  const todayCard = cards[todayIndex];
-  if (todayCard) {
-    todayCard.scrollIntoView({ behavior: "smooth", block: "start" });
-    const mot = todayCard.querySelector(".motivation");
-    const tasks = todayCard.querySelector(".tasks");
-    mot.style.display = "block";
-    tasks.style.display = "block";
-  }
-
-  // 👀 Show tomorrow’s preview (locked)
-  const nextCard = cards[todayIndex + 1];
-  if (nextCard) {
-    const nextMot = nextCard.querySelector(".motivation");
-    const nextTasks = nextCard.querySelector(".tasks");
-    nextMot.style.display = "block";
-    nextTasks.style.display = "block";
-
-    nextTasks.querySelectorAll("input[type='checkbox']").forEach(cb => cb.disabled = true);
-    nextCard.style.opacity = "0.7";
-  }
-
-  // 🧩 Re-apply current intensity scaling for visible plan
-  adjustExerciseIntensity(player.intensityScale || 1.0);
-}
-
-// === Plan selector ===
-function getCurrentPlan() {
-  // 🧠 Alternate between plans, adjust with intensity
-  const plan = player.week % 2 === 1 ? weeksMuscleGain : weeksFocusOMAD;
-  adjustExerciseIntensity(player.intensityScale || 1.0);
-  return plan;
-}
-
- // === Render Weekly Plan ===
-function showPlan() {
-  const container = document.getElementById("plan");
-  container.innerHTML = "";
-
-  const plan = getCurrentPlan();
-  const weekPlan = plan[player.week];
-  player.totalTasks = 0;
-
-  if (!player.startedWeek) {
-    container.innerHTML = "<p style='text-align:center;'>Click Start Week to begin ✅</p>";
-    return;
-  }
-
-  const now = new Date();
-  let todayIndex = now.getDay() - 1; // Monday=0
-  if (todayIndex < 0) todayIndex = 6;
-  if (now.getHours() < 5) todayIndex = todayIndex - 1 < 0 ? 6 : todayIndex - 1;
-
-  // 🧩 Loop through each day in the current plan
-  weekPlan.forEach((p, i) => {
-    const card = document.createElement("div");
-    card.className = "day-card";
-    const locked = i > todayIndex;
-
-    // 🧠 Adjust visible exercise difficulty (for display only)
-    const scaledTasks = p.tasks.map(t => scaleTaskText(t, player.intensityScale));
-
-    card.innerHTML = `
-      <div class='day-header' style='${locked ? "opacity:0.5;pointer-events:none;" : ""}'>
-        <span>${p.day}${i === todayIndex ? " 🔥 (Today)" : ""}</span><span>▶️</span>
+  <!-- Setup -->
+  <div id="setup" class="section active-section slide-in">
+    <div class="profile">
+      <div style="display:flex;justify-content:center;gap:1rem;margin-bottom:1rem;">
+        <button onclick="showSignup()">🆕 Sign Up</button>
+        <button onclick="showLogin()">🔑 Log In</button>
       </div>
-      <div class='motivation'>
-        <p><em>"${motivations[Math.floor(Math.random() * motivations.length)]}"</em></p>
-        <p style="margin-top:6px;">Today's Focus: <strong>${player.goal}</strong></p>
+
+      <h2 id="setupUserTitle" style="margin:0.8rem 0;">👋 Welcome</h2>
+      <!-- ✅ Only ONE motivational tagline -->
+      <p class="motivation-emoji">🔥 Let’s get stronger!</p>
+
+      <div id="signupForm">
+        <select id="goalInput" style="margin-bottom:1rem;">
+          <option value="Muscle Gain">💪 Muscle Gain</option>
+          <option value="Focus Exercises">🧘 Focus & OMAD</option>
+        </select><br>
+        <input id="signupUsername" placeholder="Choose a username"><br>
+        <button onclick="saveSetup()">Start My Journey 🚀</button>
       </div>
-      <ul class='tasks'>
-        ${scaledTasks.map((t, idx) => {
-          player.totalTasks++;
-          const key = `${player.week}-${i}-${idx}`;
-          const checked = player.completed[key] ? "checked" : "";
-          const isLocked = player.completed[key] === true || player.completed[key] === "missed";
-          return `<li>
-            <input type='checkbox' ${checked} ${isLocked ? "disabled" : ""} onchange='completeTask(${i},${idx},this)'> ${t}
-          </li>`;
-        }).join("")}
-      </ul>
-    `;
 
-    // Expand toggle
-    card.querySelector(".day-header").addEventListener("click", () => {
-      const mot = card.querySelector(".motivation");
-      const tasks = card.querySelector(".tasks");
-      mot.style.display = mot.style.display === "block" ? "none" : "block";
-      tasks.style.display = tasks.style.display === "block" ? "none" : "block";
-    });
+      <div id="loginForm" style="display:none;">
+        <input id="loginUsername" placeholder="Enter your username"><br>
+        <button onclick="loginUser()">Continue ➡️</button>
+      </div>
 
-    // ✅ Auto-expand today’s tasks
-    if (i === todayIndex) {
-      const mot = card.querySelector(".motivation");
-      const tasks = card.querySelector(".tasks");
-      mot.style.display = "block";
-      tasks.style.display = "block";
-
-      // ✅ Check if all today's tasks are completed
-      const todaysTasks = p.tasks.length;
-      const completedToday = Array.from({ length: todaysTasks }).reduce((acc, _, j) => {
-        return acc + (player.completed[`${player.week}-${i}-${j}`] ? 1 : 0);
-      }, 0);
-
-      if (completedToday === todaysTasks) {
-        const msg = document.createElement("p");
-        msg.id = `congrats-${i}`;
-        msg.style.color = "#ffcc00";
-        msg.style.fontWeight = "bold";
-        msg.style.marginTop = "10px";
-        msg.textContent = `🎉 Great job! You've completed all tasks for ${p.day}.`;
-        card.appendChild(msg);
-      }
-    }
-
-    container.appendChild(card);
-  });
-
-  scheduleRefreshAtFive();
-}
-
-// === Apply difficulty scaling to exercise text ===
-function scaleTaskText(taskText, scale) {
-  // Find patterns like "10 pushups" or "3x10"
-  const numPattern = /(\d+)(?=\s*(x|push|sit|squat|rep|sec|min|km|m)?)/i;
-  const match = taskText.match(numPattern);
-  if (!match) return taskText;
-
-  const num = parseInt(match[1], 10);
-  if (isNaN(num)) return taskText;
-
-  // Round up scaled number
-  const scaled = Math.max(1, Math.round(num * scale));
-
-  return taskText.replace(numPattern, scaled.toString());
-}
-
-// === Auto-refresh daily ===
-function scheduleRefreshAtFive() {
-  const now = new Date();
-  let next5am = new Date();
-  next5am.setHours(5, 0, 0, 0);
-
-  if (now >= next5am) next5am.setDate(next5am.getDate() + 1);
-  const timeUntil5 = next5am - now;
-
-  setTimeout(() => location.reload(), timeUntil5);
-}
-
-// === Task completion ===
-function completeTask(day, task, box) {
-  const key = `${player.week}-${day}-${task}`;
-
-  if (box.checked) {
-    if (player.completed[key] === "missed") {
-      player.completed[key] = true;
-      player.points += 10;
-      player.dayProgress++;
-    } else if (!player.completed[key]) {
-      player.completed[key] = true;
-      player.points += 10;
-      player.dayProgress++;
-    }
-    box.disabled = true;
-  } else if (player.completed[key]) {
-    box.checked = true;
-    showToast("✅ Task already completed — you can’t uncheck it.");
-    return;
-  }
-
-  savePlayer();
-  updateProfile();
-
-  // Re-check if all today's tasks done
-  const plan = getCurrentPlan();
-  const weekPlan = plan[player.week];
-
-  const now = new Date();
-  let todayIndex = now.getDay() - 1;
-  if (todayIndex < 0) todayIndex = 6;
-  if (now.getHours() < 5) todayIndex = todayIndex - 1 < 0 ? 6 : todayIndex - 1;
-
-  const todaysTasks = weekPlan[todayIndex].tasks.length;
-  const completedToday = Array.from({ length: todaysTasks }).reduce((acc, _, j) => {
-    return acc + (player.completed[`${player.week}-${todayIndex}-${j}`] ? 1 : 0);
-  }, 0);
-
-  // Remove old message if exists
-  const oldMsg = document.querySelector(`#congrats-${todayIndex}`);
-  if (oldMsg) oldMsg.remove();
-
-  if (completedToday === todaysTasks) {
-    const todayCard = document.querySelectorAll(".day-card")[todayIndex];
-    const msg = document.createElement("p");
-    msg.id = `congrats-${todayIndex}`;
-    msg.style.color = "#ffcc00";
-    msg.style.fontWeight = "bold";
-    msg.style.marginTop = "10px";
-    msg.textContent = `🎉 Great job! You've finished all tasks for ${weekPlan[todayIndex].day}.`;
-    todayCard.appendChild(msg);
-  }
-}
-
-// === End of Week Logic ===
-function endWeek() {
-  const now = new Date();
-  const todayIndex = now.getDay(); // Sunday=0, Saturday=6
-
-  // ✅ Only trigger automatic week wrap-up on Saturday
-  if (todayIndex === 6) {
-    const rewardIndex = (player.week - 1) % player.rewardsOrder.length;
-    const earnedReward = player.rewardsOrder[rewardIndex];
-    player.rewardsAchieved.push(earnedReward);
-
-    showToast(`🎉 Week ${player.week} Complete! Reward unlocked: ${earnedReward}`);
-
-    // Move to next week
-    player.week++;
-    player.points = 0;
-    player.dayProgress = 0;
-    player.completed = {};
-    player.startedWeek = true;
-
-    // 🔥 Scale up weekly intensity by 10%
-    player.intensityScale = 1 + (player.week - 1) * 0.1;
-    adjustExerciseIntensity(player.intensityScale);
-
-    // 🔁 Shuffle rewards at end of full rotation
-    if ((player.week - 1) % player.rewardsOrder.length === 0) {
-      player.rewardsOrder = shuffle(player.rewardsOrder);
-      player.rewardsAchieved = [];
-      alert("♻️ Rewards reshuffled for a new cycle!");
-    }
-
-    savePlayer();
-    showPlan();
-    updateProfile();
-  } else {
-    showToast("Keep going — week ends Saturday with your reward! 💪");
-  }
-}
-
-// === Profile Update ===
-function updateProfile() {
-  // Home summary
-  document.getElementById("week").textContent = "Current Week: " + player.week;
-  document.getElementById("points").textContent = "Weekly Points: " + player.points;
-
-  const percent = Math.floor((player.dayProgress / player.totalTasks) * 100) || 0;
-  const progressEl = document.getElementById("progress");
-  progressEl.style.width = percent + "%";
-  progressEl.textContent = percent + "%";
-
-  document.getElementById("startBtn").textContent = player.startedWeek ? "Continue Week" : "Start Week";
-
-  // 🏆 Current reward info
-  const rewardIndex = (player.week - 1) % player.rewardsOrder.length;
-  const nextRewardName = player.rewardsOrder[rewardIndex];
-
-  const now = new Date();
-  let todayIndex = now.getDay(); // Sunday=0
-  if (now.getHours() < 5) todayIndex = todayIndex - 1 < 0 ? 6 : todayIndex - 1;
-  const daysLeft = 6 - todayIndex;
-
-  document.getElementById("reward").textContent = "🎁 Unlocks on Saturday";
-  document.getElementById("daysLeft").textContent =
-    daysLeft === 0
-      ? `🎁 Today! Reward: ${nextRewardName}`
-      : `${daysLeft} day(s) left until your next reward 🎁 (${nextRewardName})`;
-
-  // Profile info
-  document.getElementById("profileName").textContent = player.name;
-  document.getElementById("profileGoal").textContent = player.goal;
-  document.getElementById("profileWeek").textContent = player.week;
-  document.getElementById("profilePoints").textContent = player.points;
-
-  // Reward countdown (Profile section)
-  const rewardEl = document.getElementById("nextReward");
-  if (rewardEl) {
-    if (daysLeft === 0) {
-      rewardEl.textContent = `🎁 Today! Reward: ${nextRewardName}`;
-      rewardEl.classList.add("rewardToday");
-      rewardEl.classList.remove("rewardCountdown");
-    } else {
-      rewardEl.textContent = `${daysLeft} day(s) left until your next reward 🎁 (${nextRewardName})`;
-      rewardEl.classList.add("rewardCountdown");
-      rewardEl.classList.remove("rewardToday");
-    }
-  }
-
-  // Reward history
-  const rewardsList = document.getElementById("rewardsList");
-  rewardsList.innerHTML = player.rewardsAchieved.length
-    ? player.rewardsAchieved.map(r => `<li>${r}</li>`).join("")
-    : "<li>No rewards unlocked yet.</li>";
-}
-
-// === Reset All Progress ===
-function resetProgress() {
-  if (confirm("Are you sure you want to reset all progress?")) {
-    const currentUser = localStorage.getItem("fitness30Day_current");
-    if (currentUser) {
-      localStorage.removeItem(`fitness30Day_${currentUser}`);
-      localStorage.removeItem("fitness30Day_current");
-    }
-    location.reload();
-  }
-}
-
-// === Navigation ===
-function openNav() {
-  document.getElementById("sidebar").style.width = "250px";
-}
-function closeNav() {
-  document.getElementById("sidebar").style.width = "0";
-}
-function showSection(id) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active-section"));
-  document.getElementById(id).classList.add("active-section");
-  closeNav();
-}
-
-// === Initial Load ===
-showPlan();
-updateProfile();
-
-// --- AUTO MARK MISSED TASKS AT 10PM ---
-function scheduleAutoMarkMissed() {
-  const now = new Date();
-  const next10PM = new Date();
-  next10PM.setHours(22, 0, 0, 0); // 10 PM today
-  if (now > next10PM) next10PM.setDate(next10PM.getDate() + 1);
-  const timeUntil10PM = next10PM - now;
-
-  setTimeout(() => {
-    markMissedTasks();
-    scheduleAutoMarkMissed(); // reschedule daily
-  }, timeUntil10PM);
-}
-
-// === Mark Missed Tasks or Rest Days ===
-function markMissedTasks() {
-  if (!player) return;
-
-  const todayIndex = new Date().getDay(); // Sunday=0
-  const currentPlan = getCurrentPlan();
-  const weekPlan = currentPlan[player.week];
-  if (!weekPlan || !weekPlan[todayIndex]) return;
-
-  // ✅ Sunday → auto Rest Day
-  if (todayIndex === 0) {
-    weekPlan[0].tasks.forEach((_, idx) => {
-      const key = `${player.week}-0-${idx}`;
-      player.completed[key] = true;
-    });
-    savePlayer();
-    showPlan();
-    updateProfile();
-    showToast("🌞 Rest Day — recharge and prepare for a new week!");
-    return;
-  }
-
-  // ✅ Regular day → mark uncompleted as missed
-  weekPlan[todayIndex].tasks.forEach((_, idx) => {
-    const key = `${player.week}-${todayIndex}-${idx}`;
-    if (!player.completed[key]) player.completed[key] = "missed";
-  });
-
-  savePlayer();
-  console.log(`Auto-marked missed tasks for Day ${todayIndex + 1}`);
-}
-
-// === Start auto schedulers ===
-scheduleAutoMarkMissed();
-handleSundayRestDay();
-
-// --- AUTO REST SUNDAY HANDLER + AUTO MONDAY WEEK START ---
-function handleSundayRestDay() {
-  const today = new Date();
-  const dayIndex = today.getDay(); // Sunday = 0
-  if (dayIndex !== 0) return; // Only on Sunday
-
-  const currentPlan = getCurrentPlan();
-  const weekTasks = currentPlan[player.week];
-  if (!weekTasks || !weekTasks[0]) return;
-
-  // ✅ Auto-complete all Sunday tasks (Rest Day)
-  weekTasks[0].tasks.forEach((_, taskIdx) => {
-    const key = `${player.week}-0-${taskIdx}`;
-    player.completed[key] = true;
-  });
-
-  const intensity = Math.round(player.intensityScale * 100);
-  showToast(`🌅 Sunday — Rest, recharge! Next week intensity: ${intensity}% 💪`);
-
-  // ✅ Schedule automatic new week start for Monday 5 AM
-  scheduleAutoNewWeek();
-
-  savePlayer();
-  showPlan();
-  updateProfile();
-
-  console.log(`✅ Sunday auto-marked as Rest Day (Next week starts 5 AM Monday)`);
-}
-
-function scheduleAutoNewWeek() {
-  const now = new Date();
-  let monday5AM = new Date();
-  monday5AM.setDate(now.getDate() + ((1 - now.getDay() + 7) % 7)); // Next Monday
-  monday5AM.setHours(5, 0, 0, 0);
-
-  const msUntilMonday = monday5AM - now;
-  setTimeout(() => {
-    startNewWeekAuto();
-  }, msUntilMonday);
-
-  console.log(`⏰ Scheduled auto week start for ${monday5AM}`);
-}
-
-function startNewWeekAuto() {
-  // ✅ Start the next week automatically
-  player.week++;
-  player.points = 0;
-  player.dayProgress = 0;
-  player.completed = {};
-  player.startedWeek = true;
-
-  savePlayer();
-  showPlan();
-  updateProfile();
-
-  showToast(`🌞 Week ${player.week} has begun automatically! Let's crush it 💪`);
-  console.log(`🚀 Auto-started Week ${player.week} at 5 AM Monday`);
-}
-
-// --- DATE HELPERS ---
-function formatDate(date) {
-  return date.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric"
-  });
-}
-
-function getWeekRange(date) {
-  const day = date.getDay(); // 0 = Sun
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - ((day + 6) % 7));
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { monday, sunday };
-}
-
-// --- WEEKLY PROGRESS INDICATOR ---
-function renderWeeklyGoal() {
-  const now = new Date();
-  let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  let todayIdx = (now.getDay() + 6) % 7; // Mon=0
-
-  const weekHTML = `
-    <div style="
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:center;
-      gap:6px;
-      margin-top:10px;
-      max-width:100%;
-    ">
-      ${days.map((d, i) => {
-        const worked = Object.keys(player.completed).some(k => {
-          let [wk, dayIdx] = k.split("-").map(Number);
-          return wk === player.week && dayIdx === i;
-        });
-        const isToday = i === todayIdx;
-        return `<div style="
-          padding:4px 6px;
-          border-radius:6px;
-          font-size:12px;
-          background:${worked ? "#ffcc00" : "#444"};
-          color:${isToday ? "#000" : "#eee"};
-          font-weight:${isToday ? "bold" : "normal"};
-          min-width:36px;
-          text-align:center;
-        ">${d}</div>`;
-      }).join("")}
+      <p id="setupMessage" style="margin-top:15px; color:var(--secondary); font-weight:600;"></p>
     </div>
-  `;
-  document.getElementById("weeklyGoal").innerHTML = weekHTML;
-}
+  </div>
 
-// --- AUTH VIEW SWITCHER ---
-function showSignup() {
-  document.getElementById("signupForm").style.display = "block";
-  document.getElementById("loginForm").style.display = "none";
-  document.getElementById("signupTab").style.fontWeight = "bold";
-  document.getElementById("loginTab").style.fontWeight = "normal";
-}
+  <!-- Home -->
+  <div id="home" class="section">
+    <h2>📅 Your Daily Quest</h2>
+    <p id="todayDate"></p>
+    <h3 id="motivation" style="color:var(--secondary);"></h3>
 
-function showLogin() {
-  document.getElementById("signupForm").style.display = "none";
-  document.getElementById("loginForm").style.display = "block";
-  document.getElementById("signupTab").style.fontWeight = "normal";
-  document.getElementById("loginTab").style.fontWeight = "bold";
-}
+    <ul id="dailyChecklist" class="checklist"></ul>
+    <p id="rewardCountdown" style="margin-top:10px;color:var(--primary);font-weight:600;"></p>
 
-// --- THEME TOGGLE ---
-function toggleTheme() {
-  document.body.classList.toggle("light-theme");
-  const themeBtn = document.getElementById("themeToggle");
-  if (document.body.classList.contains("light-theme")) {
-    themeBtn.textContent = "🌞 Light Mode";
-    localStorage.setItem("theme", "light");
-  } else {
-    themeBtn.textContent = "🌙 Dark Mode";
-    localStorage.setItem("theme", "dark");
-  }
-}
+    <button onclick="completeDay()">✅ Complete Day</button>
+    <p id="homeStatus" style="margin-top:10px;color:var(--secondary);"></p>
+  </div>
 
-function updateThemeButton() {
-  const btn = document.getElementById("themeToggleBtn");
-  if (!btn) return;
-  btn.textContent = document.body.classList.contains("light-theme")
-    ? "🌙 Switch to Dark Mode"
-    : "☀️ Switch to Light Mode";
-}
+  <!-- Profile -->
+  <div id="profile" class="section">
+    <h2>👤 Profile</h2>
+    <p><strong>Name:</strong> <span id="profileName"></span></p>
+    <p><strong>Goal:</strong> <span id="profileGoal"></span></p>
+    <p><strong>Week:</strong> <span id="profileWeek"></span></p>
+    <p><strong>Points:</strong> <span id="profilePoints"></span></p>
+  </div>
 
-// ✅ Load saved theme on page load
-window.addEventListener("load", () => {
-  const savedTheme = localStorage.getItem("theme");
-  if (savedTheme === "light") {
-    document.body.classList.add("light-theme");
-  }
-  updateThemeButton();
-});
+  <!-- Rewards -->
+  <div id="rewards" class="section">
+    <h2>🎁 Rewards</h2>
+    <ul id="rewardsList"></ul>
+    <p id="nextRewardInfo" style="margin-top:10px;color:var(--secondary);font-weight:600;"></p>
+  </div>
 
-// --- NOTIFICATIONS & REMINDERS ---
-function toggleNotifications() {
-  const isEnabled = document.getElementById("notifToggle").checked;
-  localStorage.setItem("notificationsEnabled", isEnabled);
+  <!-- Settings -->
+  <div id="settings" class="section">
+    <h2>⚙️ Settings</h2>
 
-  if (isEnabled) {
-    Notification.requestPermission().then(permission => {
-      if (permission !== "granted") {
-        showToast("🔔 Browser notifications blocked. You'll get in-app reminders instead.");
-      }
-    });
-  }
-}
+    <div class="settings-card">
+      <h3>🎯 Change Goal</h3>
+      <select id="goalSelect" onchange="changeGoal(this.value)">
+        <option value="Muscle Gain">Muscle Gain</option>
+        <option value="Focus Exercises">Focus Exercises</option>
+      </select>
+    </div>
 
-function checkDailyReminder() {
-  const isEnabled = localStorage.getItem("notificationsEnabled") === "true";
-  if (!isEnabled) return;
+    <div class="settings-card">
+      <h3>📝 Daily Journal</h3>
+      <textarea id="journalInput" rows="5" placeholder="Write your thoughts..."></textarea>
+      <button onclick="saveJournal()">💾 Save Entry</button>
+      <button onclick="clearJournal()">🧹 Clear Journal</button>
+      <h4 style="margin-top:1rem;">📚 Your Entries</h4>
+      <div id="journalEntries" style="max-height:200px; overflow-y:auto; background:var(--card); border-radius:0.5rem; padding:0.5rem;"></div>
+    </div>
 
-  const now = new Date();
-  const fiveAM = new Date();
-  fiveAM.setHours(5, 0, 0, 0);
+    <div class="settings-card danger">
+      <h3>🚨 Danger Zone</h3>
+      <button onclick="resetProgress()" style="background:red;">❌ Reset Progress</button>
+    </div>
+  </div>
 
-  const today = now.toDateString();
-  const lastReminder = localStorage.getItem("lastReminderDate");
+  <footer>
+    <p>✔️ Stay consistent | 💎 Earn points | 🎁 Unlock rewards</p>
+    <div class="footer-links">
+      <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
+      <a href="#" onclick="showSection('rewards')">🎁 Rewards</a>
+      <a href="#" onclick="showSection('home')">🏠 Home</a>
+      <a href="#" onclick="showSection('profile')">👤 Profile</a>
+    </div>
+    <p style="margin-top:0.8rem;">Made with ❤️ by JazaLoan Team</p>
+  </footer>
 
-  if (now >= fiveAM && lastReminder !== today) {
-    if (Notification.permission === "granted") {
-      new Notification("⏰ Time to start your daily tasks!");
-    } else {
-      showToast("⏰ Time to start your daily tasks!");
-    }
-    localStorage.setItem("lastReminderDate", today);
-  }
-}
-
-document.addEventListener("DOMContentLoaded", checkDailyReminder);
-
-// --- UI FEEDBACK TOAST ---
-function showToast(message) {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.className = "toast show";
-  setTimeout(() => (toast.className = "toast"), 4000);
-}
-
-// --- GOAL CHANGER ---
-function changeGoal(newGoal) {
-  player.goal = newGoal;
-  savePlayer();
-  showPlan();
-  updateProfile();
-  alert(`✅ Goal updated to: ${newGoal}`);
-}
-  </script>
-  <div id="toast" class="toast"></div>
-
+  <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
