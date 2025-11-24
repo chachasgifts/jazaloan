@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trinah Designs Business Manager</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Load Lucide Icons - This must load before the app uses it -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom styles to ensure the app looks great and uses the Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate-50 */
+        }
+        /* Style for the chart canvas */
+        #profitChart {
+            max-height: 350px;
+        }
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.7); /* Slate-900/70 */
+        }
+        /* PDF loader styles */
+#pdf-loader { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; }
+.pdf-loader-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,0.6); } /* slate-900/60 */
+.pdf-loader-box {
+  position: relative;
+  z-index: 61;
+  width: 320px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.5);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.pdf-spinner {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 4px solid #e6edf8;
+  border-top-color: #1E3A8A; /* primary */
+  animation: pdfspin 1s linear infinite;
+}
+@keyframes pdfspin { to { transform: rotate(360deg); } }
+.pdf-loader-text { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #0f172a; font-weight:600; font-size:14px; }
+
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Main Application Container -->
+    <div id="app" class="min-h-screen">
+        <!-- Content will be rendered here by JavaScript -->
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-0 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform" style="display: none;">
+        <!-- Notification content -->
+    </div>
+
+    <!-- Modals Container -->
+    <div id="modal-container">
+        <!-- Modals will be rendered here -->
+    </div>
+
+    <script>
+        // --- Configuration & Constants ---
+        const BUY_PRICE = 120;
+        const SELL_PRICE = 200;
+        const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const REPORT_TYPES = ["Weekly", "Monthly", "Quarterly", "Yearly"];
+
+        // Local Storage Keys
+        const DB_KEY = "trinah_users_db";
+        const SESSION_KEY = "trinah_active_session";
+
+        // View States
+        const VIEW_DASHBOARD = 'dashboard';
+        const VIEW_USERS = 'users';
+
+        // Global State Variables
+        let currentUser = null;
+        let currentView = VIEW_DASHBOARD;
+        let history = []; // Current week's entries
+        let archive = []; // All previous archived entries
+        let startingPressure = 0; // Inventory carried over
+        let selectedDayIndex = 0;
+        let selectedReport = "Weekly";
+        let profitChartInstance = null;
+        
+        // --- Authentication State (Moved to Global Scope for persistence) ---
+        let isLogin = true;
+        let authError = "";
+        let authLoading = false;
+
+        // UI Elements (for easy access)
+        const appElement = document.getElementById('app');
+        const notificationContainer = document.getElementById('notification-container');
+        const modalContainer = document.getElementById('modal-container');
+
+        // --- Utility Functions ---
+
+        /**
+         * Safely renders a Lucide icon by checking if the 'lucide' object is available and initialized.
+         * @param {string} name - The name of the icon.
+         * @param {object} attributes - The attributes to pass to the toSvg method (e.g., { class: 'w-4 h-4' }).
+         * @returns {string} - HTML SVG string or an empty string if lucide is not ready.
+         */
+        function renderIcon(name, attributes = {}) {
+            if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                const icons = lucide.createIcons();
+                // Check if the specific icon exists in the map
+                if (icons && icons[name]) {
+                    return icons[name].toSvg(attributes);
+                }
+            }
+            return ''; // Return empty string if lucide or icon is not available
+        }
+
+
+        /**
+         * Persists the current user's data to localStorage.
+         * @param {string} phone - The phone number (used as user ID).
+         */
+        function saveData(phone) {
+            localStorage.setItem(`trinah_current_week_${phone}`, JSON.stringify(history));
+            localStorage.setItem(`trinah_archive_${phone}`, JSON.stringify(archive));
+            localStorage.setItem(`trinah_starting_pressure_${phone}`, startingPressure.toString());
+        }
+
+        /**
+         * Loads the current user's data from localStorage.
+         * @param {object} user - The current user object.
+         */
+        function loadData(user) {
+            const phone = user.phone;
+            const savedHistory = localStorage.getItem(`trinah_current_week_${phone}`);
+            if (savedHistory) history = JSON.parse(savedHistory);
+            
+            const savedArchive = localStorage.getItem(`trinah_archive_${phone}`);
+            if (savedArchive) archive = JSON.parse(savedArchive);
+            
+            const savedPressure = localStorage.getItem(`trinah_starting_pressure_${phone}`);
+            startingPressure = savedPressure ? Number(savedPressure) : 0;
+
+            // Ensure starting pressure is consistent if history is empty
+            if (history.length === 0 && archive.length > 0) {
+                startingPressure = archive[archive.length - 1].remaining;
+            }
+
+            // Find the next available day
+            const jsDay = new Date().getDay();
+const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+selectedDayIndex = mappedDay;
+
+            
+            // Re-render the application view
+            renderApp();
+        }
+
+        /**
+         * Calculates the next available day index (skipping filled days).
+         * @param {Array} history - The current week's history.
+         * @returns {number} - The index of the next available day.
+         */
+        function getNextAvailableDayIndex(currentHistory) {
+            const filledDays = currentHistory.map(entry => entry.date);
+            const today = new Date().toLocaleDateString();
+            const todayEntries = currentHistory.filter(entry => entry.fullDate === today);
+            
+            if (todayEntries.length > 0) {
+                // If there are entries for today, find the next sequential day that hasn't been filled today
+                let startIndex = DAYS.indexOf(todayEntries[todayEntries.length - 1].date);
+                let nextIndex = (startIndex + 1) % 7;
+                let loops = 0;
+                while (filledDays.includes(DAYS[nextIndex]) && loops < 7) {
+                    nextIndex = (nextIndex + 1) % 7;
+                    loops++;
+                }
+                return loops < 7 ? nextIndex : startIndex; // Stick to the last day if all filled
+            }
+            
+            // If no entries for today, start from Monday (0) or the last day recorded
+            return currentHistory.length > 0 ? (DAYS.indexOf(currentHistory[currentHistory.length - 1].date) + 1) % 7 : 0;
+        }
+        
+        /**
+         * Displays a temporary notification message.
+         * @param {string} msg - The message to display.
+         */
+        function showNotification(msg) {
+            notificationContainer.innerHTML = `<div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-medium flex items-center gap-2">
+                ${msg.includes("Locked") ? renderIcon('lock', { class: 'w-4 h-4' }) : ''}
+                ${msg}
+            </div>`;
+            notificationContainer.style.display = 'block';
+            notificationContainer.classList.remove('opacity-0', '-translate-y-full');
+            notificationContainer.classList.add('opacity-100', 'translate-y-5');
+
+            setTimeout(() => {
+                notificationContainer.classList.remove('opacity-100', 'translate-y-5');
+                notificationContainer.classList.add('opacity-0', '-translate-y-full');
+                setTimeout(() => notificationContainer.style.display = 'none', 300);
+            }, 3000);
+        }
+
+        /**
+         * Formats a number as currency.
+         * @param {number} val - The numeric value.
+         * @returns {string} - Formatted currency string.
+         */
+        function formatCurrency(val) {
+            return `KES ${val.toLocaleString()}`;
+        }
+
+        /**
+         * Gets the full, combined history (archive + current week).
+         * @returns {Array} - Combined history array.
+         */
+        function getFullHistory() {
+            return [...archive, ...history];
+        }
+
+        /**
+         * Checks if an entry is locked (after 9 AM the next day).
+         * @param {object} entry - The history entry.
+         * @returns {boolean} - True if locked.
+         */
+        function isEntryLocked(entry) {
+            if (!entry) return false;
+            const entryTime = new Date(entry.id);
+            const deadline = new Date(entryTime);
+            deadline.setDate(deadline.getDate() + 1);
+            deadline.setHours(9, 0, 0, 0); // Lock after 9 AM the next day
+            return new Date() > deadline;
+        }
+
+        /**
+         * Filters the full history based on the selected report type.
+         * @returns {Array} - Filtered history data.
+         */
+        function getFilteredHistory() {
+            const fullHistory = getFullHistory();
+            const now = new Date();
+            const msPerDay = 24 * 60 * 60 * 1000;
+
+            return fullHistory.filter(entry => {
+                const entryTime = new Date(entry.id);
+                const diffTime = Math.abs(now - entryTime);
+                const diffDays = Math.ceil(diffTime / msPerDay);
+
+                switch (selectedReport) {
+                    case "Weekly": return diffDays <= 7;
+                    case "Monthly": return diffDays <= 30;
+                    case "Quarterly": return diffDays <= 90;
+                    case "Yearly": return diffDays <= 365;
+                    default: return true;
+                }
+            });
+        }
+
+        // --- Navigation and State Management ---
+
+        /**
+         * Switches the active view.
+         * @param {string} view - The new view state.
+         */
+        function setView(view) {
+            currentView = view;
+            renderApp();
+        }
+
+        /**
+         * Handles user login and session setup.
+         * @param {object} user - The authenticated user object.
+         */
+        function handleLogin(user) {
+            // Reset auth state on successful login
+            authError = "";
+            authLoading = false;
+            
+            currentUser = user;
+            localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+            loadData(user); // Load data specific to this user
+            setView(VIEW_DASHBOARD);
+        }
+
+        /**
+         * Handles user logout.
+         */
+        function handleLogout() {
+            // Save the data of the current user before logging out
+            if (currentUser) {
+                saveData(currentUser.phone);
+            }
+            currentUser = null;
+            localStorage.removeItem(SESSION_KEY);
+            // Clear the local state variables
+            history = [];
+            archive = [];
+            startingPressure = 0;
+            // Go back to auth screen
+            renderApp();
+        }
+
+        /**
+         * Handles switching the active user from the user management screen.
+         * @param {object} user - The user object to switch to.
+         */
+        function handleSwitchUser(user) {
+            // Save data for the *old* user before switching
+            if (currentUser) {
+                saveData(currentUser.phone);
+            }
+            handleLogin(user); // Use login to set the new active user and load their data
+        }
+
+        // --- Core Business Logic ---
+
+        /**
+         * Handles the form submission for a new record.
+         */
+       function handleSubmit() {
+    const dispatchInput = document.getElementById('dispatch-input');
+    const salesInput = document.getElementById('sales-input');
+
+    const numDispatch = Number(dispatchInput.value) || 0;
+    const numSales = Number(salesInput.value) || 0;
+
+    if (numDispatch === 0 && numSales === 0) {
+        showNotification("Please enter dispatch or sales amount.");
+        return;
+    }
+
+    // --- NEW TIME-RESTRICTION RULE ---
+    const now = new Date();
+    const jsDay = now.getDay(); // 0-6
+    const mappedDay = jsDay === 0 ? 6 : jsDay - 1; // Monday=0 ... Sunday=6
+    const hour = now.getHours();
+
+    // You can only fill today's entry AND only after 3 PM
+    if (selectedDayIndex !== mappedDay) {
+        showNotification("You can only fill today's entry.");
+        return;
+    }
+
+    if (hour < 15) {
+        showNotification("You cannot fill today's entry before 3:00 PM.");
+        return;
+    }
+    // --- END NEW RULE ---
+
+    const currentDayName = DAYS[mappedDay];
+    const fullDateString = now.toLocaleDateString();
+
+    const prevRemaining =
+        getFullHistory().length > 0
+            ? getFullHistory()[getFullHistory().length - 1].remaining
+            : startingPressure;
+
+    const newRemaining = prevRemaining + numDispatch - numSales;
+
+    if (newRemaining < 0) {
+        showNotification("Error: Sales exceed current remaining inventory. Cannot proceed.");
+        return;
+    }
+
+    const record = {
+        id: Date.now(),
+        date: currentDayName,
+        fullDate: fullDateString,
+        dispatched: numDispatch,
+        sold: numSales,
+        remaining: newRemaining,
+        profit: numSales * (SELL_PRICE - BUY_PRICE),
+    };
+
+    // Add to history and update pressure
+    history.push(record);
+    startingPressure = newRemaining;
+
+    // Clear inputs
+    dispatchInput.value = "";
+    salesInput.value = "";
+
+    saveData(currentUser.phone);
+
+    // --- WEEK END LOGIC: CHECK FOR SUNDAY ---
+    if (currentDayName === "Sunday") {
+        renderWeekCompleteModal();
+        renderDashboard(); // Re-render to update stats
+        return;
+    }
+
+    // Auto Advance for other days
+    const newIndex = (selectedDayIndex + 1) % 7;
+    selectedDayIndex = newIndex;
+
+    showNotification(`Saved! Next: ${DAYS[selectedDayIndex]}`);
+    renderDashboard();
+}
+
+        function handleStartNewWeek() {
+            // Close modal
+            const modal = document.getElementById('week-complete-modal');
+            if (modal) modal.remove();
+
+            const finalPressure = getFullHistory().length > 0 ? getFullHistory()[getFullHistory().length - 1].remaining : startingPressure;
+            
+            // Archive current history and reset it
+            archive = [...archive, ...history];
+            history = []; 
+            startingPressure = finalPressure; 
+
+            // Reset UI states
+            selectedDayIndex = 0; // Reset to Monday
+            
+            saveData(currentUser.phone);
+            showNotification("Week closed. Ready for Monday!");
+            renderDashboard();
+        }
+
+        /**
+         * Deletes the last entry if it's not locked.
+         */
+        function handleDeleteLast() {
+            const fullHistory = getFullHistory();
+            const lastEntry = history[history.length - 1]; 
+
+            if (!lastEntry) return;
+
+            if (isEntryLocked(lastEntry)) {
+                showNotification("Locked: 9AM deadline has passed.");
+                return;
+            }
+
+            // Remove from current week's history
+            history.pop();
+            
+            const newLastEntry = getFullHistory()[getFullHistory().length - 1];
+            
+            const newPressure = newLastEntry 
+                ? newLastEntry.remaining
+                : archive.length > 0 
+                    ? archive[archive.length - 1].remaining
+                    : 0;
+            
+            startingPressure = newPressure;
+
+            // Reset selected day to the day of the deleted entry
+            const dayIndex = DAYS.indexOf(lastEntry.date);
+            if (dayIndex !== -1) selectedDayIndex = dayIndex;
+
+            saveData(currentUser.phone);
+            showNotification(`Deleted entry for ${lastEntry.date}`);
+            renderDashboard();
+        }
+        
+        /**
+         * Downloads the current filtered data as a CSV file.
+         */
+async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
+    if (data.length === 0) {
+        showNotification(`No data found for ${reportName} report.`);
+        return;
+    }
+
+    // Show loader
+    const loader = document.getElementById('pdf-loader');
+    if (loader) loader.style.display = 'flex';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+
+        // Brand colors (Preset A)
+        const PRIMARY = "#1E3A8A";
+        const SECONDARY = "#3B82F6";
+        const MARGIN_LEFT = 40;
+        const PAGE_WIDTH = doc.internal.pageSize.getWidth();
+        const PAGE_HEIGHT = doc.internal.pageSize.getHeight();
+
+        // --- Calculations & Business Insights ---
+        const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
+        const totalDispatch = data.reduce((sum, r) => sum + (Number(r.dispatched) || 0), 0);
+        const totalSold = data.reduce((sum, r) => sum + (Number(r.sold) || 0), 0);
+        const avgSales = (totalSold / data.length) || 0;
+        const avgSalesStr = avgSales.toFixed(1);
+
+        // Identify bottom performing days by sold (lowest sold)
+        const bySoldAsc = [...data].sort((a,b) => (a.sold||0) - (b.sold||0));
+        const lowDays = bySoldAsc.slice(0, Math.min(3, bySoldAsc.length)).map(r => `${r.date} (${r.sold})`);
+
+        // Identify days with high leftover pressure relative to sold -> suggest reduce dispatch
+        const wasteDays = data.filter(r => (r.dispatched || 0) > (r.sold || 0) && (r.dispatched - r.sold) > Math.max(5, (avgSales*0.5)))
+            .map(r => `${r.date} (leftover: ${r.dispatched - r.sold})`);
+
+        // Compose suggestions
+        let suggestions = [];
+        if (avgSales < 20) suggestions.push("Consider promotional activities — average daily sales are low.");
+        if (totalDispatch > totalSold) suggestions.push("Reduce dispatch quantities on low-demand days to avoid excess pressure.");
+        if (totalProfit < 1000) suggestions.push("Revisit pricing or improve cross-selling to boost profit margin.");
+        if (lowDays.length) suggestions.push(`Low-performing days: ${lowDays.join(', ')}.`);
+        if (wasteDays.length) suggestions.push(`High leftover days: ${wasteDays.join(', ')}.`);
+        if (suggestions.length === 0) suggestions.push("Good performance — maintain current strategies and monitor daily trends.");
+
+        // --- Layout variables ---
+        let y = 40; // starting Y
+        const lineHeight = 16;
+        const headerHeight = 52;
+
+        // Header bar
+        doc.setFillColor(PRIMARY);
+        doc.rect(0, 0, PAGE_WIDTH, headerHeight, 'F');
+
+        // Title text in header
+        doc.setTextColor("#ffffff");
+        doc.setFontSize(16);
+        doc.setFont("Helvetica", "bold");
+        doc.text(`Trinah Designs — ${reportName} Report`, MARGIN_LEFT, 32);
+
+        // Date and owner
+        doc.setFontSize(10);
+        doc.setFont("Helvetica", "normal");
+        doc.text(`Generated: ${new Date().toLocaleString()}`, PAGE_WIDTH - MARGIN_LEFT - 220, 24);
+        doc.text(`Account: ${currentUser ? currentUser.name : "N/A"} (${currentUser ? currentUser.phone : "N/A"})`, MARGIN_LEFT, 52);
+
+        y = 80;
+
+        // Summary box
+        doc.setDrawColor(PRIMARY);
+        doc.setFillColor("#ffffff");
+        doc.setFontSize(11);
+        doc.setFont("Helvetica", "bold");
+        doc.text("Summary", MARGIN_LEFT, y);
+        y += 6;
+        doc.setLineWidth(0.6);
+        doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_LEFT, y);
+        y += 14;
+
+        doc.setFont("Helvetica", "normal");
+        doc.setTextColor("#0f172a");
+        doc.text(`Days in report: ${data.length}`, MARGIN_LEFT, y); y += lineHeight;
+        doc.text(`Total Profit: KSh ${Number(totalProfit).toLocaleString()}`, MARGIN_LEFT, y); y += lineHeight;
+        doc.text(`Total Dispatch: ${totalDispatch}`, MARGIN_LEFT, y); y += lineHeight;
+        doc.text(`Total Sold: ${totalSold}`, MARGIN_LEFT, y); y += lineHeight;
+        doc.text(`Average Daily Sales: ${avgSalesStr}`, MARGIN_LEFT, y); y += (lineHeight + 6);
+
+        // Business Notes (polished tone)
+        doc.setFont("Helvetica", "bold");
+        doc.setTextColor(PRIMARY);
+        doc.text("Business Notes", MARGIN_LEFT, y);
+        y += 8;
+        doc.setLineWidth(0.4);
+        doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_LEFT, y);
+        y += 12;
+
+        doc.setFont("Helvetica", "normal");
+        const notes = [
+            "• This report summarizes activity during the selected period and highlights where inventory or sales adjustments are recommended.",
+            "• Focus on days with low sales and high leftover pressure; optimize dispatch to reduce capital tied in stock.",
+            "• Consider targeted promotions on low-performing days and pricing adjustments where margins are thin."
+        ];
+        notes.forEach(n => { doc.text(n, MARGIN_LEFT, y); y += 14; });
+        y += 6;
+
+        // Suggestions block
+        doc.setFont("Helvetica", "bold");
+        doc.setTextColor(PRIMARY);
+        doc.text("Recommendations", MARGIN_LEFT, y);
+        y += 10;
+        doc.setFont("Helvetica", "normal");
+        doc.setTextColor("#0f172a");
+        suggestions.forEach(s => { doc.text(`• ${s}`, MARGIN_LEFT + 10, y); y += 14; });
+        y += 12;
+
+        // Table header background
+        doc.setFillColor(SECONDARY);
+        doc.rect(MARGIN_LEFT - 4, y - 6, PAGE_WIDTH - MARGIN_LEFT*2 + 8, 20, 'F');
+        doc.setTextColor("#ffffff");
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("Date", MARGIN_LEFT, y + 8);
+        doc.text("Dispatch", MARGIN_LEFT + 110, y + 8);
+        doc.text("Sold", MARGIN_LEFT + 200, y + 8);
+        doc.text("Pressure", MARGIN_LEFT + 280, y + 8);
+        doc.text("Profit", MARGIN_LEFT + 370, y + 8);
+        y += 28;
+        doc.setFontSize(10);
+        doc.setFont("Helvetica", "normal");
+        doc.setTextColor("#0f172a");
+
+        // Row rendering with page break handling
+        data.forEach((r, idx) => {
+            const profitStr = `KSh ${Number(r.profit).toLocaleString()}`;
+            doc.text(r.fullDate, MARGIN_LEFT, y);
+            doc.text(String(r.dispatched || 0), MARGIN_LEFT + 110, y);
+            doc.text(String(r.sold || 0), MARGIN_LEFT + 200, y);
+            doc.text(String(r.remaining || 0), MARGIN_LEFT + 280, y);
+            doc.text(profitStr, MARGIN_LEFT + 370, y);
+            y += 16;
+
+            if (y > PAGE_HEIGHT - 80) {
+                doc.addPage();
+                y = 48;
+            }
+        });
+
+        // FOOTER: page numbers and small footnote; iterate pages
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            const footerY = PAGE_HEIGHT - 30;
+            doc.setFontSize(9);
+            doc.setTextColor("#6b7280");
+            doc.text(`Trinah Designs — Confidential Report`, MARGIN_LEFT, footerY);
+            doc.text(`Generated: ${new Date().toLocaleDateString()}`, PAGE_WIDTH - MARGIN_LEFT - 160, footerY);
+            doc.text(`Page ${i} of ${pageCount}`, PAGE_WIDTH/2 - 20, footerY);
+        }
+
+        // Save file
+        const filename = `TrinahDesigns_${reportName}_${currentUser ? currentUser.phone : 'report'}.pdf`;
+        doc.save(filename);
+
+        showNotification(`${reportName} PDF Report Downloaded`);
+    } catch (err) {
+        console.error("PDF generation failed", err);
+        showNotification("Failed to generate PDF report.");
+    } finally {
+        // Hide loader
+        const loader = document.getElementById('pdf-loader');
+        if (loader) loader.style.display = 'none';
+    }
+}
+
+        // --- Authentication Handlers (Global Scope) ---
+
+        /**
+         * Toggles between Login and Signup modes and triggers a re-render.
+         * @param {boolean} login - True for Login mode, False for Signup mode.
+         */
+        function toggleAuthMode(login) {
+            isLogin = login;
+            authError = '';
+            renderAuthScreen();
+        }
+
+        /**
+         * Core authentication logic (Login/Signup).
+         * @param {Event} e - The form submission event.
+         */
+        function authHandler(e) {
+            e.preventDefault();
+            
+            const phone = document.getElementById('auth-phone').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            
+            if (phone.length === 0 || password.length === 0) {
+                authError = "Please enter both phone number and password.";
+                renderAuthScreen();
+                return;
+            }
+
+            authLoading = true;
+            renderAuthScreen(); // Show loading state
+
+            // Simulate API call delay
+            setTimeout(() => {
+                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                let user = null;
+                authError = ""; // Clear error before attempt
+
+                if (isLogin) {
+                    user = users.find(u => u.phone === phone && u.password === password);
+                    if (user) {
+                        handleLogin(user);
+                    } else {
+                        authError = "Invalid phone number or password.";
+                    }
+                } else { // Signup
+                    const exists = users.find(u => u.phone === phone);
+                    if (exists) {
+                        authError = "User already exists. Please log in.";
+                    } else {
+                        const newUser = { 
+                            phone, 
+                            password, 
+                            name: `User ${phone.substring(phone.length - 4)}` 
+                        };
+                        users.push(newUser);
+                        localStorage.setItem(DB_KEY, JSON.stringify(users));
+                        // Save new user's credentials temporarily so they don't have to re-enter
+                        localStorage.setItem('temp_auth_phone', phone);
+                        localStorage.setItem('temp_auth_password', password);
+                        handleLogin(newUser);
+                    }
+                }
+                
+                authLoading = false;
+                if (!currentUser) renderAuthScreen(); // Only re-render if login/signup failed
+            }, 800);
+        }
+
+        // Expose handlers globally so they can be called from inline HTML
+        window.authHandler = authHandler;
+        window.toggleAuthMode = toggleAuthMode;
+
+        // --- UI Rendering Functions (HTML String Generation) ---
+
+        /**
+         * Renders the modal for week completion.
+         */
+        function renderWeekCompleteModal() {
+            const finalPressure = history.length > 0 ? history[history.length - 1].remaining : startingPressure;
+            const weekData = history;
+            
+            const modalHTML = `
+                <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('week-complete-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative z-10 text-center transform transition-all scale-100">
+                        <button onclick="document.getElementById('week-complete-modal').remove()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600">${renderIcon('x', { class: 'w-5 h-5' })}</button>
+                        
+                        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            ${renderIcon('check-square', { class: 'w-8 h-8' })}
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">Week Completed!</h2>
+                        <p class="text-slate-600 mb-4 text-sm">
+                            Your final inventory (Pressure) of 
+                            <span class="font-bold text-orange-600"> ${finalPressure} units </span> 
+                            will be carried over to the new week.
+                        </p>
+                        <p class="text-slate-500 mb-6 text-xs">Downloading the report is optional before resetting.</p>
+                        
+                        <div class="space-y-3">
+                            <button onclick="downloadReport(${JSON.stringify(weekData)}, 'Completed_Week'); document.getElementById('week-complete-modal').remove();" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 shadow-md w-full">
+                                ${renderIcon('file-text', { class: 'w-4 h-4' })}
+                                Download Weekly Report
+                            </button>
+                            <button onclick="handleStartNewWeek()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200 shadow-md w-full">
+                                ${renderIcon('arrow-right', { class: 'w-4 h-4' })}
+                                Start New Week (Monday)
+                            </button>
+                            <button onclick="document.getElementById('week-complete-modal').remove()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
+                                ${renderIcon('calendar', { class: 'w-4 h-4' })}
+                                Maybe Later / Stay on Sunday
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+        }
+
+        /**
+         * Renders the main application header.
+         * @param {boolean} isMobileMenuOpen - State of the mobile menu.
+         * @returns {string} - HTML string for the header.
+         */
+        function renderHeader(isMobileMenuOpen) {
+            // Expose Toggler globally (only needed for mobile menu interaction)
+            window.toggleMobileMenu = () => {
+                const menu = document.getElementById('mobile-menu');
+                const overlay = document.getElementById('mobile-menu-overlay');
+                const isOpen = menu.classList.contains('translate-x-0');
+                
+                if (isOpen) {
+                    menu.classList.remove('translate-x-0');
+                    menu.classList.add('translate-x-full');
+                    overlay.classList.add('hidden');
+                } else {
+                    menu.classList.remove('translate-x-full');
+                    menu.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                }
+            };
+
+            return `
+                <header class="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+                    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-indigo-200 shadow-md">T</div>
+                            <div class="flex flex-col">
+                                <span class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-600 leading-none">Trinah Designs</span>
+                                <span class="text-[10px] text-slate-500 font-medium">Active Account: ${currentUser ? currentUser.name : 'Guest'}</span>
+                            </div>
+                        </div>
+
+                        <nav class="hidden md:flex items-center gap-4">
+                            <button onclick="setView('${VIEW_USERS}')" class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all duration-200 bg-transparent text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 text-sm">
+                                ${renderIcon('users', { class: 'w-4 h-4' })} Manage Users
+                            </button>
+                            <button onclick="downloadReport()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all duration-200 border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 text-sm">
+                                ${renderIcon('download', { class: 'w-4 h-4' })} Report
+                            </button>
+                            <button onclick="handleLogout()" class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all duration-200 bg-transparent text-slate-500 hover:text-red-600 hover:bg-red-50 text-sm">
+                                ${renderIcon('log-out', { class: 'w-4 h-4' })} Log Out
+                            </button>
+                        </nav>
+
+                        <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                            ${renderIcon('menu', { class: 'w-6 h-6' })}
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Mobile Menu Overlay -->
+                <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 ${isMobileMenuOpen ? '' : 'hidden'}"></div>
+                <!-- Mobile Menu -->
+                <div id="mobile-menu" class="fixed right-0 top-0 h-full w-80 bg-white shadow-2xl z-50 p-6 flex flex-col gap-6 transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                        <span class="text-lg font-bold text-slate-800">Menu</span>
+                        <button onclick="toggleMobileMenu()" class="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                            ${renderIcon('x', { class: 'w-6 h-6' })}
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button onclick="setView('${VIEW_DASHBOARD}'); toggleMobileMenu();" class="flex items-center justify-start gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
+                            ${renderIcon('home', { class: 'w-4 h-4' })} Dashboard
+                        </button>
+                        <button onclick="setView('${VIEW_USERS}'); toggleMobileMenu();" class="flex items-center justify-start gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
+                            ${renderIcon('users', { class: 'w-4 h-4' })} Manage Users
+                        </button>
+                        <button onclick="downloadReport(); toggleMobileMenu();" class="flex items-center justify-start gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
+                            ${renderIcon('download', { class: 'w-4 h-4' })} Download Report
+                        </button>
+                        <button onclick="handleLogout()" class="flex items-center justify-start gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-red-50 text-red-600 hover:bg-red-100 w-full">
+                            ${renderIcon('log-out', { class: 'w-4 h-4' })} Log Out
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // --- Helper for closing week complete modal without action ---
+        function handleCloseModalOnly() {
+             const modal = document.getElementById('week-complete-modal');
+            if (modal) modal.remove();
+        }
+
+
+        /**
+         * Renders a Stat Card HTML snippet.
+         * @param {string} title - Card title.
+         * @param {string} value - Card value.
+         * @param {string} iconName - Lucide icon name.
+         * @param {string} colorClass - Tailwind color classes.
+         * @returns {string} - HTML string.
+         */
+        function renderStatCard(title, value, iconName, colorClass) {
+            return `
+                <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">${title}</p>
+                        <p class="text-xl font-bold ${colorClass}">${value}</p>
+                    </div>
+                    <div class="p-2 rounded-lg bg-white shadow-sm">
+                        ${renderIcon(iconName, { class: `w-5 h-5 ${colorClass}` })}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the main Dashboard screen content.
+         */
+function renderDashboard() {
+    const fullHistory = getFullHistory();
+    const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
+    const currentPressure = lastEntry ? lastEntry.remaining : startingPressure;
+    const lastEntryIsLocked = isEntryLocked(lastEntry);
+
+    const now = new Date();
+    const today = now.toLocaleDateString();
+    const hour = now.getHours();
+
+    const filledDays = history
+        .filter(entry => entry.fullDate === today)
+        .map(entry => entry.date);
+
+    const filteredData = getFilteredHistory();
+    const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
+
+    // --- FIXED TODAY'S SALES (NOW SHOWS ONLY TODAY’S SOLD INPUTS) ---
+    const todaysSales = history
+        .filter(entry => entry.fullDate === today)
+        .reduce((sum, entry) => sum + entry.sold, 0);
+
+    let contentHTML = `
+        ${renderHeader(false)}
+        <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                ${renderStatCard("Pressure", currentPressure, "gauge", "text-orange-600")}
+                ${renderStatCard("Total Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")}
+                ${renderStatCard("Today's Sales", todaysSales, "trending-up", "text-amber-600")}
+                ${renderStatCard(`${selectedReport} Entries`, filteredData.length, "bar-chart-3", "text-purple-600")}
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                
+                <!-- Inputs & Preview -->
+                <div class="md:col-span-1 space-y-6">
+                    
+                    <!-- Input Card -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                ${renderIcon('plus-circle', { class: 'w-5 h-5 text-indigo-600' })}
+                                New Entry
+                            </h2>
+                            <span class="text-xs font-medium px-2 py-1 bg-indigo-50 text-indigo-600 rounded-full">
+                                ${DAYS[selectedDayIndex]}
+                            </span>
+                        </div>
+
+                        <div class="space-y-4">
+
+                            <!-- Day Selector -->
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 mb-1 block">Day of Week</label>
+                                <div class="grid grid-cols-4 gap-2">
+
+                                    ${DAYS.map((d, i) => {
+                                        const jsDay = now.getDay();
+                                        const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+
+                                        const isBeforeToday = i < mappedDay;
+                                        const isToday = i === mappedDay;
+
+                                        const alreadyFilled = filledDays.includes(d);
+
+                                        // --- NEW 3:00 PM RULE SYNC ---
+                                        const isLocked =
+                                            isBeforeToday ||
+                                            alreadyFilled ||
+                                            (isToday && hour < 15);
+
+                                        return `
+                                            <button
+                                                onclick="selectedDayIndex = ${i}; renderDashboard();"
+                                                ${isLocked ? "disabled" : ""}
+                                                class="text-xs py-2 px-1 rounded-lg transition-all flex flex-col items-center justify-center relative ${
+                                                    selectedDayIndex === i
+                                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105"
+                                                        : isLocked
+                                                            ? "bg-slate-100 text-slate-300 cursor-not-allowed border border-slate-100"
+                                                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                                }"
+                                            >
+                                                ${d.substring(0, 3)}
+                                                ${
+                                                    isLocked
+                                                        ? `<div class="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg">
+                                                            ${renderIcon("check-circle-2", { class: "w-4 h-4 text-emerald-500" })}
+                                                        </div>`
+                                                        : ""
+                                                }
+                                            </button>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Inputs -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="space-y-1 w-full">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Dispatch</label>
+                                    <input type="number" id="dispatch-input" placeholder="0" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-slate-700 font-medium placeholder-slate-400" />
+                                </div>
+                                <div class="space-y-1 w-full">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sold</label>
+                                    <input type="number" id="sales-input" placeholder="0" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-slate-700 font-medium placeholder-slate-400" />
+                                </div>
+                            </div>
+
+                            <button onclick="handleSubmit()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200 shadow-md w-full mt-2">
+                                ${renderIcon('plus-circle', { class: 'w-4 h-4' })} Add Record
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Preview Card -->
+                    <div class="bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl shadow-xl border-none relative overflow-hidden p-6">
+                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <div>
+                                <p class="text-indigo-200 text-sm font-medium">Current Inventory</p>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-2xl font-bold">${currentPressure} Units</h3>
+                                    ${lastEntry ? `
+                                        <div class="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-bold border ${lastEntryIsLocked ? "bg-red-500/20 border-red-400/50 text-red-100" : "bg-emerald-500/20 border-red-400/50 text-emerald-100"}">
+                                            ${renderIcon(lastEntryIsLocked ? 'lock' : 'unlock', { class: 'w-3 h-3' })}
+                                            ${lastEntryIsLocked ? "LOCKED" : "EDITABLE"}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div class="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                                ${renderIcon('gauge', { class: 'w-5 h-5 text-white' })}
+                            </div>
+                        </div>
+                        
+                        ${lastEntry ? `
+                            <div class="space-y-3 relative z-10">
+                                <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                                    <span class="text-indigo-100">Last Entry Date</span>
+                                    <span class="font-semibold">${lastEntry.fullDate} (${lastEntry.date})</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-indigo-100">Last Net Profit</span>
+                                    <span class="font-bold text-emerald-300 text-lg">${formatCurrency(lastEntry.profit)}</span>
+                                </div>
+                                
+                                <div class="pt-2">
+                                    <button 
+                                        onclick="handleDeleteLast()"
+                                        ${lastEntryIsLocked || history.length === 0 ? 'disabled' : ''}
+                                        class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all duration-200 w-full text-xs ${
+                                            lastEntryIsLocked || history.length === 0 ? "bg-slate-700/50 text-slate-400 cursor-not-allowed" : "bg-white/10 hover:bg-white/20 text-indigo-100"
+                                        }"
+                                    >
+                                        ${renderIcon(lastEntryIsLocked ? 'lock' : 'trash-2', { class: 'w-3 h-3' })}
+                                        ${history.length === 0 ? "No Current Entries" : (lastEntryIsLocked ? "Entry Locked (Past 9AM)" : "Undo Last Entry")}
+                                    </button>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="text-center py-6 text-indigo-200 text-sm relative z-10">
+                                Start with a Dispatch record to begin tracking this week.
+                            </div>
+                        `}
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="md:col-span-2 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden p-6 h-full flex flex-col">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-800">Performance Analytics</h2>
+                                <p class="text-slate-500 text-sm">Profit trends over time</p>
+                            </div>
+                            <div class="flex bg-slate-100 p-1 rounded-lg self-start">
+                                ${REPORT_TYPES.map((type) => `
+                                    <button
+                                        onclick="selectedReport = '${type}'; renderDashboard();"
+                                        class="px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                            selectedReport === type ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                        }"
+                                    >
+                                        ${type}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="flex-1 min-h-[350px] w-full">
+                            ${filteredData.length > 0 ? `
+                                <canvas id="profitChart"></canvas>
+                            ` : `
+                                <div class="h-full flex flex-col items-center justify-center text-slate-400 space-y-2">
+                                    ${renderIcon('bar-chart-3', { class: 'w-12 h-12 opacity-20' })}
+                                    <p>No entries found for this ${selectedReport.toLowerCase()} period.</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    `;
+
+    appElement.innerHTML = contentHTML;
+
+    if (filteredData.length > 0) {
+        initializeChart(filteredData);
+    }
+}
+
+        function initializeChart(data) {
+            if (profitChartInstance) {
+                profitChartInstance.destroy();
+            }
+
+            const ctx = document.getElementById('profitChart');
+            if (!ctx) return;
+
+            profitChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(entry => {
+    const jsDay = new Date(entry.id).getDay();
+    const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+    return `${DAYS[mappedDay]} (${entry.fullDate})`;
+})
+,
+                    datasets: [{
+                        label: 'Profit (KES)',
+                        data: data.map(entry => entry.profit),
+                        borderColor: '#4f46e5', // Indigo-600
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)', // Indigo-600 with opacity
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#4f46e5',
+                        borderWidth: 3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#e2e8f0' },
+                            ticks: { callback: (value) => formatCurrency(value).split(' ')[1] }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Renders the Authentication (Login/Signup) screen.
+         */
+        function renderAuthScreen() {
+            // NOTE: isLogin, authError, authLoading are now globally defined and updated by authHandler/toggleAuthMode
+            
+            const authHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 flex items-center justify-center p-4">
+                    <div class="w-full max-w-md">
+                        <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden p-8">
+                            <div class="text-center mb-8">
+                                <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-indigo-200 shadow-lg mx-auto mb-4">T</div>
+                                <h1 class="text-2xl font-bold text-slate-800">Trinah Designs</h1>
+                                <p class="text-slate-500">Inventory & Business Manager</p>
+                            </div>
+
+                            <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
+                                <button 
+                                    onclick="window.toggleAuthMode(true)" 
+                                    class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${isLogin ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}"
+                                >
+                                    Log In
+                                </button>
+                                <button 
+                                    onclick="window.toggleAuthMode(false)"
+                                    class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${!isLogin ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}"
+                                >
+                                    Sign Up
+                                </button>
+                            </div>
+
+                            <form onsubmit="window.authHandler(event)" class="space-y-4">
+                                <div class="space-y-1 w-full">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Phone Number</label>
+                                    <div class="relative">
+                                        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">${renderIcon('smartphone', { class: 'w-5 h-5' })}</div>
+                                        <input type="text" id="auth-phone" placeholder="0712 345 678" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-slate-700 font-medium placeholder-slate-400 pl-10" />
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-1 w-full">
+                                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Password</label>
+                                    <div class="relative">
+                                        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">${renderIcon('key-round', { class: 'w-5 h-5' })}</div>
+                                        <input type="password" id="auth-password" placeholder="••••••••" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-slate-700 font-medium placeholder-slate-400 pl-10" />
+                                    </div>
+                                </div>
+
+                                ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
+
+                                <button 
+                                    type="submit" 
+                                    class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 w-full mt-4 ${authLoading ? 'bg-slate-300 text-slate-600' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200 shadow-md'}"
+                                    ${authLoading ? 'disabled' : ''}
+                                >
+                                    ${renderIcon(authLoading ? 'refresh-cw' : 'arrow-right', { class: `w-4 h-4 ${authLoading ? 'animate-spin' : ''}` })}
+                                    ${authLoading ? "Processing..." : (isLogin ? "Access Dashboard" : "Create Account")}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            appElement.innerHTML = authHTML;
+            
+            // Restore previous input values if they exist after rendering
+            const authPhoneInput = document.getElementById('auth-phone');
+            const authPasswordInput = document.getElementById('auth-password');
+            if (authPhoneInput) authPhoneInput.value = localStorage.getItem('temp_auth_phone') || '';
+            if (authPasswordInput) authPasswordInput.value = localStorage.getItem('temp_auth_password') || '';
+            
+            // Add listeners to save state temporarily
+            authPhoneInput?.addEventListener('input', (e) => localStorage.setItem('temp_auth_phone', e.target.value));
+            authPasswordInput?.addEventListener('input', (e) => localStorage.setItem('temp_auth_password', e.target.value));
+        }
+
+        /**
+         * Renders the User Management screen.
+         */
+        function renderUserManagementScreen() {
+            const storedUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            
+            let usersHTML = storedUsers.map(user => {
+                const isActive = user.phone === currentUser.phone;
+                return `
+                    <div 
+                        class="flex items-center justify-between p-4 rounded-xl border transition-all ${
+                            isActive 
+                                ? 'bg-indigo-50 border-indigo-300 shadow-md' 
+                                : 'bg-white border-slate-200 hover:bg-slate-100 cursor-pointer'
+                        }"
+                        onclick="${isActive ? '' : `handleSwitchUser({ phone: '${user.phone}', password: '${user.password}', name: '${user.name}' })`}"
+                    >
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-full ${isActive ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                                ${renderIcon('user', { class: 'w-4 h-4' })}
+                            </div>
+                            <div>
+                                <p class="font-semibold ${isActive ? 'text-indigo-800' : 'text-slate-700'}">
+                                    ${user.name}
+                                </p>
+                                <p class="text-sm text-slate-500">${user.phone}</p>
+                            </div>
+                        </div>
+                        ${isActive ? `
+                            <span class="text-sm font-bold text-emerald-600 flex items-center gap-1">
+                                ${renderIcon('check-circle-2', { class: 'w-4 h-4' })} Active
+                            </span>
+                        ` : `
+                            <button class="flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl font-semibold transition-all duration-200 border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 text-sm">
+                                ${renderIcon('arrow-right', { class: 'w-4 h-4' })} Switch
+                            </button>
+                        `}
+                    </div>
+                `;
+            }).join('');
+
+            const contentHTML = `
+                ${renderHeader(false)}
+                <main class="max-w-xl mx-auto p-4 md:p-6 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden p-6">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+                            ${renderIcon('users', { class: 'w-6 h-6 text-indigo-600' })}
+                            Account Manager
+                        </h2>
+                        <p class="text-slate-600 mb-6">
+                            Use multiple accounts to track different projects or persons separately. Data is stored locally on this device.
+                        </p>
+                        <div class="space-y-3">
+                            ${usersHTML.length > 0 ? usersHTML : '<p class="text-center text-slate-400 py-6">No additional accounts found. Sign out to create a new one.</p>'}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="handleLogout()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-red-50 text-red-600 hover:bg-red-100 w-full">
+                            ${renderIcon('log-out', { class: 'w-4 h-4' })} Log Out
+                        </button>
+                        <button onclick="window.toggleAuthMode(false); handleLogout();" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 bg-slate-100 text-slate-700 hover:bg-slate-200 w-full">
+                            ${renderIcon('user-plus', { class: 'w-4 h-4' })} Add New Account
+                        </button>
+                    </div>
+                </main>
+            `;
+            appElement.innerHTML = contentHTML;
+        }
+
+        /**
+         * Main function to render the correct view based on auth state.
+         */
+        function renderApp() {
+            if (!currentUser) {
+                renderAuthScreen();
+            } else {
+                if (currentView === VIEW_DASHBOARD) {
+                    renderDashboard();
+                } else if (currentView === VIEW_USERS) {
+                    renderUserManagementScreen();
+                }
+            }
+        }
+
+        // --- Initialization ---
+
+        function initApp() {
+            // Check for an active session
+            const sessionUser = localStorage.getItem(SESSION_KEY);
+            if (sessionUser) {
+                try {
+                    const user = JSON.parse(sessionUser);
+                    // Set default state variables if login is successful
+                    isLogin = true;
+                    authError = "";
+                    authLoading = false;
+                    handleLogin(user);
+                } catch (e) {
+                    console.error("Failed to parse session user, logging out.", e);
+                    handleLogout();
+                }
+            } else {
+                renderAuthScreen();
+            }
+        }
+
+        // Run the initialization when the window loads, but add a small delay 
+        // to ensure all external scripts (like Lucide) have initialized.
+        window.onload = function() {
+            // Increased timeout to 300ms to allow Lucide CDN script to fully load and initialize its definitions.
+            setTimeout(initApp, 300); 
+        };
+
+    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- PDF Loader / Overlay -->
+<div id="pdf-loader" style="display:none;">
+  <div class="pdf-loader-backdrop"></div>
+  <div class="pdf-loader-box">
+    <div class="pdf-spinner"></div>
+    <div class="pdf-loader-text">Generating report — please wait...</div>
+  </div>
+</div>
+
+</body>
+</html>
