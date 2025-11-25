@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Updated Viewport to prevent auto-zooming on mobile inputs -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Trinah Designs Admin Manager</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,7 +19,15 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
+            /* Prevent horizontal scroll on mobile */
+            overflow-x: hidden;
         }
+        
+        /* Force 16px font on inputs to prevent iOS zoom */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+
         .modal-overlay {
             background-color: rgba(15, 23, 42, 0.7);
         }
@@ -1126,7 +1135,7 @@
                     <div class="grid md:grid-cols-3 gap-6">
                         <!-- Input Section -->
                         <div class="md:col-span-1 space-y-6">
-                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-4 md:p-6">
                                 <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
                                 </h2>
