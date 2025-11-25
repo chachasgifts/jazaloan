@@ -546,6 +546,101 @@
             window.location.reload();
         }
 
+        // --- Account Recovery Functions ---
+        
+        function renderRecoveryScreen() {
+            appElement.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                ${renderIcon('key-round', {class:'w-8 h-8'})}
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-800">Account Recovery</h1>
+                            <p class="text-sm text-slate-500">Enter your registered phone number to reset your password.</p>
+                        </div>
+
+                        <form id="recovery-form" onsubmit="window.handleRecoveryStep1(event)" class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PHONE NUMBER</label>
+                                <input type="text" id="rec-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                            </div>
+                            <div id="recovery-error" class="text-center text-sm text-red-500 hidden"></div>
+                            
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Verify Account</button>
+                            <button type="button" onclick="renderAuthScreen()" class="w-full py-3 text-slate-500 font-bold hover:text-slate-700">Back to Login</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            refreshIcons();
+        }
+
+        function handleRecoveryStep1(e) {
+            e.preventDefault();
+            const phone = document.getElementById('rec-phone').value.trim();
+            const errDiv = document.getElementById('recovery-error');
+            
+            if(!phone) {
+                errDiv.textContent = "Please enter a phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const user = users.find(u => u.phone === phone);
+
+            if (!user) {
+                errDiv.textContent = "No account found with this phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            // User found, show reset UI
+            const form = document.getElementById('recovery-form');
+            form.innerHTML = `
+                <div class="bg-emerald-50 text-emerald-800 p-4 rounded-xl text-sm mb-4 border border-emerald-100">
+                    <div class="font-bold flex items-center gap-2 mb-1">
+                        ${renderIcon('check-circle', {class:'w-4 h-4'})} Account Verified
+                    </div>
+                    <p>Hello <strong>${user.name}</strong>, please set a new password below.</p>
+                </div>
+                <input type="hidden" id="reset-phone" value="${phone}">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500">NEW PASSWORD</label>
+                        <input type="password" id="new-pass" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                    </div>
+                    <button type="button" onclick="window.handleRecoveryStep2()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Update Password</button>
+                </div>
+            `;
+            refreshIcons();
+        }
+
+        function handleRecoveryStep2() {
+            const phone = document.getElementById('reset-phone').value;
+            const newPass = document.getElementById('new-pass').value.trim();
+
+            if (!newPass) {
+                showNotification("Please enter a valid password.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const index = users.findIndex(u => u.phone === phone);
+            
+            if (index !== -1) {
+                users[index].password = newPass;
+                localStorage.setItem(DB_KEY, JSON.stringify(users));
+                
+                showNotification("Password updated successfully!");
+                renderAuthScreen();
+            } else {
+                showNotification("Error updating password.");
+                renderAuthScreen();
+            }
+        }
+
         function authHandler(e) {
             e.preventDefault();
             const phone = document.getElementById('auth-phone').value.trim();
@@ -1179,6 +1274,11 @@
                                 <label class="text-xs font-bold text-slate-500">PASSWORD</label>
                                 <input type="password" id="auth-password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
                             </div>
+                            
+                            <div class="flex justify-end pt-1">
+                                <button type="button" onclick="renderRecoveryScreen()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">Forgot Password?</button>
+                            </div>
+
                             ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition" ${authLoading ? 'disabled' : ''}>
                                 ${authLoading ? 'Processing...' : (isFirstRun ? 'Create Admin Account' : 'Login')}
@@ -1271,6 +1371,11 @@
         window.handleFactoryReset = handleFactoryReset;
         window.manageUser = manageUser;
         window.setView = setView;
+        
+        // Recovery Logic
+        window.renderRecoveryScreen = renderRecoveryScreen;
+        window.handleRecoveryStep1 = handleRecoveryStep1;
+        window.handleRecoveryStep2 = handleRecoveryStep2;
         
         window.onload = function() {
             const sessionUser = localStorage.getItem(SESSION_KEY);
