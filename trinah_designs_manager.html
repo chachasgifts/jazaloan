@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Updated Viewport to prevent auto-zooming on mobile inputs -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trinah Designs Admin Manager</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,15 +18,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
-            /* Prevent horizontal scroll on mobile */
-            overflow-x: hidden;
         }
-        
-        /* Force 16px font on inputs to prevent iOS zoom */
-        input, select, textarea {
-            font-size: 16px !important;
-        }
-
         .modal-overlay {
             background-color: rgba(15, 23, 42, 0.7);
         }
@@ -80,6 +71,11 @@
         const SELL_PRICE = 200;
         const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         const REPORT_TYPES = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
+        
+        // SECURITY CONFIGURATION
+        // This PIN is required to create the Admin account on a new device/browser
+        // and to reset the Admin password.
+        const SYSTEM_PIN = "2580"; 
 
         // Local Storage Keys
         const DB_KEY = "trinah_users_db";
@@ -105,6 +101,7 @@
         // Auth State
         let authError = "";
         let authLoading = false;
+        let showAdminCreation = false; // Controls visibility of admin creation form
 
         const appElement = document.getElementById('app');
         const notificationContainer = document.getElementById('notification-container');
@@ -247,9 +244,6 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
-                // Exclude admin from report rows if admin has no data context, 
-                // but usually admins don't have data in this new system anyway.
-                // We will filter by role usually, or just take all.
                 const allUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
                 const todayLocale = new Date().toLocaleDateString();
                 
@@ -566,7 +560,7 @@
                                 ${renderIcon('key-round', {class:'w-8 h-8'})}
                             </div>
                             <h1 class="text-2xl font-bold text-slate-800">Account Recovery</h1>
-                            <p class="text-sm text-slate-500">Enter your registered phone number to reset your password.</p>
+                            <p class="text-sm text-slate-500">Enter your registered phone number to identify your account.</p>
                         </div>
 
                         <form id="recovery-form" onsubmit="window.handleRecoveryStep1(event)" class="space-y-4">
@@ -605,30 +599,55 @@
                 return;
             }
 
-            // User found, show reset UI
             const form = document.getElementById('recovery-form');
-            form.innerHTML = `
-                <div class="bg-emerald-50 text-emerald-800 p-4 rounded-xl text-sm mb-4 border border-emerald-100">
-                    <div class="font-bold flex items-center gap-2 mb-1">
-                        ${renderIcon('check-circle', {class:'w-4 h-4'})} Account Verified
+            
+            // SECURITY CHECK: If Admin, require PIN. If Staff, instruct to contact Admin.
+            
+            if (user.role === 'admin') {
+                form.innerHTML = `
+                    <div class="bg-indigo-50 text-indigo-800 p-4 rounded-xl text-sm mb-4 border border-indigo-100">
+                        <p class="font-bold">Admin Account Found</p>
+                        <p>To reset the Admin password, please enter the System Setup PIN.</p>
                     </div>
-                    <p>Hello <strong>${user.name}</strong>, please set a new password below.</p>
-                </div>
-                <input type="hidden" id="reset-phone" value="${phone}">
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-500">NEW PASSWORD</label>
-                        <input type="password" id="new-pass" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                    <input type="hidden" id="reset-phone" value="${phone}">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">SYSTEM PIN</label>
+                            <input type="password" id="reset-pin" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="Enter PIN">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">NEW PASSWORD</label>
+                            <input type="password" id="new-pass" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                        </div>
+                        <button type="button" onclick="window.handleRecoveryStep2('admin')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Update Password</button>
                     </div>
-                    <button type="button" onclick="window.handleRecoveryStep2()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Update Password</button>
-                </div>
-            `;
+                `;
+            } else {
+                // Staff Logic: Contact Admin (More Secure)
+                form.innerHTML = `
+                    <div class="bg-amber-50 text-amber-800 p-6 rounded-xl text-sm mb-6 border border-amber-200 text-center">
+                        <div class="mx-auto w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-2">
+                            ${renderIcon('shield-alert', {class:'w-5 h-5'})}
+                        </div>
+                        <p class="font-bold text-lg mb-2">Action Required</p>
+                        <p class="mb-2">For security reasons, Staff passwords cannot be reset here.</p>
+                        <p>Please contact the <strong>Administrator</strong> to reset your password.</p>
+                    </div>
+                    <button type="button" onclick="renderAuthScreen()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Back to Login</button>
+                `;
+            }
             refreshIcons();
         }
 
-        function handleRecoveryStep2() {
+        function handleRecoveryStep2(role) {
             const phone = document.getElementById('reset-phone').value;
             const newPass = document.getElementById('new-pass').value.trim();
+            const enteredPin = role === 'admin' ? document.getElementById('reset-pin').value.trim() : null;
+
+            if (role === 'admin' && enteredPin !== SYSTEM_PIN) {
+                showNotification("Invalid System PIN. Cannot reset.");
+                return;
+            }
 
             if (!newPass) {
                 showNotification("Please enter a valid password.");
@@ -668,8 +687,9 @@
             setTimeout(() => {
                 let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
                 
-                if (users.length === 0) {
-                    if (!name) {
+                // --- Creation Logic ---
+                if (showAdminCreation && users.length === 0) {
+                     if (!name) {
                         authError = "Admin name required.";
                         authLoading = false;
                         renderAuthScreen();
@@ -687,17 +707,34 @@
                     return;
                 }
 
+                // --- Standard Login Logic ---
                 const user = users.find(u => u.phone === phone && u.password === password);
                 
                 if (user) {
                     handleLogin(user);
                 } else {
-                    authError = "Invalid credentials.";
+                    if (users.length === 0) {
+                         authError = "System not initialized.";
+                    } else {
+                         authError = "Invalid credentials.";
+                    }
                 }
                 
                 authLoading = false;
                 if (!currentUser) renderAuthScreen();
             }, 800);
+        }
+
+        function verifySystemPin() {
+            const pinInput = document.getElementById('system-pin-input');
+            const pinError = document.getElementById('pin-error');
+            
+            if (pinInput.value.trim() === SYSTEM_PIN) {
+                showAdminCreation = true;
+                renderAuthScreen();
+            } else {
+                pinError.classList.remove('hidden');
+            }
         }
 
         // --- Core Logic ---
@@ -1135,7 +1172,7 @@
                     <div class="grid md:grid-cols-3 gap-6">
                         <!-- Input Section -->
                         <div class="md:col-span-1 space-y-6">
-                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-4 md:p-6">
+                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
                                 <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
                                 </h2>
@@ -1252,24 +1289,51 @@
             const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
             const isFirstRun = users.length === 0;
 
+            // If First Run and Admin Creation NOT unlocked, show System Initialization
+            if (isFirstRun && !showAdminCreation) {
+                appElement.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center p-4">
+                        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100 text-center">
+                            <div class="w-16 h-16 bg-slate-800 text-white rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                ${renderIcon('shield-lock', {class:'w-8 h-8'})}
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-800">System Initialization</h1>
+                            <p class="text-sm text-slate-500 mb-6">Enter System PIN to create the first Admin account.</p>
+
+                            <div class="space-y-4">
+                                <input type="password" id="system-pin-input" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 text-center tracking-widest text-lg" placeholder="PIN">
+                                <p id="pin-error" class="text-red-500 text-xs hidden">Invalid PIN. Try "2580"</p>
+                                <button onclick="verifySystemPin()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition">Unlock System</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                refreshIcons();
+                return;
+            }
+
+            // Standard Auth Screen (Login or Create Admin if unlocked)
             appElement.innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4">
                     <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
                         <div class="text-center mb-8">
                             <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4">T</div>
                             <h1 class="text-2xl font-bold text-slate-800">Trinah Designs</h1>
-                            <p class="text-sm text-slate-500">${isFirstRun ? 'System Initialization' : 'Authorized Access Only'}</p>
+                            <p class="text-sm text-slate-500">${showAdminCreation ? 'Create Main Admin Account' : 'Authorized Access Only'}</p>
                         </div>
 
-                        ${isFirstRun ? `
-                            <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-sm mb-6">
-                                <strong>Welcome Admin!</strong><br>
-                                Since this is the first time running the app, please create the main Admin account.
+                        ${showAdminCreation ? `
+                            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-sm mb-6 flex items-start gap-2">
+                                ${renderIcon('unlock', {class:'w-4 h-4 mt-1'})}
+                                <div>
+                                    <strong>System Unlocked!</strong><br>
+                                    Please set up your Admin credentials below.
+                                </div>
                             </div>
                         ` : ''}
 
                         <form onsubmit="window.authHandler(event)" class="space-y-4">
-                            ${isFirstRun ? `
+                            ${showAdminCreation ? `
                             <div>
                                 <label class="text-xs font-bold text-slate-500">ADMIN NAME</label>
                                 <input type="text" id="auth-name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="e.g. Trinah Admin">
@@ -1290,7 +1354,7 @@
 
                             ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition" ${authLoading ? 'disabled' : ''}>
-                                ${authLoading ? 'Processing...' : (isFirstRun ? 'Create Admin Account' : 'Login')}
+                                ${authLoading ? 'Processing...' : (showAdminCreation ? 'Create Admin Account' : 'Login')}
                             </button>
                         </form>
                     </div>
@@ -1385,6 +1449,7 @@
         window.renderRecoveryScreen = renderRecoveryScreen;
         window.handleRecoveryStep1 = handleRecoveryStep1;
         window.handleRecoveryStep2 = handleRecoveryStep2;
+        window.verifySystemPin = verifySystemPin;
         
         window.onload = function() {
             const sessionUser = localStorage.getItem(SESSION_KEY);
