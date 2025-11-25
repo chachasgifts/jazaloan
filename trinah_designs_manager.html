@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trinah Designs Business Manager</title>
+    <title>Trinah Designs Admin Manager</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Load jsPDF for Reports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Load jsPDF AutoTable for easier tables -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
@@ -79,16 +81,19 @@
         const VIEW_USERS = 'users';
 
         // Global State Variables
-        let currentUser = null;
+        let currentUser = null; // The logged-in user (Admin or Staff)
+        let managedUser = null; // The user whose data is being viewed/edited
         let currentView = VIEW_DASHBOARD;
+        
+        // Data for managed user
         let history = []; 
         let archive = []; 
         let startingPressure = 0; 
+        
         let selectedDayIndex = 0;
         let selectedReport = "Daily"; 
         
         // Auth State
-        let isLogin = true;
         let authError = "";
         let authLoading = false;
 
@@ -115,18 +120,22 @@
         }
 
         function saveData(phone) {
+            if (!phone) return;
             localStorage.setItem(`trinah_current_week_${phone}`, JSON.stringify(history));
             localStorage.setItem(`trinah_archive_${phone}`, JSON.stringify(archive));
             localStorage.setItem(`trinah_starting_pressure_${phone}`, startingPressure.toString());
         }
 
         function loadData(user) {
+            if (!user) return;
             const phone = user.phone;
             const savedHistory = localStorage.getItem(`trinah_current_week_${phone}`);
             if (savedHistory) history = JSON.parse(savedHistory);
+            else history = [];
             
             const savedArchive = localStorage.getItem(`trinah_archive_${phone}`);
             if (savedArchive) archive = JSON.parse(savedArchive);
+            else archive = [];
             
             const savedPressure = localStorage.getItem(`trinah_starting_pressure_${phone}`);
             startingPressure = savedPressure ? Number(savedPressure) : 0;
@@ -139,8 +148,6 @@
             const jsDay = new Date().getDay();
             const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
             selectedDayIndex = mappedDay;
-            
-            renderApp();
         }
 
         function showNotification(msg) {
@@ -187,41 +194,30 @@
             const nowLocaleDate = now.toLocaleDateString();
 
             return fullHistory.filter(entry => {
-                // Ensure date object is created from the stored fullDate (the date the transaction happened)
                 const entryFullDateObj = new Date(entry.fullDate);
-
-                // Skip if date is invalid
                 if (isNaN(entryFullDateObj)) return false;
 
-                // Strip time components for accurate day-level comparison by setting time to 00:00:00
                 const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 const entryMidnight = new Date(entryFullDateObj.getFullYear(), entryFullDateObj.getMonth(), entryFullDateObj.getDate());
                 
                 switch (selectedReport) {
-                    case "Daily": 
-                        // Only show entries for the current calendar day
-                        return entry.fullDate === nowLocaleDate;
-
+                    case "Daily": return entry.fullDate === nowLocaleDate;
                     case "Weekly": {
-                        // Show entries from the last 7 days (including today)
                         const oneWeekAgo = new Date(todayMidnight);
                         oneWeekAgo.setDate(todayMidnight.getDate() - 7);
                         return entryMidnight >= oneWeekAgo;
                     }
                     case "Monthly": {
-                        // Show entries from the last 30 days
                         const oneMonthAgo = new Date(todayMidnight);
                         oneMonthAgo.setDate(todayMidnight.getDate() - 30);
                         return entryMidnight >= oneMonthAgo;
                     }
                     case "Quarterly": {
-                        // Show entries from the last 90 days
                         const ninetyDaysAgo = new Date(todayMidnight);
                         ninetyDaysAgo.setDate(todayMidnight.getDate() - 90);
                         return entryMidnight >= ninetyDaysAgo;
                     }
                     case "Yearly": {
-                        // Show entries from the last 365 days
                         const oneYearAgo = new Date(todayMidnight);
                         oneYearAgo.setFullYear(todayMidnight.getFullYear() - 1);
                         return entryMidnight >= oneYearAgo;
@@ -231,12 +227,124 @@
             });
         }
 
+        // --- Master Report Logic ---
+        async function downloadMasterReport(type = 'Daily') {
+            const loader = document.getElementById('pdf-loader');
+            if (loader) loader.style.display = 'flex';
+            
+            await new Promise(r => setTimeout(r, 500));
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Exclude admin from report rows if admin has no data context, 
+                // but usually admins don't have data in this new system anyway.
+                // We will filter by role usually, or just take all.
+                const allUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+                const todayLocale = new Date().toLocaleDateString();
+                
+                let reportRows = [];
+                let grandTotalDispatch = 0;
+                let grandTotalSold = 0;
+                let grandTotalProfit = 0;
+
+                allUsers.forEach(user => {
+                    const userHistoryStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
+                    const userArchiveStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                    const userPressureStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`) || "0";
+                    
+                    const userHistory = JSON.parse(userHistoryStr);
+                    const userArchive = JSON.parse(userArchiveStr);
+                    const allEntries = [...userArchive, ...userHistory];
+                    
+                    let filteredEntries = [];
+                    if (type === 'Daily') {
+                        filteredEntries = allEntries.filter(e => e.fullDate === todayLocale);
+                    } else {
+                        filteredEntries = allEntries;
+                    }
+
+                    const totalDispatch = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatched)||0), 0);
+                    const totalSold = filteredEntries.reduce((acc, curr) => acc + (Number(curr.sold)||0), 0);
+                    const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
+                    
+                    let currentRemaining = 0;
+                    if (allEntries.length > 0) {
+                        currentRemaining = allEntries[allEntries.length - 1].remaining;
+                    } else {
+                        currentRemaining = Number(userPressureStr);
+                    }
+
+                    grandTotalDispatch += totalDispatch;
+                    grandTotalSold += totalSold;
+                    grandTotalProfit += totalProfit;
+
+                    reportRows.push([
+                        user.name,
+                        String(totalDispatch),
+                        String(totalSold),
+                        String(currentRemaining),
+                        formatCurrency(totalProfit)
+                    ]);
+                });
+
+                const PRIMARY = "#1E3A8A";
+                
+                doc.setFillColor(PRIMARY);
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(16);
+                doc.text("Trinah Designs", 14, 20);
+                doc.setFontSize(10);
+                doc.text(`Master ${type} Report`, 160, 20);
+
+                doc.setTextColor(0,0,0);
+                doc.setFontSize(10);
+                doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 40);
+
+                doc.autoTable({
+                    startY: 50,
+                    head: [['Staff Name', 'Dispatched', 'Sold', 'Stock On Hand', 'Profit']],
+                    body: reportRows,
+                    foot: [['TOTALS', String(grandTotalDispatch), String(grandTotalSold), '-', formatCurrency(grandTotalProfit)]],
+                    theme: 'grid',
+                    headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
+                    footStyles: { fillColor: [241, 245, 249], textColor: 0, fontStyle: 'bold' },
+                });
+
+                doc.save(`Trinah_Master_${type}_Report.pdf`);
+                showNotification("Master Report Downloaded!");
+
+            } catch (e) {
+                console.error(e);
+                showNotification("Error generating master report.");
+            } finally {
+                if (loader) loader.style.display = 'none';
+            }
+        }
+
 
         // --- Navigation ---
 
         function setView(view) {
             currentView = view;
+            if (view === VIEW_DASHBOARD && currentUser.role === 'admin') {
+                // If going to dashboard as admin, clear managed user unless explicitly navigating
+                managedUser = null; 
+            }
             renderApp();
+        }
+
+        // Specific function for admin drilling down
+        function manageUser(userPhone) {
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const target = users.find(u => u.phone === userPhone);
+            if (target) {
+                managedUser = target;
+                loadData(target);
+                renderApp(); // Will detect managedUser and show Individual Dashboard
+            }
         }
 
         function toggleMobileMenu() {
@@ -256,20 +364,43 @@
             }
         }
 
-        // --- Auth ---
+        // --- Auth & User Management ---
 
         function handleLogin(user) {
             authError = "";
             authLoading = false;
             currentUser = user;
+            
+            // Fix legacy role issues
+            if (!currentUser.role) {
+                const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                if (users.length > 0 && users[0].phone === currentUser.phone) {
+                    currentUser.role = 'admin';
+                    users[0].role = 'admin';
+                    localStorage.setItem(DB_KEY, JSON.stringify(users));
+                } else {
+                    currentUser.role = 'staff';
+                }
+            }
+
             localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-            loadData(user);
+
+            if (currentUser.role === 'admin') {
+                managedUser = null; // Admin starts in Overview
+            } else {
+                managedUser = currentUser; // Staff manage themselves
+                loadData(currentUser);
+            }
+            
             setView(VIEW_DASHBOARD);
         }
 
         function handleLogout() {
-            if (currentUser) saveData(currentUser.phone);
+            // Save data only if managing someone
+            if (managedUser) saveData(managedUser.phone);
+            
             currentUser = null;
+            managedUser = null;
             localStorage.removeItem(SESSION_KEY);
             history = [];
             archive = [];
@@ -278,23 +409,151 @@
         }
 
         function handleSwitchUser(user) {
-            if (currentUser) saveData(currentUser.phone);
+            if (managedUser) saveData(managedUser.phone);
             handleLogin(user);
         }
 
-        function toggleAuthMode(login) {
-            isLogin = login;
-            authError = '';
-            renderAuthScreen();
+        // --- Admin Functions ---
+
+        function showAddStaffModal() {
+            const modalHTML = `
+                <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-staff-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative z-10">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                ${renderIcon('user-plus', {class:'w-6 h-6 text-indigo-600'})} Add New Staff
+                            </h2>
+                            <button onclick="document.getElementById('add-staff-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                                ${renderIcon('x', {class:'w-6 h-6'})}
+                            </button>
+                        </div>
+                        
+                        <form onsubmit="window.handleAddStaff(event)" class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Staff Name</label>
+                                <input id="new-staff-name" placeholder="e.g. John Doe" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Phone Number (Login ID)</label>
+                                <input id="new-staff-phone" placeholder="e.g. 0712 345 678" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
+                                <input id="new-staff-pass" type="text" placeholder="Set initial password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            </div>
+                            
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">Create Account</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function showReportsModal() {
+             const modalHTML = `
+                <div id="reports-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reports-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">Master Reports</h2>
+                        <p class="text-sm text-slate-500 mb-6">Select the type of report to generate for ALL users.</p>
+                        
+                        <div class="space-y-3">
+                            <button onclick="downloadMasterReport('Daily'); document.getElementById('reports-modal').remove()" 
+                                class="w-full py-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 border border-emerald-100">
+                                ${renderIcon('calendar', {class:'w-5 h-5'})} Daily Master Report
+                            </button>
+                            <button onclick="downloadMasterReport('Overall'); document.getElementById('reports-modal').remove()" 
+                                class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 border border-indigo-100">
+                                ${renderIcon('bar-chart-2', {class:'w-5 h-5'})} Overall Master Report
+                            </button>
+                            
+                            <button onclick="document.getElementById('reports-modal').remove()" class="w-full py-3 text-slate-400 font-medium text-sm mt-2">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function showResetModal() {
+            const modalHTML = `
+                <div id="reset-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reset-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            ${renderIcon('alert-triangle', {class:'w-6 h-6'})}
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">System Factory Reset</h2>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Are you sure? This will <strong class="text-red-600">permanently delete ALL accounts, records, and history</strong>. This cannot be undone.
+                        </p>
+                        
+                        <div class="space-y-3">
+                            <button onclick="window.handleFactoryReset()" class="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200">Yes, Delete Everything</button>
+                            <button onclick="document.getElementById('reset-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function handleAddStaff(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-staff-name').value.trim();
+            const phone = document.getElementById('new-staff-phone').value.trim();
+            const password = document.getElementById('new-staff-pass').value.trim();
+
+            if (!name || !phone || !password) {
+                showNotification("Please fill all fields.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            if (users.find(u => u.phone === phone)) {
+                showNotification("User with this phone already exists.");
+                return;
+            }
+
+            const newUser = { name, phone, password, role: 'staff' };
+            users.push(newUser);
+            localStorage.setItem(DB_KEY, JSON.stringify(users));
+            
+            showNotification(`Staff member ${name} added!`);
+            
+            // Close modal
+            const modal = document.getElementById('add-staff-modal');
+            if(modal) modal.remove();
+
+            // Force refresh of admin dashboard if on it
+            renderApp();
+        }
+
+        function handleFactoryReset() {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('trinah_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            window.location.reload();
         }
 
         function authHandler(e) {
             e.preventDefault();
             const phone = document.getElementById('auth-phone').value.trim();
             const password = document.getElementById('auth-password').value.trim();
-            
+            const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null; 
+
             if (!phone || !password) {
-                authError = "Please enter both phone number and password.";
+                authError = "Please enter phone and password.";
                 renderAuthScreen();
                 return;
             }
@@ -304,30 +563,32 @@
 
             setTimeout(() => {
                 let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
-                let user = null;
-                authError = ""; 
+                
+                if (users.length === 0) {
+                    if (!name) {
+                        authError = "Admin name required.";
+                        authLoading = false;
+                        renderAuthScreen();
+                        return;
+                    }
+                    const adminUser = {
+                        name: name,
+                        phone: phone,
+                        password: password,
+                        role: 'admin' 
+                    };
+                    users.push(adminUser);
+                    localStorage.setItem(DB_KEY, JSON.stringify(users));
+                    handleLogin(adminUser);
+                    return;
+                }
 
-                if (isLogin) {
-                    user = users.find(u => u.phone === phone && u.password === password);
-                    if (user) {
-                        handleLogin(user);
-                    } else {
-                        authError = "Invalid phone number or password.";
-                    }
-                } else { 
-                    const exists = users.find(u => u.phone === phone);
-                    if (exists) {
-                        authError = "User already exists. Please log in.";
-                    } else {
-                        const newUser = { 
-                            phone, 
-                            password, 
-                            name: `User ${phone.substring(phone.length - 4)}` 
-                        };
-                        users.push(newUser);
-                        localStorage.setItem(DB_KEY, JSON.stringify(users));
-                        handleLogin(newUser);
-                    }
+                const user = users.find(u => u.phone === phone && u.password === password);
+                
+                if (user) {
+                    handleLogin(user);
+                } else {
+                    authError = "Invalid credentials.";
                 }
                 
                 authLoading = false;
@@ -338,6 +599,8 @@
         // --- Core Logic ---
 
         function handleSubmit() {
+            if (!managedUser) return; // Safety check
+
             const dispatchInput = document.getElementById('dispatch-input');
             const salesInput = document.getElementById('sales-input');
 
@@ -353,18 +616,14 @@
             const jsDay = now.getDay(); 
             const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
 
-            // Allow Today (mappedDay) or any Past Day (selectedDayIndex < mappedDay)
-            // Block Future Days (selectedDayIndex > mappedDay)
             if (selectedDayIndex > mappedDay) {
                 showNotification("Cannot add future entries.");
                 return;
             }
 
-            // Determine the correct date for the entry based on selection
-            // Calculate the difference in days
             const dayDiff = mappedDay - selectedDayIndex;
             const targetDate = new Date();
-            targetDate.setDate(now.getDate() - dayDiff); // Correctly sets the calendar date
+            targetDate.setDate(now.getDate() - dayDiff);
 
             const currentDayName = DAYS[selectedDayIndex];
             const fullDateString = targetDate.toLocaleDateString();
@@ -381,9 +640,9 @@
             }
 
             const record = {
-                id: Date.now(), // Unique ID (Timestamp of creation)
-                date: currentDayName, // Day of the week
-                fullDate: fullDateString, // Actual calendar date (e.g., "11/24/2025")
+                id: Date.now(),
+                date: currentDayName,
+                fullDate: fullDateString,
                 dispatched: numDispatch,
                 sold: numSales,
                 remaining: newRemaining,
@@ -396,25 +655,23 @@
             dispatchInput.value = "";
             salesInput.value = "";
 
-            saveData(currentUser.phone);
+            saveData(managedUser.phone);
 
             if (currentDayName === "Sunday") {
                 renderWeekCompleteModal();
-                renderDashboard();
+                renderIndividualDashboard();
                 return;
             }
 
-            let notificationMessage = `Saved entry for ${currentDayName} (${fullDateString})!`;
+            let notificationMessage = `Saved for ${currentDayName} (${managedUser.name})!`;
 
-            // Auto-advance only if we are not at the current day limit
             if (selectedDayIndex < mappedDay) {
-                // If we submit for yesterday, automatically switch to today's entry tab
                 selectedDayIndex = selectedDayIndex + 1;
                 notificationMessage += ` Switched to ${DAYS[selectedDayIndex]}.`;
             }
 
             showNotification(notificationMessage);
-            renderDashboard();
+            renderIndividualDashboard();
         }
 
         function handleStartNewWeek() {
@@ -428,12 +685,13 @@
             startingPressure = finalPressure; 
             selectedDayIndex = 0; 
             
-            saveData(currentUser.phone);
+            saveData(managedUser.phone);
             showNotification("New week started!");
-            renderDashboard();
+            renderIndividualDashboard();
         }
 
         function handleDeleteLast() {
+            if (!managedUser) return;
             const fullHistory = getFullHistory();
             const lastEntry = history[history.length - 1]; 
 
@@ -454,89 +712,45 @@
             const dayIndex = DAYS.indexOf(lastEntry.date);
             if (dayIndex !== -1) selectedDayIndex = dayIndex;
 
-            saveData(currentUser.phone);
+            saveData(managedUser.phone);
             showNotification(`Entry deleted.`);
-            renderDashboard();
+            renderIndividualDashboard();
         }
 
-        // --- PDF Generation ---
-        
         async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
+            if (!managedUser) return;
             if (data.length === 0) {
                 showNotification(`No data found for ${reportName} report.`);
                 return;
             }
-
             const loader = document.getElementById('pdf-loader');
             if (loader) loader.style.display = 'flex';
 
             try {
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-
-                const PRIMARY = "#1E3A8A";
-                const SECONDARY = "#3B82F6";
-                const MARGIN_LEFT = 40;
-                const PAGE_WIDTH = doc.internal.pageSize.getWidth();
-                const PAGE_HEIGHT = doc.internal.pageSize.getHeight();
+                const doc = new jsPDF();
 
                 const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
                 const totalSold = data.reduce((sum, r) => sum + (Number(r.sold) || 0), 0);
                 const totalDispatch = data.reduce((sum, r) => sum + (Number(r.dispatched) || 0), 0);
 
-                let y = 40;
-                
-                // Header
-                doc.setFillColor(PRIMARY);
-                doc.rect(0, 0, PAGE_WIDTH, 60, 'F');
-                doc.setTextColor("#ffffff");
-                doc.setFontSize(16);
-                doc.setFont("Helvetica", "bold");
-                doc.text(`Trinah Designs — ${reportName} Report`, MARGIN_LEFT, 38);
-                
-                doc.setFontSize(10);
-                doc.setFont("Helvetica", "normal");
-                doc.text(`Account: ${currentUser ? currentUser.name : "N/A"}`, MARGIN_LEFT, 100);
-                doc.text(`Date: ${new Date().toLocaleDateString()}`, MARGIN_LEFT, 115);
+                const rows = data.map(item => [item.fullDate, String(item.sold), String(item.remaining), item.profit.toLocaleString()]);
 
-                y = 150;
+                doc.setFillColor(30, 58, 138); // Primary Blue
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255,255,255);
+                doc.setFontSize(14);
+                doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
 
-                // Summary Stats
-                doc.setTextColor("#0f172a");
-                doc.setFontSize(12);
-                doc.setFont("Helvetica", "bold");
-                doc.text("Summary Overview", MARGIN_LEFT, y);
-                y += 20;
-                
-                doc.setFont("Helvetica", "normal");
-                doc.setFontSize(11);
-                doc.text(`Total Sales: ${totalSold} units`, MARGIN_LEFT, y); y += 15;
-                doc.text(`Total Dispatch: ${totalDispatch} units`, MARGIN_LEFT, y); y += 15;
-                doc.text(`Total Profit: KES ${totalProfit.toLocaleString()}`, MARGIN_LEFT, y); y += 30;
-
-                // Table Header
-                doc.setFillColor(SECONDARY);
-                doc.rect(MARGIN_LEFT, y, PAGE_WIDTH - (MARGIN_LEFT*2), 25, 'F');
-                doc.setTextColor("#ffffff");
-                doc.setFont("Helvetica", "bold");
-                doc.text("Date", MARGIN_LEFT + 10, y + 17);
-                doc.text("Sold", MARGIN_LEFT + 120, y + 17);
-                doc.text("Rem.", MARGIN_LEFT + 200, y + 17);
-                doc.text("Profit (KES)", MARGIN_LEFT + 280, y + 17);
-                
-                y += 45;
-                doc.setTextColor("#000000");
-                doc.setFont("Helvetica", "normal");
-
-                data.forEach(item => {
-                    doc.text(item.fullDate, MARGIN_LEFT + 10, y);
-                    doc.text(String(item.sold), MARGIN_LEFT + 120, y);
-                    doc.text(String(item.remaining), MARGIN_LEFT + 200, y);
-                    doc.text(item.profit.toLocaleString(), MARGIN_LEFT + 280, y);
-                    y += 20;
+                doc.autoTable({
+                    startY: 40,
+                    head: [['Date', 'Sold', 'Remaining', 'Profit (KES)']],
+                    body: rows,
+                    theme: 'grid',
+                    foot: [['TOTAL', String(totalSold), '-', totalProfit.toLocaleString()]]
                 });
 
-                doc.save(`Trinah_${reportName}_Report.pdf`);
+                doc.save(`${managedUser.name}_${reportName}_Report.pdf`);
                 showNotification("PDF Downloaded!");
 
             } catch (err) {
@@ -551,7 +765,6 @@
 
         function renderWeekCompleteModal() {
             const finalPressure = history.length > 0 ? history[history.length - 1].remaining : startingPressure;
-            const weekData = history;
             
             const modalHTML = `
                 <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -573,25 +786,39 @@
         }
 
         function renderHeader() {
+            const isAdmin = currentUser && currentUser.role === 'admin';
+            const isManaging = isAdmin && managedUser;
+
             return `
                 <header class="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
                     <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">T</div>
                             <div class="flex flex-col">
-                                <span class="text-lg font-bold text-indigo-900 leading-none">Trinah Designs</span>
-                                <span class="text-[10px] text-slate-500">${currentUser ? currentUser.name : ''}</span>
+                                <span class="text-lg font-bold text-indigo-900 leading-none">Trinah</span>
+                                <span class="text-[10px] text-slate-500">
+                                    ${isAdmin ? 'Admin Portal' : currentUser.name}
+                                </span>
                             </div>
                         </div>
 
                         <!-- Desktop Nav -->
                         <nav class="hidden md:flex items-center gap-4">
-                            <button onclick="setView('${VIEW_USERS}')" class="text-sm font-medium text-slate-600 hover:text-indigo-600 flex items-center gap-2">
-                                ${renderIcon('users', {class:'w-4 h-4'})} Users
-                            </button>
-                            <button onclick="downloadReport()" class="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 flex items-center gap-2">
-                                ${renderIcon('download', {class:'w-4 h-4'})} Download ${selectedReport}
-                            </button>
+                            ${isManaging ? `
+                                <button onclick="managedUser=null; renderApp()" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 flex items-center gap-2">
+                                    ${renderIcon('arrow-left', {class:'w-4 h-4'})} Back to Dashboard
+                                </button>
+                            ` : ''}
+
+                            ${isAdmin && !isManaging ? `
+                                <button onclick="setView('${VIEW_USERS}')" class="text-sm font-medium text-slate-600 hover:text-indigo-600 flex items-center gap-2">
+                                    ${renderIcon('users', {class:'w-4 h-4'})} Manage Staff
+                                </button>
+                                <button onclick="showReportsModal()" class="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg hover:bg-emerald-100 flex items-center gap-2">
+                                    ${renderIcon('file-bar-chart', {class:'w-4 h-4'})} Master Reports
+                                </button>
+                            ` : ''}
+
                             <button onclick="handleLogout()" class="text-sm font-medium text-red-500 hover:text-red-700">Logout</button>
                         </nav>
 
@@ -614,15 +841,21 @@
                         </button>
                     </div>
                     <div class="space-y-3">
-                        <button onclick="setView('${VIEW_DASHBOARD}'); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
-                            ${renderIcon('home', {class:'w-5 h-5'})} Dashboard
-                        </button>
-                         <button onclick="setView('${VIEW_USERS}'); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
-                            ${renderIcon('users', {class:'w-5 h-5'})} Manage Users
-                        </button>
-                        <button onclick="downloadReport(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-indigo-50 text-indigo-700">
-                            ${renderIcon('download', {class:'w-5 h-5'})} Download ${selectedReport}
-                        </button>
+                        ${isManaging ? `
+                            <button onclick="managedUser=null; renderApp(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-indigo-50 text-indigo-700">
+                                ${renderIcon('arrow-left', {class:'w-5 h-5'})} Back to Dashboard
+                            </button>
+                        ` : ''}
+
+                        ${isAdmin && !isManaging ? `
+                            <button onclick="setView('${VIEW_USERS}'); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
+                                ${renderIcon('users', {class:'w-5 h-5'})} Manage Staff
+                            </button>
+                            <button onclick="showReportsModal(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-emerald-50 text-emerald-700">
+                                ${renderIcon('file-bar-chart', {class:'w-5 h-5'})} Master Reports
+                            </button>
+                        ` : ''}
+
                         <button onclick="handleLogout()" class="flex items-center gap-3 w-full p-3 rounded-xl bg-red-50 text-red-600 mt-auto">
                             ${renderIcon('log-out', {class:'w-5 h-5'})} Log Out
                         </button>
@@ -645,7 +878,114 @@
             `;
         }
 
-        function renderDashboard() {
+        function renderAdminOverview() {
+            // Fetch all users except admin
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+            const todayLocale = new Date().toLocaleDateString();
+            
+            let totalStock = 0;
+            let totalSalesToday = 0;
+            let totalProfitToday = 0;
+
+            const userCards = users.map(user => {
+                // Fetch user data directly from storage
+                const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
+                const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`) || "0";
+                
+                const userHistory = JSON.parse(hStr);
+                const userArchive = JSON.parse(aStr);
+                const allEntries = [...userArchive, ...userHistory];
+                
+                // Calculate User Metrics
+                const todayEntries = userHistory.filter(e => e.fullDate === todayLocale);
+                const userSalesToday = todayEntries.reduce((sum, e) => sum + (Number(e.sold)||0), 0);
+                const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
+                
+                let currentRemaining = 0;
+                if (allEntries.length > 0) {
+                    currentRemaining = allEntries[allEntries.length - 1].remaining;
+                } else {
+                    currentRemaining = Number(pStr);
+                }
+
+                // Add to Grand Totals
+                totalStock += currentRemaining;
+                totalSalesToday += userSalesToday;
+                totalProfitToday += userProfitToday;
+
+                return `
+                    <div onclick="manageUser('${user.phone}')" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition cursor-pointer group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold group-hover:bg-indigo-100 group-hover:text-indigo-600 transition">
+                                    ${renderIcon('user', {class:'w-5 h-5'})}
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800">${user.name}</h3>
+                                    <p class="text-xs text-slate-400">${user.phone}</p>
+                                </div>
+                            </div>
+                            ${renderIcon('chevron-right', {class:'w-4 h-4 text-slate-300 group-hover:text-indigo-500'})}
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            <div class="bg-orange-50 p-2 rounded-lg">
+                                <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
+                                <p class="font-bold text-orange-700">${currentRemaining}</p>
+                            </div>
+                            <div class="bg-emerald-50 p-2 rounded-lg">
+                                <p class="text-[10px] uppercase font-bold text-emerald-400">Sold Today</p>
+                                <p class="font-bold text-emerald-700">${userSalesToday}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            appElement.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+                    <div class="mb-2">
+                        <h1 class="text-2xl font-bold text-slate-800">Admin Dashboard</h1>
+                        <p class="text-slate-500">Overview of all active accounts</p>
+                    </div>
+
+                    <!-- Grand Totals -->
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${renderStatCard("Total Stock (All)", totalStock, "layers", "text-orange-600")}
+                        ${renderStatCard("Total Sales (Today)", totalSalesToday, "shopping-bag", "text-blue-600")}
+                        ${renderStatCard("Total Profit (Today)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
+                    </div>
+
+                    <!-- Staff Grid -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-700">Staff Accounts</h2>
+                            <button onclick="showAddStaffModal()" class="text-sm text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                                ${renderIcon('plus', {class:'w-4 h-4'})} Add Staff
+                            </button>
+                        </div>
+                        
+                        ${users.length === 0 ? `
+                            <div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                <p class="text-slate-400 mb-4">No staff accounts found.</p>
+                                <button onclick="showAddStaffModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Add Your First Staff Member</button>
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                ${userCards}
+                            </div>
+                        `}
+                    </div>
+                </main>
+            `;
+            refreshIcons();
+        }
+
+        function renderIndividualDashboard() {
+            // This is the view for editing a specific user (Managed User)
+            if (!managedUser) return;
+
             const fullHistory = getFullHistory();
             const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
             const currentPressure = lastEntry ? lastEntry.remaining : startingPressure;
@@ -653,11 +993,9 @@
             const now = new Date();
             const today = now.toLocaleDateString();
 
-            const filledDays = history.filter(entry => entry.fullDate === today).map(entry => entry.date);
             const filteredData = getFilteredHistory();
             const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
             
-            // Only count today's sales specifically
             const todaysSales = history
                 .filter(entry => entry.fullDate === today)
                 .reduce((sum, entry) => sum + entry.sold, 0);
@@ -665,6 +1003,23 @@
             appElement.innerHTML = `
                 ${renderHeader()}
                 <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+                    
+                    <div class="flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-indigo-600 text-white rounded-lg">
+                                ${renderIcon('user-check', {class:'w-5 h-5'})}
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-indigo-400 uppercase">Managing Account</p>
+                                <h2 class="text-lg font-bold text-indigo-900">${managedUser.name}</h2>
+                            </div>
+                        </div>
+                        <div class="text-right hidden md:block">
+                            <p class="text-xs text-indigo-400 font-bold">LOGIN ID</p>
+                            <p class="text-sm font-bold text-indigo-700">${managedUser.phone}</p>
+                        </div>
+                    </div>
+
                     <!-- Stats Grid -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         ${renderStatCard("Pressure", currentPressure, "gauge", "text-orange-600")}
@@ -680,19 +1035,17 @@
                                 <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
                                 </h2>
-
+                                
                                 <!-- Day Selection -->
                                 <div class="grid grid-cols-4 gap-2 mb-4">
                                     ${DAYS.map((d, i) => {
                                         const jsDay = now.getDay();
                                         const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
-                                        
-                                        // Lock future days
                                         const isLocked = i > mappedDay;
                                         
                                         return `
                                             <button 
-                                                onclick="selectedDayIndex = ${i}; renderDashboard();"
+                                                onclick="selectedDayIndex = ${i}; renderIndividualDashboard();"
                                                 ${isLocked ? 'disabled' : ''}
                                                 class="text-[10px] p-2 rounded-lg text-center font-bold transition-all
                                                 ${selectedDayIndex === i ? 'bg-indigo-600 text-white shadow-md' : 
@@ -729,17 +1082,17 @@
                             </div>` : ''}
                         </div>
 
-                        <!-- Report Section (Replaces Graph) -->
+                        <!-- Report Section -->
                         <div class="md:col-span-2">
                             <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 h-full">
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
-                                        <h2 class="text-lg font-bold text-slate-800">Business Reports</h2>
-                                        <p class="text-sm text-slate-500">Select a timeframe to view and download.</p>
+                                        <h2 class="text-lg font-bold text-slate-800">History Log</h2>
+                                        <p class="text-sm text-slate-500">Viewing: ${selectedReport}</p>
                                     </div>
                                     <div class="flex bg-slate-100 p-1 rounded-lg">
                                         ${REPORT_TYPES.map(type => `
-                                            <button onclick="selectedReport='${type}'; renderDashboard();" 
+                                            <button onclick="selectedReport='${type}'; renderIndividualDashboard();" 
                                                 class="px-3 py-1 text-xs font-bold rounded-md transition ${selectedReport === type ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}">
                                                 ${type}
                                             </button>
@@ -780,7 +1133,7 @@
                                 
                                 <div class="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                                     <button onclick="downloadReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2">
-                                        ${renderIcon('file-down', {class:'w-4 h-4'})} Download ${selectedReport} PDF
+                                        ${renderIcon('file-down', {class:'w-4 h-4'})} Download This PDF
                                     </button>
                                 </div>
                             </div>
@@ -788,26 +1141,36 @@
                     </div>
                 </main>
             `;
-            
             refreshIcons();
         }
 
         function renderAuthScreen() {
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const isFirstRun = users.length === 0;
+
             appElement.innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4">
                     <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
                         <div class="text-center mb-8">
                             <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4">T</div>
                             <h1 class="text-2xl font-bold text-slate-800">Trinah Designs</h1>
+                            <p class="text-sm text-slate-500">${isFirstRun ? 'System Initialization' : 'Authorized Access Only'}</p>
                         </div>
 
-                        <!-- Login / Sign Up Toggle -->
-                        <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
-                            <button onclick="window.toggleAuthMode(true)" class="flex-1 py-2 text-sm font-bold rounded-lg transition ${isLogin ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}">Login</button>
-                            <button onclick="window.toggleAuthMode(false)" class="flex-1 py-2 text-sm font-bold rounded-lg transition ${!isLogin ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}">Sign Up</button>
-                        </div>
+                        ${isFirstRun ? `
+                            <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-sm mb-6">
+                                <strong>Welcome Admin!</strong><br>
+                                Since this is the first time running the app, please create the main Admin account.
+                            </div>
+                        ` : ''}
 
                         <form onsubmit="window.authHandler(event)" class="space-y-4">
+                            ${isFirstRun ? `
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">ADMIN NAME</label>
+                                <input type="text" id="auth-name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="e.g. Trinah Admin">
+                            </div>` : ''}
+                            
                             <div>
                                 <label class="text-xs font-bold text-slate-500">PHONE</label>
                                 <input type="text" id="auth-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
@@ -818,7 +1181,7 @@
                             </div>
                             ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition" ${authLoading ? 'disabled' : ''}>
-                                ${authLoading ? 'Processing...' : (isLogin ? 'Access Dashboard' : 'Create Account')}
+                                ${authLoading ? 'Processing...' : (isFirstRun ? 'Create Admin Account' : 'Login')}
                             </button>
                         </form>
                     </div>
@@ -828,22 +1191,38 @@
         }
 
         function renderUserManagementScreen() {
-            const storedUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            // Only admins should really be here, mainly for resets
+            const storedUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+            
             appElement.innerHTML = `
                 ${renderHeader()}
-                <main class="max-w-xl mx-auto p-4 md:p-6 space-y-6">
-                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
-                        <h2 class="text-xl font-bold text-slate-800 mb-4">Manage Accounts</h2>
-                        <p class="text-sm text-slate-500 mb-6">You can switch between existing accounts or log out.</p>
+                <main class="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <button onclick="setView('${VIEW_DASHBOARD}')" class="p-2 hover:bg-white rounded-lg text-slate-500">
+                             ${renderIcon('arrow-left', {class:'w-5 h-5'})}
+                        </button>
+                        <h2 class="text-xl font-bold text-slate-800">User Management</h2>
+                    </div>
 
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="showAddStaffModal()" class="bg-indigo-600 text-white rounded-2xl p-6 shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex flex-col items-center justify-center gap-2">
+                             ${renderIcon('user-plus', {class:'w-8 h-8'})} 
+                             <span class="font-bold">Add New Staff</span>
+                        </button>
+                        <button onclick="showResetModal()" class="bg-white border border-red-100 text-red-600 rounded-2xl p-6 shadow-sm hover:bg-red-50 transition flex flex-col items-center justify-center gap-2">
+                             ${renderIcon('trash-2', {class:'w-8 h-8'})} 
+                             <span class="font-bold">System Reset</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">Existing Staff</h2>
                         <div class="space-y-3">
                             ${storedUsers.map(user => {
-                                const isActive = user.phone === currentUser.phone;
                                 return `
-                                    <div onclick="${!isActive ? `handleSwitchUser({phone:'${user.phone}', password:'${user.password}', name:'${user.name}'})` : ''}" 
-                                         class="p-4 rounded-xl border flex justify-between items-center cursor-pointer ${isActive ? 'bg-indigo-50 border-indigo-200' : 'hover:bg-slate-50 border-slate-200'}">
+                                    <div class="p-4 rounded-xl border border-slate-200 flex justify-between items-center">
                                         <div class="flex items-center gap-3">
-                                            <div class="p-2 rounded-full ${isActive ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                                            <div class="p-2 rounded-full bg-slate-100 text-slate-600">
                                                 ${renderIcon('user', {class:'w-4 h-4'})}
                                             </div>
                                             <div>
@@ -851,12 +1230,11 @@
                                                 <p class="text-xs text-slate-500">${user.phone}</p>
                                             </div>
                                         </div>
-                                        ${isActive ? `<span class="text-xs font-bold text-indigo-600">Active</span>` : `<span class="text-xs font-bold text-slate-400">Switch</span>`}
                                     </div>
                                 `;
                             }).join('')}
+                            ${storedUsers.length === 0 ? '<p class="text-slate-400 text-sm text-center">No staff added yet.</p>' : ''}
                         </div>
-                        <button onclick="handleLogout()" class="mt-6 w-full py-3 border-2 border-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-50">Log Out</button>
                     </div>
                 </main>
             `;
@@ -864,25 +1242,37 @@
         }
 
         function renderApp() {
-            if (!currentUser) renderAuthScreen();
-            else if (currentView === VIEW_DASHBOARD) renderDashboard();
-            else if (currentView === VIEW_USERS) renderUserManagementScreen();
-            
+            if (!currentUser) {
+                renderAuthScreen();
+            } else if (currentView === VIEW_USERS) {
+                renderUserManagementScreen();
+            } else if (currentUser.role === 'admin' && !managedUser) {
+                renderAdminOverview();
+            } else {
+                renderIndividualDashboard();
+            }
             refreshIcons();
         }
 
         // --- Init ---
-        window.toggleAuthMode = toggleAuthMode;
+        window.toggleAuthMode = () => {}; 
         window.authHandler = authHandler;
         window.handleSwitchUser = handleSwitchUser;
         window.handleLogout = handleLogout;
         window.downloadReport = downloadReport;
+        window.downloadMasterReport = downloadMasterReport;
         window.handleSubmit = handleSubmit;
         window.handleDeleteLast = handleDeleteLast;
         window.handleStartNewWeek = handleStartNewWeek;
+        window.handleAddStaff = handleAddStaff;
+        window.showAddStaffModal = showAddStaffModal;
+        window.showReportsModal = showReportsModal;
+        window.showResetModal = showResetModal;
+        window.handleFactoryReset = handleFactoryReset;
+        window.manageUser = manageUser;
+        window.setView = setView;
         
         window.onload = function() {
-            // Check session
             const sessionUser = localStorage.getItem(SESSION_KEY);
             if (sessionUser) {
                 try {
