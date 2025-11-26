@@ -231,6 +231,12 @@
         function setLoading(isLoading) {
             if (loaderElement) loaderElement.style.display = isLoading ? 'flex' : 'none';
         }
+        
+        // Remove spaces for easier matching
+        function normalizePhone(phone) {
+            if(!phone) return "";
+            return phone.replace(/\s+/g, '');
+        }
 
         function renderIcon(name, attributes = {}) {
             if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
@@ -298,7 +304,8 @@
 
         window.authHandler = async function(e) {
             e.preventDefault();
-            const phone = document.getElementById('auth-phone').value.trim();
+            const rawPhone = document.getElementById('auth-phone').value.trim();
+            const phone = normalizePhone(rawPhone);
             const password = document.getElementById('auth-password').value.trim();
             const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null;
             const errDiv = document.getElementById('auth-error');
@@ -513,7 +520,7 @@
         window.handleSaveStaff = async function(e, mode, originalPhone) {
             e.preventDefault();
             const name = document.getElementById('staff-name').value;
-            const phone = document.getElementById('staff-phone').value;
+            const phone = normalizePhone(document.getElementById('staff-phone').value.trim());
             const password = document.getElementById('staff-pass').value;
             const dressBuy = Number(document.getElementById('price-dress-buy').value);
             const dressSell = Number(document.getElementById('price-dress-sell').value);
@@ -600,7 +607,8 @@
 
         window.handleRecoveryStep1 = async function(e) {
             e.preventDefault();
-            const phone = document.getElementById('rec-phone').value.trim();
+            const rawPhone = document.getElementById('rec-phone').value.trim();
+            const phone = normalizePhone(rawPhone);
             const errDiv = document.getElementById('recovery-error');
             
             setLoading(true);
@@ -609,7 +617,7 @@
                 const snap = await getDoc(docRef);
 
                 if (!snap.exists()) {
-                    errDiv.textContent = "User not found.";
+                    errDiv.textContent = `User not found (${phone}).`;
                     errDiv.classList.remove('hidden');
                     setLoading(false);
                     return;
@@ -628,7 +636,7 @@
                             <strong>Admin Account Found.</strong> Enter System PIN to reset.
                         </div>
                         <input type="hidden" id="reset-phone" value="${phone}">
-                        <input type="password" id="reset-pin" class="w-full p-3 mb-2 rounded-xl bg-slate-50 border border-slate-200" placeholder="System PIN">
+                        <input type="password" id="reset-pin" class="w-full p-3 mb-2 rounded-xl bg-slate-50 border border-slate-200" placeholder="System PIN (Default: 2580)">
                         <input type="password" id="new-pass" class="w-full p-3 mb-4 rounded-xl bg-slate-50 border border-slate-200" placeholder="New Password">
                         <button type="button" onclick="window.handleRecoveryFinal('admin')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Update Password</button>
                     `;
@@ -653,7 +661,7 @@
             const pass = document.getElementById('new-pass').value;
             const pin = document.getElementById('reset-pin') ? document.getElementById('reset-pin').value : null;
 
-            if (role === 'admin' && pin !== SYSTEM_PIN) return alert("Invalid PIN");
+            if (role === 'admin' && pin !== SYSTEM_PIN) return alert("Invalid PIN. It is likely 2580");
             if (!pass) return alert("Enter password");
 
             setLoading(true);
@@ -661,7 +669,7 @@
                 await updateDoc(getDocRef('users', phone), { password: pass });
                 alert("Password updated! Please login.");
                 renderAuthScreen();
-            } catch(e) { console.error(e); alert("Error updating password"); }
+            } catch(e) { console.error(e); alert("Error updating password: " + e.message); }
             setLoading(false);
         };
 
