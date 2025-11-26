@@ -218,37 +218,46 @@
         function getFilteredHistory() {
             const fullHistory = getFullHistory();
             const now = new Date();
-            const nowLocaleDate = now.toLocaleDateString();
+            // Create midnight timestamps for safe comparison
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const todayEnd = todayStart + (24 * 60 * 60 * 1000);
 
             return fullHistory.filter(entry => {
-                const entryFullDateObj = new Date(entry.fullDate);
-                if (isNaN(entryFullDateObj)) return false;
+                // Use entry.id (which is a timestamp) for robust comparison across all devices
+                // Fallback to parsing Date string only if ID is missing (legacy data)
+                let entryTime = entry.id;
+                if (!entryTime) {
+                    const parsed = new Date(entry.fullDate);
+                    if (!isNaN(parsed.getTime())) entryTime = parsed.getTime();
+                    else return false;
+                }
 
-                const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const entryMidnight = new Date(entryFullDateObj.getFullYear(), entryFullDateObj.getMonth(), entryFullDateObj.getDate());
-                
                 switch (selectedReport) {
-                    case "Daily": return entry.fullDate === nowLocaleDate;
+                    case "Daily": 
+                        // Show entries that happened today
+                        return entryTime >= todayStart && entryTime < todayEnd;
+                    
                     case "Weekly": {
-                        const oneWeekAgo = new Date(todayMidnight);
-                        oneWeekAgo.setDate(todayMidnight.getDate() - 7);
-                        return entryMidnight >= oneWeekAgo;
+                        // Show entries from last 7 days (rolling week)
+                        const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000); // 6 days ago + today = 7 days
+                        return entryTime >= oneWeekAgo;
                     }
+                    
                     case "Monthly": {
-                        const oneMonthAgo = new Date(todayMidnight);
-                        oneMonthAgo.setDate(todayMidnight.getDate() - 30);
-                        return entryMidnight >= oneMonthAgo;
+                        const thirtyDaysAgo = todayStart - (30 * 24 * 60 * 60 * 1000);
+                        return entryTime >= thirtyDaysAgo;
                     }
+                    
                     case "Quarterly": {
-                        const ninetyDaysAgo = new Date(todayMidnight);
-                        ninetyDaysAgo.setDate(todayMidnight.getDate() - 90);
-                        return entryMidnight >= ninetyDaysAgo;
+                        const ninetyDaysAgo = todayStart - (90 * 24 * 60 * 60 * 1000);
+                        return entryTime >= ninetyDaysAgo;
                     }
+                    
                     case "Yearly": {
-                        const oneYearAgo = new Date(todayMidnight);
-                        oneYearAgo.setFullYear(todayMidnight.getFullYear() - 1);
-                        return entryMidnight >= oneYearAgo;
+                        const oneYearAgo = todayStart - (365 * 24 * 60 * 60 * 1000);
+                        return entryTime >= oneYearAgo;
                     }
+                    
                     default: return true;
                 }
             });
