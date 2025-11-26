@@ -267,7 +267,8 @@
         }
 
         // --- Master Report Logic ---
-        async function downloadMasterReport(type = 'Daily') {
+        // Modified to accept a custom date string for 'Daily' reports
+        async function downloadMasterReport(type = 'Daily', customDateStr = null) {
             const loader = document.getElementById('pdf-loader');
             if (loader) loader.style.display = 'flex';
             
@@ -278,8 +279,16 @@
                 const doc = new jsPDF();
                 
                 const allUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
-                const todayLocale = new Date().toLocaleDateString();
                 
+                // Determine target date (default to today)
+                let targetDateLocale = new Date().toLocaleDateString();
+                
+                // If custom date provided (YYYY-MM-DD), convert to locale date string
+                if (customDateStr && type === 'Daily') {
+                    const [y, m, d] = customDateStr.split('-').map(Number);
+                    targetDateLocale = new Date(y, m - 1, d).toLocaleDateString();
+                }
+
                 let reportRows = [];
                 let grandTotalSoldDresses = 0;
                 let grandTotalSoldTwoPcs = 0;
@@ -297,7 +306,7 @@
                     
                     let filteredEntries = [];
                     if (type === 'Daily') {
-                        filteredEntries = allEntries.filter(e => e.fullDate === todayLocale);
+                        filteredEntries = allEntries.filter(e => e.fullDate === targetDateLocale);
                     } else {
                         filteredEntries = allEntries;
                     }
@@ -360,7 +369,9 @@
                 doc.setFontSize(16);
                 doc.text("Trinah Designs", 14, 20);
                 doc.setFontSize(10);
-                doc.text(`Master ${type} Report`, 160, 20);
+                
+                const dateLabel = type === 'Daily' ? `(${targetDateLocale})` : '';
+                doc.text(`Master ${type} Report ${dateLabel}`, 150, 20);
 
                 doc.setTextColor(0,0,0);
                 doc.setFontSize(10);
@@ -379,7 +390,7 @@
                 // --- Stock Reconciliation Section (Added) ---
                 if (type === 'Daily') {
                     const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-                    const procurementToday = logs[todayLocale] || 0;
+                    const procurementToday = logs[targetDateLocale] || 0;
                     const variance = procurementToday - grandTotalDispatched;
                     
                     const finalY = doc.lastAutoTable.finalY + 15;
@@ -395,7 +406,7 @@
                     
                     doc.setFontSize(10);
                     doc.setTextColor(0, 0, 0);
-                    doc.text(`Total Stock Acquired (Today): ${procurementToday}`, 20, finalY + 20);
+                    doc.text(`Total Stock Acquired (${targetDateLocale}): ${procurementToday}`, 20, finalY + 20);
                     doc.text(`Total Stock Dispatched (All Staff): ${grandTotalDispatched}`, 20, finalY + 26);
                     
                     doc.setFont(undefined, 'bold');
@@ -414,7 +425,10 @@
                     }
                 }
 
-                doc.save(`Trinah_Master_${type}_Report.pdf`);
+                // Sanitize filename
+                const fileDate = type === 'Daily' ? `_${targetDateLocale.replace(/\//g, '-')}` : '';
+                doc.save(`Trinah_Master_${type}_Report${fileDate}.pdf`);
+                
                 showNotification("Master Report Downloaded!");
 
             } catch (e) {
@@ -600,6 +614,13 @@
         }
 
         function showReportsModal() {
+             // Generate today's date in YYYY-MM-DD for the date input default
+             const now = new Date();
+             const y = now.getFullYear();
+             const m = String(now.getMonth() + 1).padStart(2, '0');
+             const d = String(now.getDate()).padStart(2, '0');
+             const todayStr = `${y}-${m}-${d}`;
+
              const modalHTML = `
                 <div id="reports-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reports-modal').remove()"></div>
@@ -608,7 +629,13 @@
                         <p class="text-sm text-slate-500 mb-6">Select the type of report to generate for ALL users.</p>
                         
                         <div class="space-y-3">
-                            <button onclick="downloadMasterReport('Daily'); document.getElementById('reports-modal').remove()" 
+                            <div class="text-left bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Date for Daily Report</label>
+                                <input type="date" id="report-date-picker" value="${todayStr}" 
+                                    class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
+                            </div>
+
+                            <button onclick="const d = document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d); document.getElementById('reports-modal').remove()" 
                                 class="w-full py-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 border border-emerald-100">
                                 ${renderIcon('calendar', {class:'w-5 h-5'})} Daily Master Report
                             </button>
