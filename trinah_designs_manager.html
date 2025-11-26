@@ -80,6 +80,11 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase logging level for debugging (optional, but helpful)
+        setLogLevel('debug');
+
 
         // --- Firebase Configuration ---
         const firebaseConfig = JSON.parse(__firebase_config || '{}');
@@ -250,9 +255,20 @@
             if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         }
 
-        function showNotification(msg) {
+        function showNotification(msg, type = 'default') {
+            let bgColor = 'bg-slate-800';
+            let icon = 'info';
+            if (type === 'error') {
+                bgColor = 'bg-red-600';
+                icon = 'x-circle';
+            } else if (type === 'success') {
+                bgColor = 'bg-emerald-600';
+                icon = 'check-circle';
+            }
+            
             notificationContainer.innerHTML = `
-                <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-medium flex items-center gap-2">
+                <div class="${bgColor} text-white px-6 py-3 rounded-full shadow-2xl text-sm font-medium flex items-center gap-2">
+                    ${renderIcon(icon, {class: 'w-4 h-4'})}
                     ${msg}
                 </div>`;
             notificationContainer.style.display = 'block';
@@ -323,7 +339,7 @@
                     // Double check admin doesn't exist
                     const existingUsers = await getAllUsers();
                     if (existingUsers.length > 0) {
-                        alert("Admin already exists. Please login.");
+                        showNotification("Admin already exists. Please login.", 'error');
                         window.location.reload();
                         return;
                     }
@@ -443,7 +459,7 @@
             const newRemDress = prevRemDress + dDress - sDress;
             const newRem2pc = prevRem2pc + d2pc - s2pc;
 
-            if (newRemDress < 0 || newRem2pc < 0) return showNotification("Error: Negative stock!");
+            if (newRemDress < 0 || newRem2pc < 0) return showNotification("Error: Negative stock!", 'error');
 
             const prices = managedUser.prices || { dressBuy: 120, dressSell: 200, twoPcBuy: 120, twoPcSell: 200 };
             const profit = (sDress * (prices.dressSell - prices.dressBuy)) + (s2pc * (prices.twoPcSell - prices.twoPcBuy));
@@ -467,7 +483,7 @@
             // Advance day if not today
             if (selectedDayIndex < mappedDay) selectedDayIndex++;
             
-            showNotification("Saved successfully!");
+            showNotification("Saved successfully!", 'success');
             renderIndividualDashboard();
         };
 
@@ -481,15 +497,12 @@
                 const last = fullHist[fullHist.length - 1];
                 startingPressure = { dresses: last.remDresses||0, twoPcs: last.remTwoPcs||0 };
             } else {
-                // Should reload from server to be safe, but we'll trust current state for speed
-                // Or fetch initial pressure logic if needed. 
-                // For now, assume if empty history, we revert to start of week pressure
-                // We need to re-fetch the original start of week pressure potentially?
-                // Simplification: just save current state.
+                // If history is empty, reload the original startingPressure from a fresh fetch or assume default
+                // For simplicity, we trust the logic in fetchUserData
             }
             
             await saveUserData(managedUser.phone);
-            showNotification("Last entry deleted.");
+            showNotification("Last entry deleted.", 'default');
             renderIndividualDashboard();
         };
 
@@ -511,7 +524,7 @@
             selectedDayIndex = 0;
 
             await saveUserData(managedUser.phone);
-            showNotification("New week started!");
+            showNotification("New week started!", 'success');
             renderIndividualDashboard();
         };
 
@@ -538,7 +551,7 @@
                     // check duplicates
                     const check = await getDoc(getDocRef('users', phone));
                     if (check.exists()) {
-                        alert("User exists!");
+                        showNotification("User already exists!", 'error');
                         setLoading(false);
                         return;
                     }
@@ -549,35 +562,36 @@
                 }
 
                 document.getElementById('add-staff-modal')?.remove();
-                showNotification("Staff saved!");
+                showNotification("Staff saved!", 'success');
                 renderUserManagementScreen(); // Refresh list
 
-            } catch(e) { console.error(e); alert("Save failed"); }
+            } catch(e) { console.error(e); showNotification("Save failed", 'error'); }
             setLoading(false);
         };
 
         window.handleDeleteStaff = async function(phone) {
-            if(!confirm("Delete this user? Data will remain but login will be revoked.")) return;
+            if(!window.confirm("Delete this user? Data will remain but login will be revoked.")) return;
             setLoading(true);
             try {
                 await deleteDoc(getDocRef('users', phone));
+                showNotification("Staff deleted!", 'success');
                 renderUserManagementScreen();
-            } catch(e) { console.error(e); alert("Delete failed"); }
+            } catch(e) { console.error(e); showNotification("Delete failed", 'error'); }
             setLoading(false);
         };
 
         window.handleProcurementSave = async function() {
             const val = document.getElementById('procurement-input').value;
-            if(!val) return;
+            if(!val) return showNotification("Enter a value first.");
             setLoading(true);
             try {
                 const dateKey = selectedProcurementDate.toLocaleDateString();
                 const logs = await getProcurementLogs();
                 logs[dateKey] = Number(val);
                 await saveProcurementLog(logs);
-                showNotification("Stock saved!");
+                showNotification("Stock saved!", 'success');
                 renderAdminOverview();
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error(e); showNotification("Procurement save failed.", 'error'); }
             setLoading(false);
         };
 
@@ -612,12 +626,14 @@
             const errDiv = document.getElementById('recovery-error');
             
             setLoading(true);
+            errDiv.classList.add('hidden');
+
             try {
                 const docRef = getDocRef('users', phone);
                 const snap = await getDoc(docRef);
 
                 if (!snap.exists()) {
-                    errDiv.textContent = `User not found (${phone}).`;
+                    errDiv.textContent = `User not found (${rawPhone}).`;
                     errDiv.classList.remove('hidden');
                     setLoading(false);
                     return;
@@ -625,9 +641,6 @@
 
                 const user = snap.data();
                 const form = document.getElementById('recovery-form');
-
-                // If Admin, ask for PIN. If Staff, just allow reset (or restrict as needed).
-                // Prompt: "Recover account should also work". I will allow reset for both but protect Admin with PIN.
                 
                 let html = ``;
                 if (user.role === 'admin') {
@@ -636,8 +649,9 @@
                             <strong>Admin Account Found.</strong> Enter System PIN to reset.
                         </div>
                         <input type="hidden" id="reset-phone" value="${phone}">
-                        <input type="password" id="reset-pin" class="w-full p-3 mb-2 rounded-xl bg-slate-50 border border-slate-200" placeholder="System PIN (Default: 2580)">
+                        <input type="password" id="reset-pin" class="w-full p-3 mb-2 rounded-xl bg-slate-50 border border-slate-200" placeholder="System PIN (Default: ${SYSTEM_PIN})">
                         <input type="password" id="new-pass" class="w-full p-3 mb-4 rounded-xl bg-slate-50 border border-slate-200" placeholder="New Password">
+                        <div id="recovery-error-2" class="text-center text-sm text-red-500 hidden mb-4"></div>
                         <button type="button" onclick="window.handleRecoveryFinal('admin')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Update Password</button>
                     `;
                 } else {
@@ -647,29 +661,53 @@
                         </div>
                         <input type="hidden" id="reset-phone" value="${phone}">
                         <input type="password" id="new-pass" class="w-full p-3 mb-4 rounded-xl bg-slate-50 border border-slate-200" placeholder="New Password">
+                        <div id="recovery-error-2" class="text-center text-sm text-red-500 hidden mb-4"></div>
                         <button type="button" onclick="window.handleRecoveryFinal('staff')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Update Password</button>
                     `;
                 }
                 form.innerHTML = html;
+                refreshIcons();
 
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error(e); 
+                errDiv.textContent = "An error occurred during verification.";
+                errDiv.classList.remove('hidden');
+            }
             setLoading(false);
         };
 
         window.handleRecoveryFinal = async function(role) {
             const phone = document.getElementById('reset-phone').value;
             const pass = document.getElementById('new-pass').value;
-            const pin = document.getElementById('reset-pin') ? document.getElementById('reset-pin').value : null;
+            const pinElement = document.getElementById('reset-pin');
+            const pin = pinElement ? pinElement.value : null;
+            const errDiv = document.getElementById('recovery-error-2');
 
-            if (role === 'admin' && pin !== SYSTEM_PIN) return alert("Invalid PIN. It is likely 2580");
-            if (!pass) return alert("Enter password");
+            errDiv.classList.add('hidden');
+            if (!pass || pass.length < 4) {
+                errDiv.textContent = "New password must be at least 4 characters.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (role === 'admin') {
+                if (pin !== SYSTEM_PIN) {
+                    errDiv.textContent = `Invalid System PIN. Hint: ${SYSTEM_PIN}`;
+                    errDiv.classList.remove('hidden');
+                    return;
+                }
+            }
 
             setLoading(true);
             try {
                 await updateDoc(getDocRef('users', phone), { password: pass });
-                alert("Password updated! Please login.");
+                showNotification("Password updated! Please log in.", 'success');
                 renderAuthScreen();
-            } catch(e) { console.error(e); alert("Error updating password: " + e.message); }
+            } catch(e) { 
+                console.error(e); 
+                errDiv.textContent = "Error updating password. Try again.";
+                errDiv.classList.remove('hidden');
+            }
             setLoading(false);
         };
 
@@ -693,7 +731,7 @@
                                 <input id="auth-password" type="password" class="w-full p-3 rounded-xl bg-slate-50 border" placeholder="Password">
                                 <button onclick="window.authHandler(event)" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Create Admin</button>
                             </div>
-                            <button id="unlock-btn" onclick="if(document.getElementById('sys-pin').value==='${SYSTEM_PIN}'){document.getElementById('setup-form').classList.remove('hidden');this.classList.add('hidden');}else{alert('Wrong PIN')}" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Unlock</button>
+                            <button id="unlock-btn" onclick="if(document.getElementById('sys-pin').value==='${SYSTEM_PIN}'){document.getElementById('setup-form').classList.remove('hidden');this.classList.add('hidden');}else{showNotification('Wrong PIN', 'error')}" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Unlock</button>
                         </div>
                     </div>`;
             } else {
@@ -730,14 +768,13 @@
 
             // Fetch metrics for all users for ONE day (today)
             // Note: In a real heavy app we would query differently, but here we fetch all user data
-            // To optimize, we could store 'dailyStats' in user object, but let's stick to reading user_data
             
             let totalStock = 0, totalSales = 0, totalProfit = 0, totalDisp = 0;
             
             // Parallel fetch all user data
             const stats = await Promise.all(users.map(async u => {
                 const docSnap = await getDoc(getDocRef('user_data', u.phone));
-                if (!docSnap.exists()) return { user: u, stock: 0, sales: 0, profit: 0, disp: 0 };
+                if (!docSnap.exists()) return { user: u, stock: 0, sales: 0, profit: 0, disp: 0, stockVal: 0 };
                 
                 const d = docSnap.data();
                 const h = d.history ? JSON.parse(d.history) : [];
@@ -812,6 +849,41 @@
                                 <div class="flex justify-between text-xs text-slate-500 bg-slate-50 p-2 rounded">
                                     <span>Stock: <b>${s.stock}</b></span>
                                     <span>Sold: <b>${s.sales}</b></span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </main>
+            `;
+            refreshIcons();
+            setLoading(false);
+        }
+        // Expose function globally for HTML onclick
+        window.renderUserManagementScreen = renderUserManagementScreen;
+
+        async function renderUserManagementScreen() {
+            setLoading(true);
+            const users = (await getAllUsers()).filter(u => u.role !== 'admin');
+            appElement.innerHTML = `
+                ${renderHeader(true)}
+                <main class="max-w-2xl mx-auto p-4 space-y-6">
+                    <div class="flex justify-between items-center">
+                        <button onclick="handleLogin(currentUser)" class="text-slate-500 hover:bg-white p-2 rounded-lg">${renderIcon('arrow-left')}</button>
+                        <h2 class="text-xl font-bold">Manage Staff</h2>
+                    </div>
+                    <button onclick="showAddStaffModal()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold flex justify-center gap-2 items-center shadow-lg hover:bg-indigo-700">
+                        ${renderIcon('user-plus')} Add New Staff
+                    </button>
+                    <div class="space-y-3">
+                        ${users.map(u => `
+                            <div class="bg-white p-4 rounded-xl shadow border flex justify-between items-center">
+                                <div>
+                                    <div class="font-bold text-slate-800">${u.name}</div>
+                                    <div class="text-xs text-slate-500">${u.phone}</div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="showAddStaffModal(true, '${u.phone}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-lg">${renderIcon('pencil', {class:'w-4 h-4'})}</button>
+                                    <button onclick="handleDeleteStaff('${u.phone}')" class="p-2 text-red-600 bg-red-50 rounded-lg">${renderIcon('trash-2', {class:'w-4 h-4'})}</button>
                                 </div>
                             </div>
                         `).join('')}
@@ -915,39 +987,6 @@
             refreshIcons();
         }
         
-        async function renderUserManagementScreen() {
-            setLoading(true);
-            const users = (await getAllUsers()).filter(u => u.role !== 'admin');
-            appElement.innerHTML = `
-                ${renderHeader(true)}
-                <main class="max-w-2xl mx-auto p-4 space-y-6">
-                    <div class="flex justify-between items-center">
-                        <button onclick="handleLogin(currentUser)" class="text-slate-500 hover:bg-white p-2 rounded-lg">${renderIcon('arrow-left')}</button>
-                        <h2 class="text-xl font-bold">Manage Staff</h2>
-                    </div>
-                    <button onclick="showAddStaffModal()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold flex justify-center gap-2 items-center shadow-lg hover:bg-indigo-700">
-                        ${renderIcon('user-plus')} Add New Staff
-                    </button>
-                    <div class="space-y-3">
-                        ${users.map(u => `
-                            <div class="bg-white p-4 rounded-xl shadow border flex justify-between items-center">
-                                <div>
-                                    <div class="font-bold text-slate-800">${u.name}</div>
-                                    <div class="text-xs text-slate-500">${u.phone}</div>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="showAddStaffModal(true, '${u.phone}')" class="p-2 text-indigo-600 bg-indigo-50 rounded-lg">${renderIcon('pencil', {class:'w-4 h-4'})}</button>
-                                    <button onclick="handleDeleteStaff('${u.phone}')" class="p-2 text-red-600 bg-red-50 rounded-lg">${renderIcon('trash-2', {class:'w-4 h-4'})}</button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </main>
-            `;
-            refreshIcons();
-            setLoading(false);
-        }
-
         // --- Helpers ---
         function renderHeader(isAdmin) {
             return `
@@ -982,38 +1021,40 @@
         
         function renderWeekCompleteModal() {
             modalContainer.innerHTML = `
-                <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="modal-overlay absolute inset-0" onclick="this.parentElement.remove()"></div>
+                <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0" onclick="document.getElementById('week-complete-modal').remove()"></div>
                     <div class="bg-white rounded-2xl p-6 w-full max-w-sm relative z-10 text-center">
                         <h2 class="text-xl font-bold mb-4">Complete Week?</h2>
                         <p class="text-sm text-slate-500 mb-6">This will archive current sales and start fresh.</p>
                         <button onclick="handleStartNewWeek()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold mb-2">Yes, Start New Week</button>
-                        <button onclick="this.closest('.fixed').remove()" class="w-full py-3 text-slate-500 font-bold">Cancel</button>
+                        <button onclick="document.getElementById('week-complete-modal').remove()" class="w-full py-3 text-slate-500 font-bold">Cancel</button>
                     </div>
                 </div>`;
         }
 
         window.showAddStaffModal = function(isEdit, phone) {
-            // Need to fetch existing data if edit, but for speed we'll assume clean slate for add
-            // In a real app, pass the user object. For now, we open empty modal for Add, 
-            // and we'd need to async fetch for edit.
-            
-            // Simplified for Add Mode primarily in this demo
+            // If edit, we need to try and fetch user details for display
+            let userToEdit = {};
+            if (isEdit && phone) {
+                // Simplified sync/state access here for demo, ideally fetch async
+                // Since this is just a modal, we'll rely on the user list being available or prompt re-entry for complexity.
+            }
+
             modalContainer.innerHTML = `
                 <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="modal-overlay absolute inset-0" onclick="document.getElementById('add-staff-modal').remove()"></div>
                     <div class="bg-white rounded-2xl p-6 w-full max-w-md relative z-10">
                         <h2 class="text-xl font-bold mb-4">${isEdit?'Edit':'Add'} Staff</h2>
-                        <form onsubmit="window.handleSaveStaff(event, '${isEdit?'edit':'add'}', '${phone}')" class="space-y-3">
+                        <form onsubmit="window.handleSaveStaff(event, '${isEdit?'edit':'add'}', '${phone||''}')" class="space-y-3">
                             <input id="staff-name" placeholder="Name" class="w-full p-3 border rounded-xl" required>
                             <input id="staff-phone" placeholder="Phone" value="${phone||''}" ${isEdit?'disabled':''} class="w-full p-3 border rounded-xl" required>
                             <input id="staff-pass" placeholder="Password" class="w-full p-3 border rounded-xl" required>
                             
                             <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl">
-                                <input id="price-dress-buy" value="120" placeholder="Dress Buy" class="p-2 border rounded">
-                                <input id="price-dress-sell" value="200" placeholder="Dress Sell" class="p-2 border rounded">
-                                <input id="price-2pc-buy" value="120" placeholder="2pc Buy" class="p-2 border rounded">
-                                <input id="price-2pc-sell" value="200" placeholder="2pc Sell" class="p-2 border rounded">
+                                <input id="price-dress-buy" value="${userToEdit.prices?.dressBuy || DEFAULT_BUY_PRICE}" placeholder="Dress Buy" class="p-2 border rounded" type="number" required>
+                                <input id="price-dress-sell" value="${userToEdit.prices?.dressSell || DEFAULT_SELL_PRICE}" placeholder="Dress Sell" class="p-2 border rounded" type="number" required>
+                                <input id="price-2pc-buy" value="${userToEdit.prices?.twoPcBuy || DEFAULT_BUY_PRICE}" placeholder="2pc Buy" class="p-2 border rounded" type="number" required>
+                                <input id="price-2pc-sell" value="${userToEdit.prices?.twoPcSell || DEFAULT_SELL_PRICE}" placeholder="2pc Sell" class="p-2 border rounded" type="number" required>
                             </div>
                             
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Save</button>
@@ -1029,6 +1070,8 @@
                  managedUser = snap.data();
                  await fetchUserData(phone);
                  renderIndividualDashboard();
+             } else {
+                 showNotification("User data not found for management.", 'error');
              }
         };
 
