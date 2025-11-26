@@ -23,1698 +23,1974 @@
             background-color: rgba(15, 23, 42, 0.7);
         }
         /* PDF loader styles */
-        #pdf-loader { position: fixed; inset: 0; z-index: 60; background-color: rgba(255,255,255,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Custom scrollbar for better reports table viewing */
-        .reports-table-container::-webkit-scrollbar { height: 10px; }
-        .reports-table-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 5px; }
-        .reports-table-container::-webkit-scrollbar-track { background: #f3f4f6; }
-
-        /* Custom alert styles */
-        .custom-alert {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 70;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-            transform: translateX(100%);
+        #pdf-loader { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; }
+        .pdf-loader-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,0.6); }
+        .pdf-loader-box {
+            position: relative; z-index: 61; width: 320px; padding: 18px 20px;
+            border-radius: 12px; background: #ffffff;
+            box-shadow: 0 10px 30px rgba(2,6,23,0.5);
+            display: flex; gap: 12px; align-items: center;
         }
-        .custom-alert.show {
-            opacity: 1;
-            transform: translateX(0);
+        .pdf-spinner {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 4px solid #e6edf8; border-top-color: #1E3A8A;
+            animation: pdfspin 1s linear infinite;
         }
+        @keyframes pdfspin { to { transform: rotate(360deg); } }
+        .pdf-loader-text { font-weight:600; font-size:14px; color: #0f172a; }
+        
+        /* Mobile Menu Transitions */
+        #mobile-menu { transition: transform 0.3s ease-in-out; }
+        .translate-x-full { transform: translateX(100%); }
+        .translate-x-0 { transform: translateX(0); }
     </style>
 </head>
-<body>
-    <div id="app" class="min-h-screen">
-        <!-- Main application content will be rendered here -->
-    </div>
+<body class="min-h-screen">
+
+    <!-- Main Application Container -->
+    <div id="app" class="min-h-screen"></div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-0 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform opacity-0 -translate-y-full" style="display: none;"></div>
+
+    <!-- Modals Container -->
+    <div id="modal-container"></div>
 
     <!-- PDF Loader -->
-    <div id="pdf-loader" class="text-center">
-        <div class="spinner"></div>
-        <p class="mt-4 text-lg text-indigo-600 font-semibold">Generating Report...</p>
+    <div id="pdf-loader" style="display:none;">
+        <div class="pdf-loader-backdrop"></div>
+        <div class="pdf-loader-box">
+            <div class="pdf-spinner"></div>
+            <div class="pdf-loader-text">Generating report — please wait...</div>
+        </div>
     </div>
 
-    <!-- Custom Alert Container -->
-    <div id="alert-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+    <script>
+        // --- Configuration & Constants ---
+        // DEPRECATED CONSTANTS (Used as fallbacks for old users)
+        const DEFAULT_BUY_PRICE = 120;
+        const DEFAULT_SELL_PRICE = 200;
 
-    <script type="module">
-        // --- Firebase Setup and Imports ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const REPORT_TYPES = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
         
-        // Use the globally provided variables
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // Global Firebase instances
-        let app = null;
-        let db = null;
-        let auth = null;
-        let userId = null;
-
-        // Set log level for debugging (optional, but helpful for development)
-        setLogLevel('debug');
-
-        // Initialize Firebase and Authenticate
-        async function initializeAndAuthenticate() {
-            try {
-                if (Object.keys(firebaseConfig).length === 0) {
-                    console.error("Firebase configuration is missing or empty.");
-                    renderErrorScreen("System Configuration Error", "Firebase configuration is not available. Please contact support.");
-                    return;
-                }
-
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Authentication listener to handle user state
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        console.log("Authenticated User ID:", userId);
-                        // Once authenticated, start the application logic
-                        initApp();
-                    } else {
-                        userId = null;
-                        console.log("User signed out or failed authentication.");
-                        renderAuthScreen();
-                    }
-                });
-
-                // Sign in using the custom token provided by the environment
-                if (initialAuthToken) {
-                    console.log("Attempting sign-in with custom token...");
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    console.log("Attempting anonymous sign-in...");
-                    await signInAnonymously(auth);
-                }
-
-            } catch (error) {
-                console.error("Firebase initialization or authentication failed:", error);
-                // Check specifically for API Key error
-                if (error.code === 'auth/invalid-api-key') {
-                    renderErrorScreen("Authentication Failed", "The provided Firebase API Key is invalid. Please ensure the environment configuration is correct.");
-                } else {
-                    renderErrorScreen("System Error", `An error occurred during startup: ${error.message}`);
-                }
-            }
-        }
-        
-        // --- Constants and Global State ---
+        // SECURITY CONFIGURATION
+        const SYSTEM_PIN = "2580"; 
 
         // Local Storage Keys
-        const SESSION_KEY = 'td_admin_session';
-        const PENDING_DATA_KEY = 'td_pending_data';
-        const REPORTS_KEY = 'td_reports_data';
-        const LAST_RESET_KEY = 'td_last_reset';
-        const SYSTEM_PIN_KEY = 'td_system_pin';
-        const STAFF_KEY = 'td_staff_list';
-        const PROCUREMENT_KEY = 'td_procurement_data';
+        const DB_KEY = "trinah_users_db";
+        const SESSION_KEY = "trinah_active_session";
+        const PROCUREMENT_KEY = "trinah_procurement_log";
 
-        // Firestore Collection Paths
-        const getPrivateCollectionPath = (collectionName) => `/artifacts/${appId}/users/${userId}/${collectionName}`;
-        const getPublicCollectionPath = (collectionName) => `/artifacts/${appId}/public/data/${collectionName}`;
+        // View States
+        const VIEW_DASHBOARD = 'dashboard';
+        const VIEW_USERS = 'users';
 
-        const DATA_COLLECTION = 'productionData';
-        const REPORTS_COLLECTION = 'weeklyReports';
-        const STAFF_COLLECTION = 'staffManagement';
-        const PROCUREMENT_COLLECTION = 'procurementLog';
-
-        // System Settings
-        const DEFAULT_SYSTEM_PIN = '0000'; // Default pin if none is set
+        // Global State Variables
+        let currentUser = null; 
+        let managedUser = null; 
+        let currentView = VIEW_DASHBOARD;
         
-        // Application State
-        let state = {
-            view: 'dashboard', // dashboard, reports, manageStaff, procurement, settings
-            currentUser: null,
-            currentWeek: getCurrentWeekId(),
-            productionData: [], // { date: 'YYYY-MM-DD', total: 0, items: [] }
-            weeklyReports: [], // { weekId: 'YYYY-WW', data: [] }
-            staff: [], // { id, name, role, isDeleted }
-            procurementLog: [], // { id, date, item, quantity, unit, cost }
-            isDataLoaded: false,
-            // Modal state
-            isModalOpen: false,
-            modalType: null, // reports, reset, addStaff
-            modalData: null,
-            // Procurement state
-            procurementDate: new Date().toISOString().substring(0, 10),
-            // User management
-            managementTarget: null, // The user ID being managed
-            managementMode: 'view', // view, edit
-        };
+        // Data for managed user
+        let history = []; 
+        let archive = []; 
+        // startingPressure is now an object: { dresses: 0, twoPcs: 0 }
+        let startingPressure = { dresses: 0, twoPcs: 0 }; 
+        
+        let selectedDayIndex = 0;
+        let selectedReport = "Daily"; 
+        
+        // Admin Overview Date State
+        let selectedProcurementDate = new Date(); // Default to today
+
+        // Auth State
+        let authError = "";
+        let authLoading = false;
+        let showAdminCreation = false;
+
+        const appElement = document.getElementById('app');
+        const notificationContainer = document.getElementById('notification-container');
+        const modalContainer = document.getElementById('modal-container');
 
         // --- Utility Functions ---
 
-        function showCustomAlert(message, type = 'success', duration = 3000) {
-            const container = document.getElementById('alert-container');
-            if (!container) return;
-
-            const alert = document.createElement('div');
-            alert.className = `custom-alert px-4 py-3 rounded-lg shadow-xl text-white font-medium flex items-center space-x-2`;
-            
-            let bgColor = '';
-            let icon = '';
-
-            switch(type) {
-                case 'success':
-                    bgColor = 'bg-green-600';
-                    icon = `<i data-lucide="check-circle" class="w-5 h-5"></i>`;
-                    break;
-                case 'error':
-                    bgColor = 'bg-red-600';
-                    icon = `<i data-lucide="x-circle" class="w-5 h-5"></i>`;
-                    break;
-                case 'warning':
-                    bgColor = 'bg-yellow-600';
-                    icon = `<i data-lucide="alert-triangle" class="w-5 h-5"></i>`;
-                    break;
-                default:
-                    bgColor = 'bg-blue-600';
-                    icon = `<i data-lucide="info" class="w-5 h-5"></i>`;
-            }
-
-            alert.classList.add(bgColor);
-            alert.innerHTML = `
-                ${icon}
-                <span>${message}</span>
-            `;
-
-            container.appendChild(alert);
-
-            // Trigger the animation
-            setTimeout(() => {
-                alert.classList.add('show');
-                lucide.createIcons();
-            }, 10);
-
-            // Remove the alert after duration
-            setTimeout(() => {
-                alert.classList.remove('show');
-                // Wait for transition to finish before removal
-                setTimeout(() => {
-                    container.removeChild(alert);
-                }, 500); 
-            }, duration);
-        }
-
-        function getCurrentWeekId(date = new Date()) {
-            const year = date.getFullYear();
-            const dateOnly = new Date(date.getTime());
-            dateOnly.setHours(0, 0, 0, 0);
-            // Thursday in current week decides the year.
-            dateOnly.setDate(dateOnly.getDate() + 3 - (dateOnly.getDay() || 7));
-            // January 4 is always in week 1.
-            const week1 = new Date(dateOnly.getFullYear(), 0, 4);
-            // Calculate full weeks to nearest Thursday.
-            const weekNumber = Math.ceil((((dateOnly - week1) / 86400000) + 1) / 7);
-            
-            return `${year}-${String(weekNumber).padStart(2, '0')}`;
-        }
-
-        function formatCurrency(amount) {
-            if (typeof amount !== 'number' || isNaN(amount)) return 'N/A';
-            // Simple integer-only format for clarity
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(amount);
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        function calculateReportSummary(data) {
-            if (!data || data.length === 0) return { totalSales: 0, totalExpenses: 0, netProfit: 0, totalItems: 0 };
-            
-            const totalSales = data.reduce((sum, item) => sum + item.total, 0);
-            const totalItems = data.reduce((sum, item) => sum + item.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
-            
-            // For a simple report, we'll assume totalSales is the main figure for now.
-            // Expense calculation would require separate data, but we'll simulate a fixed expense ratio for calculation:
-            // This is placeholder logic, real expenses would come from procurement data or overhead
-            const estimatedCostOfGoods = totalSales * 0.4;
-            const overhead = 5000; // Placeholder fixed weekly overhead
-            const totalExpenses = estimatedCostOfGoods + overhead;
-
-            const netProfit = totalSales - totalExpenses;
-
-            return { totalSales, totalExpenses, netProfit, totalItems };
-        }
-
-        // --- Data Persistence (Firestore) ---
-
-        /**
-         * Generic function to load data from Firestore (private collection)
-         * @param {string} collectionName - The name of the collection to load
-         * @param {function} setStateCallback - Callback to update the local state
-         */
-        function setupDataListener(collectionName, setStateCallback) {
-            if (!db || !userId) return () => {}; // Return no-op cleanup function
-
-            const path = getPrivateCollectionPath(collectionName);
-            const q = query(collection(db, path));
-            
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const data = [];
-                snapshot.forEach((doc) => {
-                    data.push({ id: doc.id, ...doc.data() });
-                });
-                console.log(`[Firestore] Loaded ${data.length} documents from ${collectionName}`);
-                setStateCallback(data);
-                renderApp(); // Re-render application on data change
-            }, (error) => {
-                console.error(`[Firestore] Error loading data from ${collectionName}:`, error);
-                showCustomAlert(`Error loading data from ${collectionName}.`, 'error');
-            });
-
-            return unsubscribe;
-        }
-
-        /**
-         * Generic function to save/update a document in Firestore
-         * @param {string} collectionName - The name of the collection
-         * @param {object} data - The data object to save
-         * @param {string} docId - Optional ID for setDoc (update/overwrite), otherwise addDoc is used
-         */
-        async function saveDocument(collectionName, data, docId = null) {
-            if (!db || !userId) {
-                console.error("Firestore not initialized or user not authenticated.");
-                showCustomAlert("Authentication required to save data.", 'error');
-                return false;
-            }
-
-            const path = getPrivateCollectionPath(collectionName);
-            try {
-                if (docId) {
-                    await setDoc(doc(db, path, docId), data, { merge: true });
-                    console.log(`[Firestore] Document updated in ${collectionName} with ID: ${docId}`);
-                    return docId;
-                } else {
-                    const docRef = await addDoc(collection(db, path), data);
-                    console.log(`[Firestore] New document added to ${collectionName} with ID: ${docRef.id}`);
-                    return docRef.id;
-                }
-            } catch (error) {
-                console.error(`[Firestore] Error saving document to ${collectionName}:`, error);
-                showCustomAlert(`Error saving data to ${collectionName}.`, 'error');
-                return false;
-            }
-        }
-
-        /**
-         * Generic function to delete a document from Firestore
-         * @param {string} collectionName - The name of the collection
-         * @param {string} docId - The ID of the document to delete
-         */
-        async function deleteDocument(collectionName, docId) {
-            if (!db || !userId) {
-                console.error("Firestore not initialized or user not authenticated.");
-                showCustomAlert("Authentication required to delete data.", 'error');
-                return false;
-            }
-
-            const path = getPrivateCollectionPath(collectionName);
-            try {
-                await deleteDoc(doc(db, path, docId));
-                console.log(`[Firestore] Document deleted from ${collectionName} with ID: ${docId}`);
-                return true;
-            } catch (error) {
-                console.error(`[Firestore] Error deleting document from ${collectionName}:`, error);
-                showCustomAlert(`Error deleting data from ${collectionName}.`, 'error');
-                return false;
-            }
-        }
-
-        // --- Data Logic and Handlers ---
-
-        function initApp() {
-            // Setup listeners for real-time data
-            setupDataListener(DATA_COLLECTION, (data) => {
-                state.productionData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
-                state.isDataLoaded = true;
-            });
-
-            setupDataListener(REPORTS_COLLECTION, (data) => {
-                state.weeklyReports = data.sort((a, b) => b.weekId.localeCompare(a.weekId));
-            });
-            
-            setupDataListener(STAFF_COLLECTION, (data) => {
-                state.staff = data.filter(s => !s.isDeleted);
-            });
-
-            setupDataListener(PROCUREMENT_COLLECTION, (data) => {
-                state.procurementLog = data.sort((a, b) => new Date(b.date) - new Date(a.date));
-            });
-
-            // Start rendering the app
-            renderApp();
-        }
-
-        function handleSubmit(event) {
-            event.preventDefault();
-            const form = event.target;
-            const date = form.querySelector('#input-date').value;
-            const total = parseFloat(form.querySelector('#input-total').value);
-            const itemRows = form.querySelectorAll('.item-row');
-            
-            const items = Array.from(itemRows).map(row => ({
-                item: row.querySelector('.input-item').value,
-                quantity: parseInt(row.querySelector('.input-quantity').value, 10),
-                price: parseFloat(row.querySelector('.input-price').value),
-            }));
-
-            if (!date || isNaN(total) || total <= 0 || items.some(i => !i.item || isNaN(i.quantity) || i.quantity <= 0 || isNaN(i.price) || i.price <= 0)) {
-                showCustomAlert('Please fill in all fields correctly.', 'warning');
-                return;
-            }
-
-            const existingDoc = state.productionData.find(d => d.date === date);
-            const dataToSave = { date, total, items };
-
-            if (existingDoc) {
-                // Update existing document for the date
-                saveDocument(DATA_COLLECTION, dataToSave, existingDoc.id)
-                    .then(success => {
-                        if (success) {
-                            showCustomAlert(`Production data for ${formatDate(date)} updated!`);
-                        }
-                    });
-            } else {
-                // Add new document
-                saveDocument(DATA_COLLECTION, dataToSave)
-                    .then(success => {
-                        if (success) {
-                            showCustomAlert(`Production data for ${formatDate(date)} saved!`);
-                            // Reset form after successful submission
-                            form.reset();
-                            form.querySelector('#input-date').value = new Date().toISOString().substring(0, 10);
-                            renderApp(); // Force re-render dashboard to update form items
-                        }
-                    });
-            }
-        }
-
-        function handleAddItemRow() {
-            const container = document.getElementById('item-rows-container');
-            if (container) {
-                container.appendChild(createItemRow());
-                lucide.createIcons();
-            }
-        }
-
-        function createItemRow(item = '', quantity = '', price = '') {
-            const div = document.createElement('div');
-            div.className = 'item-row flex space-x-2 mb-2 items-center';
-            div.innerHTML = `
-                <input type="text" value="${item}" placeholder="Item Name" class="input-item flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                <input type="number" value="${quantity}" placeholder="Qty" class="input-quantity w-16 p-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" min="1" required>
-                <input type="number" value="${price}" placeholder="Price" step="0.01" class="input-price w-20 p-2 border border-gray-300 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" min="0.01" required>
-                <button type="button" onclick="handleRemoveItemRow(this)" class="text-red-500 hover:text-red-700 p-2 rounded-full transition duration-150">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            `;
-            return div;
-        }
-
-        function handleRemoveItemRow(button) {
-            const row = button.closest('.item-row');
-            if (row && row.parentNode.children.length > 1) {
-                row.remove();
-            } else if (row) {
-                showCustomAlert('You must have at least one item.', 'warning');
-            }
-        }
-
-        function handleDeleteLast() {
-            const productionDates = state.productionData.map(d => new Date(d.date)).sort((a, b) => b - a);
-            if (productionDates.length === 0) {
-                showCustomAlert('No production data to delete.', 'warning');
-                return;
-            }
-
-            const lastDate = productionDates[0].toISOString().substring(0, 10);
-            const docToDelete = state.productionData.find(d => d.date === lastDate);
-
-            if (docToDelete) {
-                if (confirm(`Are you sure you want to delete the production data for the last entry: ${formatDate(lastDate)}? This action cannot be undone.`)) {
-                    deleteDocument(DATA_COLLECTION, docToDelete.id)
-                        .then(success => {
-                            if (success) {
-                                showCustomAlert(`Data for ${formatDate(lastDate)} deleted.`);
-                            }
-                        });
+        function renderIcon(name, attributes = {}) {
+            if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                const icons = lucide.createIcons();
+                if (icons && icons[name]) {
+                    return icons[name].toSvg(attributes);
                 }
             }
+            return `<i data-lucide="${name}" class="${attributes.class || ''}"></i>`;
         }
 
-        async function handleStartNewWeek() {
-            const currentWeekId = getCurrentWeekId();
-            const existingReport = state.weeklyReports.find(r => r.weekId === currentWeekId);
-
-            if (existingReport) {
-                showCustomAlert(`Report for ${currentWeekId} already exists.`, 'warning');
-                closeModal();
-                return;
+        function refreshIcons() {
+            if (window.lucide && window.lucide.createIcons) {
+                window.lucide.createIcons();
             }
+        }
 
-            // Get all data documents whose date falls within the current week
-            // Note: This check relies on the data listener keeping state.productionData up-to-date
-            const weekData = state.productionData.filter(d => getCurrentWeekId(new Date(d.date)) === currentWeekId);
+        function saveData(phone) {
+            if (!phone) return;
+            localStorage.setItem(`trinah_current_week_${phone}`, JSON.stringify(history));
+            localStorage.setItem(`trinah_archive_${phone}`, JSON.stringify(archive));
+            localStorage.setItem(`trinah_starting_pressure_${phone}`, JSON.stringify(startingPressure));
+        }
+
+        function loadData(user) {
+            if (!user) return;
+            const phone = user.phone;
+            const savedHistory = localStorage.getItem(`trinah_current_week_${phone}`);
+            if (savedHistory) history = JSON.parse(savedHistory);
+            else history = [];
             
-            if (weekData.length === 0) {
-                 showCustomAlert(`No production data found for the current week (${currentWeekId}).`, 'warning', 5000);
-                 closeModal();
-                 return;
-            }
+            const savedArchive = localStorage.getItem(`trinah_archive_${phone}`);
+            if (savedArchive) archive = JSON.parse(savedArchive);
+            else archive = [];
             
-            const summary = calculateReportSummary(weekData);
-
-            const reportDoc = {
-                weekId: currentWeekId,
-                startDate: weekData.length > 0 ? weekData[0].date : 'N/A', // Simple start date
-                endDate: weekData.length > 0 ? weekData[weekData.length - 1].date : 'N/A', // Simple end date
-                summary,
-                detailedData: JSON.stringify(weekData), // Store detailed data as JSON string
-                generatedAt: new Date().toISOString(),
-                generatedBy: state.currentUser.name,
-            };
-
-            const reportId = await saveDocument(REPORTS_COLLECTION, reportDoc);
-
-            if (reportId) {
-                showCustomAlert(`New weekly report (${currentWeekId}) generated successfully!`);
-                
-                // Clear the production data after generating the report
-                // In a real system, you might archive or soft-delete this data, 
-                // but for this simple manager, we delete them:
-                const deletePromises = weekData.map(d => deleteDocument(DATA_COLLECTION, d.id));
-                await Promise.all(deletePromises);
-                
-                // Update last reset key for settings view
-                await saveDocument('settings', { lastReportDate: new Date().toISOString() }, 'managerSettings');
-                
-                // Re-render to show empty dashboard and updated reports
-                closeModal();
-                setView('reports');
-
-            } else {
-                showCustomAlert('Failed to generate weekly report.', 'error');
-            }
-        }
-
-        function handleDeleteReport(reportId) {
-            if (confirm('Are you sure you want to delete this weekly report? This action cannot be undone.')) {
-                deleteDocument(REPORTS_COLLECTION, reportId)
-                    .then(success => {
-                        if (success) {
-                            showCustomAlert('Weekly report deleted successfully.');
-                        }
-                    });
-            }
-        }
-
-        function handleProcurementDateChange(event) {
-            state.procurementDate = event.target.value;
-            renderApp();
-        }
-
-        function handleProcurementSave(event) {
-            event.preventDefault();
-            const form = event.target;
-            const date = form.querySelector('#procurement-date').value;
-            const item = form.querySelector('#procurement-item').value;
-            const quantity = parseFloat(form.querySelector('#procurement-quantity').value);
-            const unit = form.querySelector('#procurement-unit').value;
-            const cost = parseFloat(form.querySelector('#procurement-cost').value);
-
-            if (!date || !item || isNaN(quantity) || quantity <= 0 || !unit || isNaN(cost) || cost <= 0) {
-                showCustomAlert('Please fill in all procurement fields correctly.', 'warning');
-                return;
-            }
-
-            const dataToSave = { date, item, quantity, unit, cost, recordedAt: new Date().toISOString() };
-
-            saveDocument(PROCUREMENT_COLLECTION, dataToSave)
-                .then(success => {
-                    if (success) {
-                        showCustomAlert(`Procurement log saved: ${item} (${quantity} ${unit})`);
-                        form.reset();
-                        // Restore date to current day after reset
-                        state.procurementDate = new Date().toISOString().substring(0, 10);
-                        renderApp();
+            const savedPressure = localStorage.getItem(`trinah_starting_pressure_${phone}`);
+            if (savedPressure) {
+                try {
+                    const parsed = JSON.parse(savedPressure);
+                    // Handle migration from old number format to new object format
+                    if (typeof parsed === 'number') {
+                        startingPressure = { dresses: parsed, twoPcs: 0 };
+                    } else {
+                        startingPressure = parsed;
                     }
+                } catch (e) {
+                    startingPressure = { dresses: 0, twoPcs: 0 };
+                }
+            } else {
+                startingPressure = { dresses: 0, twoPcs: 0 };
+            }
+
+            // Recalculate from last archive entry if exists and history is empty
+            if (history.length === 0 && archive.length > 0) {
+                const last = archive[archive.length - 1];
+                startingPressure = {
+                    dresses: last.remDresses || last.remaining || 0, // Fallback for old data
+                    twoPcs: last.remTwoPcs || 0
+                };
+            }
+
+            // Set default day to today
+            const jsDay = new Date().getDay();
+            const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+            selectedDayIndex = mappedDay;
+        }
+
+        function showNotification(msg) {
+            notificationContainer.innerHTML = `
+                <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-medium flex items-center gap-2">
+                    ${msg.includes("Locked") ? renderIcon('lock', { class: 'w-4 h-4' }) : ''}
+                    ${msg}
+                </div>`;
+            notificationContainer.style.display = 'block';
+            
+            requestAnimationFrame(() => {
+                notificationContainer.classList.remove('opacity-0', '-translate-y-full');
+                notificationContainer.classList.add('opacity-100', 'translate-y-5');
+                refreshIcons();
+            });
+
+            setTimeout(() => {
+                notificationContainer.classList.remove('opacity-100', 'translate-y-5');
+                notificationContainer.classList.add('opacity-0', '-translate-y-full');
+                setTimeout(() => notificationContainer.style.display = 'none', 300);
+            }, 3000);
+        }
+
+        function formatCurrency(val) {
+            return `KES ${val.toLocaleString()}`;
+        }
+
+        function getFullHistory() {
+            return [...archive, ...history];
+        }
+
+        function isEntryLocked(entry) {
+            if (!entry) return false;
+            const entryTime = new Date(entry.id);
+            const deadline = new Date(entryTime);
+            deadline.setDate(deadline.getDate() + 1);
+            deadline.setHours(9, 0, 0, 0); 
+            return new Date() > deadline;
+        }
+
+        function getFilteredHistory() {
+            const fullHistory = getFullHistory();
+            const now = new Date();
+            // Create midnight timestamps for safe comparison
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const todayEnd = todayStart + (24 * 60 * 60 * 1000);
+
+            return fullHistory.filter(entry => {
+                // Use entry.id (which is a timestamp) for robust comparison across all devices
+                // Fallback to parsing Date string only if ID is missing (legacy data)
+                let entryTime = entry.id;
+                if (!entryTime) {
+                    const parsed = new Date(entry.fullDate);
+                    if (!isNaN(parsed.getTime())) entryTime = parsed.getTime();
+                    else return false;
+                }
+
+                switch (selectedReport) {
+                    case "Daily": 
+                        // Show entries that happened today
+                        return entryTime >= todayStart && entryTime < todayEnd;
+                    
+                    case "Weekly": {
+                        // Show entries from last 7 days (rolling week)
+                        const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000); // 6 days ago + today = 7 days
+                        return entryTime >= oneWeekAgo;
+                    }
+                    
+                    case "Monthly": {
+                        const thirtyDaysAgo = todayStart - (30 * 24 * 60 * 60 * 1000);
+                        return entryTime >= thirtyDaysAgo;
+                    }
+                    
+                    case "Quarterly": {
+                        const ninetyDaysAgo = todayStart - (90 * 24 * 60 * 60 * 1000);
+                        return entryTime >= ninetyDaysAgo;
+                    }
+                    
+                    case "Yearly": {
+                        const oneYearAgo = todayStart - (365 * 24 * 60 * 60 * 1000);
+                        return entryTime >= oneYearAgo;
+                    }
+                    
+                    default: return true;
+                }
+            });
+        }
+
+        // --- Master Report Logic ---
+        // Modified to accept a custom date string for 'Daily' reports
+        async function downloadMasterReport(type = 'Daily', customDateStr = null) {
+            const loader = document.getElementById('pdf-loader');
+            if (loader) loader.style.display = 'flex';
+            
+            await new Promise(r => setTimeout(r, 800)); // Slightly longer for loader visibility
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const allUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+                
+                // Determine target date (default to today)
+                let targetDateLocale = new Date().toLocaleDateString();
+                let reportDateTitle = new Date().toDateString();
+
+                // If custom date provided (YYYY-MM-DD), convert to locale date string
+                if (customDateStr && type === 'Daily') {
+                    const [y, m, d] = customDateStr.split('-').map(Number);
+                    const dateObj = new Date(y, m - 1, d);
+                    targetDateLocale = dateObj.toLocaleDateString();
+                    reportDateTitle = dateObj.toDateString();
+                }
+
+                let reportRows = [];
+                let grandTotalSoldDresses = 0;
+                let grandTotalSoldTwoPcs = 0;
+                let grandTotalProfit = 0;
+                let grandTotalDispatched = 0;
+
+                allUsers.forEach(user => {
+                    const userHistoryStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
+                    const userArchiveStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                    const userPressureStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
+                    
+                    const userHistory = JSON.parse(userHistoryStr);
+                    const userArchive = JSON.parse(userArchiveStr);
+                    const allEntries = [...userArchive, ...userHistory];
+                    
+                    let filteredEntries = [];
+                    if (type === 'Daily') {
+                        filteredEntries = allEntries.filter(e => e.fullDate === targetDateLocale);
+                    } else {
+                        filteredEntries = allEntries;
+                    }
+
+                    const soldDresses = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldDresses)||0), 0);
+                    const soldTwoPcs = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldTwoPcs)||0), 0);
+                    // Legacy support for 'sold' field if exists
+                    const soldLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.soldDresses ? 0 : (Number(curr.sold)||0)), 0); 
+                    
+                    // Dispatch Calcs for report
+                    const dispatchedDresses = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatchedDresses)||0), 0);
+                    const dispatchedTwoPcs = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatchedTwoPcs)||0), 0);
+                    const dispatchedLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.dispatchedDresses ? 0 : (Number(curr.dispatched)||0)), 0);
+                    const userTotalDispatched = dispatchedDresses + dispatchedTwoPcs + dispatchedLegacy;
+
+                    const totalSoldDresses = soldDresses + soldLegacy; // Treat legacy sold as dresses
+                    const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
+                    
+                    const totalSold = totalSoldDresses + soldTwoPcs;
+
+                    // --- FILTERING LOGIC ---
+                    // If Daily Report, omit staff with ZERO dispatch AND ZERO sales
+                    if (type === 'Daily') {
+                        if (userTotalDispatched === 0 && totalSold === 0) {
+                            return; // Skip this user
+                        }
+                    }
+                    // -----------------------
+
+                    // Only add to grand totals if they are in the report
+                    grandTotalDispatched += userTotalDispatched;
+                    grandTotalSoldDresses += totalSoldDresses;
+                    grandTotalSoldTwoPcs += soldTwoPcs;
+                    grandTotalProfit += totalProfit;
+
+                    // Get current remaining for display (snapshot as of now, technically)
+                    let currentRemDresses = 0;
+                    let currentRemTwoPcs = 0;
+                    if (allEntries.length > 0) {
+                        const last = allEntries[allEntries.length - 1];
+                        currentRemDresses = last.remDresses || last.remaining || 0;
+                        currentRemTwoPcs = last.remTwoPcs || 0;
+                    } else {
+                         try {
+                            const p = JSON.parse(userPressureStr);
+                            if (typeof p === 'number') currentRemDresses = p;
+                            else { currentRemDresses = p?.dresses || 0; currentRemTwoPcs = p?.twoPcs || 0; }
+                        } catch(e) {}
+                    }
+
+                    reportRows.push([
+                        user.name,
+                        String(totalSoldDresses),
+                        String(soldTwoPcs),
+                        `${currentRemDresses} / ${currentRemTwoPcs}`,
+                        formatCurrency(totalProfit)
+                    ]);
                 });
+
+                // --- PROFESSIONAL STYLING ---
+                
+                // 1. Header Banner
+                doc.setFillColor(30, 58, 138); // Deep Blue
+                doc.rect(0, 0, 210, 45, 'F'); 
+
+                // 2. Company Title
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(22);
+                doc.text("TRINAH DESIGNS", 105, 20, { align: "center" });
+                
+                // 3. Report Title
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                const titleText = type === 'Daily' ? "DAILY SALES & STOCK REPORT" : `MASTER ${type.toUpperCase()} REPORT`;
+                doc.text(titleText, 105, 30, { align: "center" });
+
+                // 4. Date Subtitle
+                doc.setFontSize(10);
+                doc.setTextColor(203, 213, 225); // Light Slate
+                doc.text(`Period: ${reportDateTitle}`, 105, 38, { align: "center" });
+
+                // 5. Table
+                doc.autoTable({
+                    startY: 55,
+                    head: [['Staff Member', 'Sold Dresses', 'Sold 2pcs', 'Current Stock (D/2)', 'Profit (KES)']],
+                    body: reportRows,
+                    foot: [['TOTALS', String(grandTotalSoldDresses), String(grandTotalSoldTwoPcs), '-', formatCurrency(grandTotalProfit)]],
+                    theme: 'striped', // Cleaner professional theme
+                    headStyles: { 
+                        fillColor: [30, 58, 138], 
+                        textColor: 255, 
+                        fontStyle: 'bold', 
+                        halign: 'center',
+                        cellPadding: 3
+                    },
+                    bodyStyles: { 
+                        textColor: 50, 
+                        halign: 'center',
+                        cellPadding: 3 
+                    },
+                    columnStyles: { 
+                        0: { halign: 'left', fontStyle: 'bold' }, // Staff Name Left Aligned
+                        4: { fontStyle: 'bold', halign: 'right' } // Profit Right Aligned
+                    },
+                    footStyles: { 
+                        fillColor: [241, 245, 249], 
+                        textColor: [15, 23, 42], 
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    margin: { top: 55 }
+                });
+
+                // --- Stock Reconciliation Section (Professional Box) ---
+                if (type === 'Daily') {
+                    const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+                    const procurementToday = logs[targetDateLocale] || 0;
+                    const variance = procurementToday - grandTotalDispatched;
+                    
+                    const finalY = doc.lastAutoTable.finalY + 15;
+                    
+                    // Box Background
+                    doc.setDrawColor(226, 232, 240); // Slate 200
+                    doc.setFillColor(248, 250, 252); // Slate 50
+                    doc.rect(14, finalY, 182, 50, 'FD'); // Fill and Draw
+
+                    // Header for Box
+                    doc.setFillColor(30, 58, 138);
+                    doc.rect(14, finalY, 182, 10, 'F');
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(10);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("STOCK RECONCILIATION ANALYSIS", 20, finalY + 7);
+
+                    // Content
+                    doc.setTextColor(51, 65, 85); // Slate 700
+                    doc.setFont("helvetica", "normal");
+                    doc.text("Stock Acquired (Procurement):", 20, finalY + 20);
+                    doc.text(String(procurementToday), 180, finalY + 20, { align: "right" });
+
+                    doc.text("Stock Dispatched (Total):", 20, finalY + 27);
+                    doc.text(String(grandTotalDispatched), 180, finalY + 27, { align: "right" });
+                    
+                    // Variance Line
+                    doc.setDrawColor(226, 232, 240);
+                    doc.line(20, finalY + 32, 190, finalY + 32);
+
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Net Variance:", 20, finalY + 40);
+                    
+                    let varianceText = "";
+                    let varianceColor = [22, 163, 74]; // Green
+
+                    if (variance > 0) {
+                        varianceColor = [220, 38, 38]; // Red
+                        varianceText = `${variance} MISSING / UNDISPATCHED`;
+                    } else if (variance < 0) {
+                         varianceColor = [217, 119, 6]; // Orange
+                         varianceText = `${Math.abs(variance)} EXTRA DISPATCHED (Old Stock)`;
+                    } else {
+                        varianceText = "BALANCED";
+                    }
+
+                    doc.setTextColor(varianceColor[0], varianceColor[1], varianceColor[2]);
+                    doc.text(varianceText, 180, finalY + 40, { align: "right" });
+                    
+                    // Disclaimer if Missing
+                    if (variance > 0) {
+                        doc.setFontSize(8);
+                        doc.setTextColor(100, 116, 139);
+                        doc.text("Attention: Please verify physical inventory against dispatched items immediately.", 105, finalY + 47, { align: "center" });
+                    }
+                }
+
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for(let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text(`Generated by Trinah Designs Admin System - ${new Date().toLocaleString()}`, 105, 290, { align: "center" });
+                }
+
+                // Sanitize filename
+                const fileDate = type === 'Daily' ? `_${targetDateLocale.replace(/\//g, '-')}` : '';
+                doc.save(`Trinah_${type}_Report${fileDate}.pdf`);
+                
+                showNotification("Report Downloaded Successfully");
+
+            } catch (e) {
+                console.error(e);
+                showNotification("Error generating report.");
+            } finally {
+                if (loader) loader.style.display = 'none';
+            }
+        }
+
+
+        // --- Navigation ---
+
+        function setView(view) {
+            currentView = view;
+            if (view === VIEW_DASHBOARD && currentUser.role === 'admin') {
+                // If going to dashboard as admin, clear managed user unless explicitly navigating
+                managedUser = null; 
+            }
+            renderApp();
+        }
+
+        // Specific function for admin drilling down
+        function manageUser(userPhone) {
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const target = users.find(u => u.phone === userPhone);
+            if (target) {
+                managedUser = target;
+                loadData(target);
+                renderApp(); // Will detect managedUser and show Individual Dashboard
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const overlay = document.getElementById('mobile-menu-overlay');
+            if (menu && overlay) {
+                const isClosed = menu.classList.contains('translate-x-full');
+                if (isClosed) {
+                    menu.classList.remove('translate-x-full');
+                    menu.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                } else {
+                    menu.classList.add('translate-x-full');
+                    menu.classList.remove('translate-x-0');
+                    overlay.classList.add('hidden');
+                }
+            }
+        }
+
+        // --- Auth & User Management ---
+
+        function handleLogin(user) {
+            authError = "";
+            authLoading = false;
+            currentUser = user;
+            
+            // Fix legacy role issues
+            if (!currentUser.role) {
+                const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                if (users.length > 0 && users[0].phone === currentUser.phone) {
+                    currentUser.role = 'admin';
+                    users[0].role = 'admin';
+                    localStorage.setItem(DB_KEY, JSON.stringify(users));
+                } else {
+                    currentUser.role = 'staff';
+                }
+            }
+
+            localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+
+            if (currentUser.role === 'admin') {
+                managedUser = null; // Admin starts in Overview
+                // Reset date to today on login
+                selectedProcurementDate = new Date();
+            } else {
+                managedUser = currentUser; // Staff manage themselves
+                loadData(currentUser);
+            }
+            
+            setView(VIEW_DASHBOARD);
+        }
+
+        function handleLogout() {
+            // Save data only if managing someone
+            if (managedUser) saveData(managedUser.phone);
+            
+            currentUser = null;
+            managedUser = null;
+            localStorage.removeItem(SESSION_KEY);
+            history = [];
+            archive = [];
+            startingPressure = { dresses: 0, twoPcs: 0 };
+            renderApp();
+        }
+
+        function handleSwitchUser(user) {
+            if (managedUser) saveData(managedUser.phone);
+            handleLogin(user);
+        }
+
+        // --- Admin Functions ---
+
+        function showAddStaffModal(isEdit = false, userPhone = null) {
+            let userToEdit = null;
+            if (isEdit && userPhone) {
+                const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                userToEdit = users.find(u => u.phone === userPhone);
+            }
+
+            // Defaults or Existing Values
+            const nameVal = userToEdit ? userToEdit.name : '';
+            const phoneVal = userToEdit ? userToEdit.phone : '';
+            const passVal = userToEdit ? userToEdit.password : '';
+            const prices = userToEdit ? (userToEdit.prices || {}) : {};
+            
+            const dbVal = prices.dressBuy || '';
+            const dsVal = prices.dressSell || '';
+            const tbVal = prices.twoPcBuy || '';
+            const tsVal = prices.twoPcSell || '';
+
+            const modalHTML = `
+                <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-staff-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                ${renderIcon(isEdit ? 'user-cog' : 'user-plus', {class:'w-6 h-6 text-indigo-600'})} 
+                                ${isEdit ? 'Edit Staff Details' : 'Add New Staff'}
+                            </h2>
+                            <button onclick="document.getElementById('add-staff-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                                ${renderIcon('x', {class:'w-6 h-6'})}
+                            </button>
+                        </div>
+                        
+                        <form onsubmit="window.handleSaveStaff(event, '${isEdit ? 'edit' : 'add'}', '${phoneVal}')" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 uppercase">Staff Name</label>
+                                    <input id="staff-name" value="${nameVal}" placeholder="Name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 uppercase">Phone (ID)</label>
+                                    <input id="staff-phone" value="${phoneVal}" placeholder="Phone" ${isEdit ? 'disabled' : ''} class="w-full p-3 rounded-xl ${isEdit ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'} border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
+                                <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            </div>
+
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
+                                <h3 class="text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">Price Configuration (KES)</h3>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES</p>
+                                        <div class="space-y-2">
+                                            <input id="price-dress-buy" value="${dbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-sell" value="${dsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES (2PCS)</p>
+                                        <div class="space-y-2">
+                                            <input id="price-2pc-buy" value="${tbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-sell" value="${tsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-slate-400">Profit will be calculated based on these margins.</p>
+                            </div>
+                            
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">
+                                ${isEdit ? 'Save Changes' : 'Create Account'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function showReportsModal() {
+             // Generate today's date in YYYY-MM-DD for the date input default
+             const now = new Date();
+             const y = now.getFullYear();
+             const m = String(now.getMonth() + 1).padStart(2, '0');
+             const d = String(now.getDate()).padStart(2, '0');
+             const todayStr = `${y}-${m}-${d}`;
+
+             const modalHTML = `
+                <div id="reports-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reports-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">Master Reports</h2>
+                        <p class="text-sm text-slate-500 mb-6">Select the type of report to generate for ALL users.</p>
+                        
+                        <div class="space-y-3">
+                            <div class="text-left bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Date for Daily Report</label>
+                                <input type="date" id="report-date-picker" value="${todayStr}" 
+                                    class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
+                            </div>
+
+                            <button onclick="const d = document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d); document.getElementById('reports-modal').remove()" 
+                                class="w-full py-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 border border-emerald-100">
+                                ${renderIcon('calendar', {class:'w-5 h-5'})} Daily Master Report
+                            </button>
+                            <button onclick="downloadMasterReport('Overall'); document.getElementById('reports-modal').remove()" 
+                                class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 border border-indigo-100">
+                                ${renderIcon('bar-chart-2', {class:'w-5 h-5'})} Overall Master Report
+                            </button>
+                            
+                            <button onclick="document.getElementById('reports-modal').remove()" class="w-full py-3 text-slate-400 font-medium text-sm mt-2">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function showResetModal() {
+            const modalHTML = `
+                <div id="reset-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reset-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            ${renderIcon('alert-triangle', {class:'w-6 h-6'})}
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">System Factory Reset</h2>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Are you sure? This will <strong class="text-red-600">permanently delete ALL accounts, records, and history</strong>. This cannot be undone.
+                        </p>
+                        
+                        <div class="space-y-3">
+                            <button onclick="window.handleFactoryReset()" class="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200">Yes, Delete Everything</button>
+                            <button onclick="document.getElementById('reset-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function handleSaveStaff(e, mode, originalPhone) {
+            e.preventDefault();
+            const name = document.getElementById('staff-name').value.trim();
+            const phone = document.getElementById('staff-phone').value.trim();
+            const password = document.getElementById('staff-pass').value.trim();
+            
+            // New Price Fields
+            const dressBuy = Number(document.getElementById('price-dress-buy').value);
+            const dressSell = Number(document.getElementById('price-dress-sell').value);
+            const twoPcBuy = Number(document.getElementById('price-2pc-buy').value);
+            const twoPcSell = Number(document.getElementById('price-2pc-sell').value);
+
+            if (!name || !phone || !password) {
+                showNotification("Please fill name, phone and password.");
+                return;
+            }
+
+            if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell) {
+                showNotification("Please set all prices.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+
+            if (mode === 'add') {
+                if (users.find(u => u.phone === phone)) {
+                    showNotification("User with this phone already exists.");
+                    return;
+                }
+                const newUser = { 
+                    name, phone, password, role: 'staff',
+                    prices: { dressBuy, dressSell, twoPcBuy, twoPcSell }
+                };
+                users.push(newUser);
+                showNotification(`Staff member ${name} added!`);
+            } else {
+                // Edit Mode
+                const index = users.findIndex(u => u.phone === originalPhone);
+                if (index !== -1) {
+                    users[index].name = name;
+                    users[index].password = password;
+                    users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell };
+                    showNotification(`Details for ${name} updated!`);
+                }
+            }
+
+            localStorage.setItem(DB_KEY, JSON.stringify(users));
+            
+            // Close modal
+            const modal = document.getElementById('add-staff-modal');
+            if(modal) modal.remove();
+
+            // Refresh view
+            if (currentView === VIEW_USERS) renderUserManagementScreen();
+        }
+
+        function handleAddStaff(e) {
+            // Deprecated proxy to handleSaveStaff for backwards compatibility if needed
+            handleSaveStaff(e, 'add', null);
+        }
+
+        function handleDeleteStaff(phone) {
+            if(confirm("Are you sure you want to delete this staff member? This will remove their login access. Their data history will remain until a factory reset.")) {
+                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                users = users.filter(u => u.phone !== phone);
+                localStorage.setItem(DB_KEY, JSON.stringify(users));
+                renderUserManagementScreen();
+                showNotification("Staff member deleted.");
+            }
         }
         
-        function handleDeleteProcurementEntry(docId) {
-             if (confirm('Are you sure you want to delete this procurement entry?')) {
-                deleteDocument(PROCUREMENT_COLLECTION, docId)
-                    .then(success => {
-                        if (success) {
-                            showCustomAlert('Procurement entry deleted.');
-                        }
-                    });
+        function handleProcurementDateChange(dateStr) {
+            if (!dateStr) return;
+            // dateStr is YYYY-MM-DD
+            const [y, m, d] = dateStr.split('-').map(Number);
+            selectedProcurementDate = new Date(y, m - 1, d);
+            renderAdminOverview();
+        }
+
+        function handleProcurementSave() {
+            const val = document.getElementById('procurement-input').value;
+            if(!val) return;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
+            
+            logs[targetDateKey] = Number(val);
+            localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+            
+            showNotification(`Stock saved for ${targetDateKey}!`);
+            renderAdminOverview(); // Refresh to update variance
+        }
+
+        function handleFactoryReset() {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('trinah_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            window.location.reload();
+        }
+
+        // --- Account Recovery Functions ---
+        
+        function renderRecoveryScreen() {
+            appElement.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                ${renderIcon('key-round', {class:'w-8 h-8'})}
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-800">Account Recovery</h1>
+                            <p class="text-sm text-slate-500">Enter your registered phone number to identify your account.</p>
+                        </div>
+
+                        <form id="recovery-form" onsubmit="window.handleRecoveryStep1(event)" class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PHONE NUMBER</label>
+                                <input type="text" id="rec-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                            </div>
+                            <div id="recovery-error" class="text-center text-sm text-red-500 hidden"></div>
+                            
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Verify Account</button>
+                            <button type="button" onclick="renderAuthScreen()" class="w-full py-3 text-slate-500 font-bold hover:text-slate-700">Back to Login</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            refreshIcons();
+        }
+
+        function handleRecoveryStep1(e) {
+            e.preventDefault();
+            const phone = document.getElementById('rec-phone').value.trim();
+            const errDiv = document.getElementById('recovery-error');
+            
+            if(!phone) {
+                errDiv.textContent = "Please enter a phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const user = users.find(u => u.phone === phone);
+
+            if (!user) {
+                errDiv.textContent = "No account found with this phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const form = document.getElementById('recovery-form');
+            
+            // SECURITY CHECK: If Admin, require PIN. If Staff, instruct to contact Admin.
+            
+            if (user.role === 'admin') {
+                form.innerHTML = `
+                    <div class="bg-indigo-50 text-indigo-800 p-4 rounded-xl text-sm mb-4 border border-indigo-100">
+                        <p class="font-bold">Admin Account Found</p>
+                        <p>To reset the Admin password, please enter the System Setup PIN.</p>
+                    </div>
+                    <input type="hidden" id="reset-phone" value="${phone}">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">SYSTEM PIN</label>
+                            <input type="password" id="reset-pin" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="Enter PIN">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">NEW PASSWORD</label>
+                            <input type="password" id="new-pass" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                        </div>
+                        <button type="button" onclick="window.handleRecoveryStep2('admin')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Update Password</button>
+                    </div>
+                `;
+            } else {
+                // Staff Logic: Contact Admin (More Secure)
+                form.innerHTML = `
+                    <div class="bg-amber-50 text-amber-800 p-6 rounded-xl text-sm mb-6 border border-amber-200 text-center">
+                        <div class="mx-auto w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-2">
+                            ${renderIcon('shield-alert', {class:'w-5 h-5'})}
+                        </div>
+                        <p class="font-bold text-lg mb-2">Action Required</p>
+                        <p class="mb-2">For security reasons, Staff passwords cannot be reset here.</p>
+                        <p>Please contact the <strong>Administrator</strong> to reset your password.</p>
+                    </div>
+                    <button type="button" onclick="renderAuthScreen()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Back to Login</button>
+                `;
+            }
+            refreshIcons();
+        }
+
+        function handleRecoveryStep2(role) {
+            const phone = document.getElementById('reset-phone').value;
+            const newPass = document.getElementById('new-pass').value.trim();
+            const enteredPin = role === 'admin' ? document.getElementById('reset-pin').value.trim() : null;
+
+            if (role === 'admin' && enteredPin !== SYSTEM_PIN) {
+                showNotification("Invalid System PIN. Cannot reset.");
+                return;
+            }
+
+            if (!newPass) {
+                showNotification("Please enter a valid password.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const index = users.findIndex(u => u.phone === phone);
+            
+            if (index !== -1) {
+                users[index].password = newPass;
+                localStorage.setItem(DB_KEY, JSON.stringify(users));
+                
+                showNotification("Password updated successfully!");
+                renderAuthScreen();
+            } else {
+                showNotification("Error updating password.");
+                renderAuthScreen();
             }
         }
 
+        function authHandler(e) {
+            e.preventDefault();
+            const phone = document.getElementById('auth-phone').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null; 
 
-        // --- Staff Management Handlers ---
-
-        function handleSaveStaff(event) {
-            event.preventDefault();
-            const form = event.target;
-            const id = form.querySelector('#staff-id').value;
-            const name = form.querySelector('#staff-name').value;
-            const role = form.querySelector('#staff-role').value;
-
-            if (!name || !role) {
-                showCustomAlert('Staff name and role are required.', 'warning');
+            if (!phone || !password) {
+                authError = "Please enter phone and password.";
+                renderAuthScreen();
                 return;
             }
-            
-            const dataToSave = { name, role, isActive: true, addedAt: new Date().toISOString() };
-            
-            // Check if we are updating an existing staff member
-            if (id) {
-                saveDocument(STAFF_COLLECTION, dataToSave, id)
-                    .then(success => {
-                        if (success) {
-                            showCustomAlert(`${name} updated successfully.`);
-                            closeModal();
-                        }
-                    });
-            } else {
-                // Check for duplicates before adding a new staff member (simple name check)
-                if (state.staff.some(s => s.name.toLowerCase() === name.toLowerCase())) {
-                    showCustomAlert('A staff member with this name already exists.', 'error');
+
+            authLoading = true;
+            renderAuthScreen();
+
+            setTimeout(() => {
+                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                
+                // --- Creation Logic ---
+                if (showAdminCreation && users.length === 0) {
+                     if (!name) {
+                        authError = "Admin name required.";
+                        authLoading = false;
+                        renderAuthScreen();
+                        return;
+                    }
+                    const adminUser = {
+                        name: name,
+                        phone: phone,
+                        password: password,
+                        role: 'admin' 
+                    };
+                    users.push(adminUser);
+                    localStorage.setItem(DB_KEY, JSON.stringify(users));
+                    handleLogin(adminUser);
                     return;
                 }
 
-                saveDocument(STAFF_COLLECTION, dataToSave)
-                    .then(success => {
-                        if (success) {
-                            showCustomAlert(`${name} added to staff list.`);
-                            closeModal();
-                        }
-                    });
-            }
-        }
-
-        function handleStaffEdit(staffId) {
-            const staffMember = state.staff.find(s => s.id === staffId);
-            if (staffMember) {
-                showAddStaffModal(staffMember);
-            }
-        }
-
-        function handleDeleteStaff(staffId, staffName) {
-            if (confirm(`Are you sure you want to delete (deactivate) ${staffName}? This action can be reversed, but the staff member will be removed from the active list.`)) {
-                // Soft delete by setting isDeleted=true
-                saveDocument(STAFF_COLLECTION, { isDeleted: true, deletedAt: new Date().toISOString() }, staffId)
-                    .then(success => {
-                        if (success) {
-                            showCustomAlert(`${staffName} has been deactivated.`);
-                        }
-                    });
-            }
-        }
-        
-        // --- Authentication/User Management ---
-
-        function handleLogin(user) {
-            state.currentUser = user;
-            localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-            // Note: Firebase auth handles the main sign-in, this only handles the UI/state for the app user.
-            // renderApp(); // Called by onAuthStateChanged listener
-        }
-
-        function handleAuthSubmit(event) {
-            event.preventDefault();
-            const form = event.target;
-            const name = form.querySelector('#login-name').value.trim();
-
-            if (name.length < 2) {
-                showCustomAlert('Name must be at least 2 characters.', 'error');
-                return;
-            }
-
-            // Since Firebase authentication is handled by the environment, 
-            // this simply sets the user's name for the application.
-            handleLogin({ name, uid: userId }); 
-        }
-
-        async function handleLogout() {
-            try {
-                // Sign out from Firebase Auth
-                if (auth) {
-                    await signOut(auth);
-                }
-                // Clear local session data
-                localStorage.removeItem(SESSION_KEY);
-                state.currentUser = null;
-                // The onAuthStateChanged listener will call renderAuthScreen()
-                showCustomAlert('Logged out successfully.', 'info');
-            } catch (error) {
-                console.error("Error during logout:", error);
-                showCustomAlert('Logout failed.', 'error');
-            }
-        }
-
-        // --- System/Settings Handlers ---
-
-        function verifySystemPin(pin, callback) {
-            // In a real app, this would be retrieved securely from the database.
-            // For now, we fetch the pin from a settings document.
-            const settingsRef = doc(db, getPrivateCollectionPath('settings'), 'managerSettings');
-            getDoc(settingsRef).then(docSnap => {
-                let systemPin = DEFAULT_SYSTEM_PIN;
-                if (docSnap.exists() && docSnap.data().systemPin) {
-                    systemPin = docSnap.data().systemPin;
+                // --- Standard Login Logic ---
+                const user = users.find(u => u.phone === phone && u.password === password);
+                
+                if (user) {
+                    handleLogin(user);
+                } else {
+                    if (users.length === 0) {
+                         authError = "System not initialized.";
+                    } else {
+                         authError = "Invalid credentials.";
+                    }
                 }
                 
-                if (pin === systemPin) {
-                    callback(true);
-                } else {
-                    callback(false);
-                }
-            }).catch(error => {
-                console.error("Error fetching system pin:", error);
-                // Fallback to default if there's an error
-                callback(pin === DEFAULT_SYSTEM_PIN); 
-            });
+                authLoading = false;
+                if (!currentUser) renderAuthScreen();
+            }, 800);
         }
 
-        function handleSystemPinChange(event) {
-            event.preventDefault();
-            const form = event.target;
-            const oldPin = form.querySelector('#old-pin').value;
-            const newPin = form.querySelector('#new-pin').value;
-            const confirmPin = form.querySelector('#confirm-pin').value;
-
-            if (newPin.length !== 4 || isNaN(newPin) || newPin !== confirmPin) {
-                showCustomAlert('New PIN must be 4 digits and match the confirmation.', 'warning');
-                return;
-            }
-
-            verifySystemPin(oldPin, async (isValid) => {
-                if (isValid) {
-                    await saveDocument('settings', { systemPin: newPin }, 'managerSettings');
-                    showCustomAlert('System PIN updated successfully!');
-                    form.reset();
-                    closeModal();
-                } else {
-                    showCustomAlert('Incorrect old PIN.', 'error');
-                }
-            });
-        }
-
-        async function handleFactoryReset() {
-            const pin = document.getElementById('reset-pin').value;
-            if (!pin) {
-                showCustomAlert('Please enter the System PIN.', 'warning');
-                return;
-            }
-
-            verifySystemPin(pin, async (isValid) => {
-                if (isValid) {
-                    // 1. Get references to all collections
-                    const collections = [DATA_COLLECTION, REPORTS_COLLECTION, STAFF_COLLECTION, PROCUREMENT_COLLECTION, 'settings'];
-                    
-                    showCustomAlert('Factory Reset in progress...', 'info', 5000);
-                    document.getElementById('reset-pin').value = ''; // Clear pin
-
-                    for (const collectionName of collections) {
-                        const path = getPrivateCollectionPath(collectionName);
-                        const snapshot = await getDocs(collection(db, path));
-                        
-                        const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-                        await Promise.all(deletePromises);
-                        console.log(`[Factory Reset] Cleared collection: ${collectionName}`);
-                    }
-
-                    // Reset all local state (listeners will repopulate with empty arrays)
-                    state.productionData = [];
-                    state.weeklyReports = [];
-                    state.staff = [];
-                    state.procurementLog = [];
-                    
-                    // Clear user session as a final safety measure
-                    localStorage.removeItem(SESSION_KEY);
-                    state.currentUser = null;
-
-                    showCustomAlert('Factory Reset complete. All data has been erased.', 'success', 5000);
-                    closeModal();
-                    // Force sign-out to restart the app
-                    await signOut(auth); 
-                } else {
-                    showCustomAlert('Incorrect System PIN. Reset aborted.', 'error');
-                }
-            });
-        }
-
-
-        // --- UI Rendering ---
-
-        function setView(newView) {
-            state.view = newView;
-            renderApp();
-        }
-
-        function showModal(type, data = null) {
-            state.modalType = type;
-            state.modalData = data;
-            state.isModalOpen = true;
-            renderApp();
-        }
-
-        function closeModal() {
-            state.isModalOpen = false;
-            state.modalType = null;
-            state.modalData = null;
-            renderApp();
-        }
-
-        function showReportsModal() { showModal('reports'); }
-        function showResetModal() { showModal('reset'); }
-        function showAddStaffModal(staffMember = null) { showModal('addStaff', staffMember); }
-        function showChangePinModal() { showModal('changePin'); }
-        
-        // Expose global functions needed by the HTML
-        window.handleSubmit = handleSubmit;
-        window.handleAddItemRow = handleAddItemRow;
-        window.handleRemoveItemRow = handleRemoveItemRow;
-        window.handleDeleteLast = handleDeleteLast;
-        window.handleStartNewWeek = handleStartNewWeek;
-        window.handleDeleteReport = handleDeleteReport;
-        window.handleLogin = handleLogin;
-        window.handleLogout = handleLogout;
-        window.handleAuthSubmit = handleAuthSubmit;
-        window.handleSaveStaff = handleSaveStaff;
-        window.handleStaffEdit = handleStaffEdit;
-        window.handleDeleteStaff = handleDeleteStaff;
-        window.handleProcurementSave = handleProcurementSave;
-        window.handleDeleteProcurementEntry = handleDeleteProcurementEntry;
-        window.handleProcurementDateChange = handleProcurementDateChange;
-        window.showAddStaffModal = showAddStaffModal;
-        window.showReportsModal = showReportsModal;
-        window.showResetModal = showResetModal;
-        window.showChangePinModal = showChangePinModal;
-        window.handleFactoryReset = handleFactoryReset;
-        window.handleSystemPinChange = handleSystemPinChange;
-        window.setView = setView;
-        window.closeModal = closeModal;
-        window.showCustomAlert = showCustomAlert;
-
-        // --- View Components ---
-
-        function renderNavbar() {
-            const userName = state.currentUser ? state.currentUser.name : 'Manager';
+        function verifySystemPin() {
+            const pinInput = document.getElementById('system-pin-input');
+            const pinError = document.getElementById('pin-error');
             
-            return `
-                <nav class="bg-white shadow-md">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="flex justify-between h-16">
-                            <div class="flex items-center">
-                                <span class="text-2xl font-bold text-indigo-600">Trinah Designs</span>
-                                <span class="ml-2 text-sm text-gray-500">Admin</span>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <!-- Navigation Links -->
-                                <button onclick="setView('dashboard')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'dashboard' ? 'bg-indigo-50 text-indigo-600' : ''}">Dashboard</button>
-                                <button onclick="setView('reports')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'reports' ? 'bg-indigo-50 text-indigo-600' : ''}">Reports</button>
-                                <button onclick="setView('procurement')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'procurement' ? 'bg-indigo-50 text-indigo-600' : ''}">Procurement</button>
-                                <button onclick="setView('manageStaff')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'manageStaff' ? 'bg-indigo-50 text-indigo-600' : ''}">Staff</button>
-                                <button onclick="setView('settings')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'settings' ? 'bg-indigo-50 text-indigo-600' : ''}">Settings</button>
+            if (pinInput.value.trim() === SYSTEM_PIN) {
+                showAdminCreation = true;
+                renderAuthScreen();
+            } else {
+                pinError.classList.remove('hidden');
+            }
+        }
 
-                                <!-- User Info -->
-                                <div class="relative group ml-4">
-                                    <button class="flex items-center p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition duration-150">
-                                        <i data-lucide="user" class="w-5 h-5 mr-2"></i>
-                                        <span class="text-sm font-semibold">${userName}</span>
-                                    </button>
-                                    <!-- Dropdown Menu -->
-                                    <div class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 opacity-0 group-hover:opacity-100 group-hover:visible transition duration-200 invisible z-50">
-                                        <div class="px-4 py-2 text-sm text-gray-700">User ID: ${userId.substring(0, 8)}...</div>
-                                        <hr class="my-1">
-                                        <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                                            <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>Logout
-                                        </button>
+        // --- Core Logic ---
+
+        function handleSubmit() {
+            if (!managedUser) return; // Safety check
+
+            const dispatchDressIn = document.getElementById('dispatch-dress').value;
+            const dispatch2pcIn = document.getElementById('dispatch-2pc').value;
+            const salesDressIn = document.getElementById('sales-dress').value;
+            const sales2pcIn = document.getElementById('sales-2pc').value;
+
+            const dDress = Number(dispatchDressIn) || 0;
+            const d2pc = Number(dispatch2pcIn) || 0;
+            const sDress = Number(salesDressIn) || 0;
+            const s2pc = Number(sales2pcIn) || 0;
+
+            if (dDress === 0 && d2pc === 0 && sDress === 0 && s2pc === 0) {
+                showNotification("Please enter dispatch or sales amount.");
+                return;
+            }
+
+            // Get Prices (with fallback for old users)
+            const prices = managedUser.prices || {};
+            const dressBuy = prices.dressBuy || DEFAULT_BUY_PRICE;
+            const dressSell = prices.dressSell || DEFAULT_SELL_PRICE;
+            const twoPcBuy = prices.twoPcBuy || DEFAULT_BUY_PRICE; // Fallback same as dress
+            const twoPcSell = prices.twoPcSell || DEFAULT_SELL_PRICE; // Fallback same as dress
+
+            const now = new Date();
+            const jsDay = now.getDay(); 
+            const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
+
+            if (selectedDayIndex > mappedDay) {
+                showNotification("Cannot add future entries.");
+                return;
+            }
+
+            const dayDiff = mappedDay - selectedDayIndex;
+            const targetDate = new Date();
+            targetDate.setDate(now.getDate() - dayDiff);
+
+            const currentDayName = DAYS[selectedDayIndex];
+            const fullDateString = targetDate.toLocaleDateString();
+
+            // Calculate Pressure
+            let prevRemDress = 0;
+            let prevRem2pc = 0;
+
+            const fullHistory = getFullHistory();
+
+            if (fullHistory.length > 0) {
+                const last = fullHistory[fullHistory.length - 1];
+                prevRemDress = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
+                prevRem2pc = last.remTwoPcs !== undefined ? last.remTwoPcs : 0;
+            } else {
+                prevRemDress = startingPressure.dresses;
+                prevRem2pc = startingPressure.twoPcs;
+            }
+
+            const newRemDress = prevRemDress + dDress - sDress;
+            const newRem2pc = prevRem2pc + d2pc - s2pc;
+
+            if (newRemDress < 0 || newRem2pc < 0) {
+                showNotification("Error: Sales cannot exceed inventory.");
+                return;
+            }
+
+            // Calculate Profit
+            const profitDress = sDress * (dressSell - dressBuy);
+            const profit2pc = s2pc * (twoPcSell - twoPcBuy);
+            const totalProfit = profitDress + profit2pc;
+
+            const record = {
+                id: Date.now(),
+                date: currentDayName,
+                fullDate: fullDateString,
+                dispatchedDresses: dDress,
+                dispatchedTwoPcs: d2pc,
+                soldDresses: sDress,
+                soldTwoPcs: s2pc,
+                remDresses: newRemDress,
+                remTwoPcs: newRem2pc,
+                profit: totalProfit,
+                // keep these for backward compat in basic displays if needed
+                dispatched: dDress + d2pc,
+                sold: sDress + s2pc,
+                remaining: newRemDress + newRem2pc 
+            };
+
+            history.push(record);
+            startingPressure = { dresses: newRemDress, twoPcs: newRem2pc };
+
+            // Clear inputs
+            document.getElementById('dispatch-dress').value = "";
+            document.getElementById('dispatch-2pc').value = "";
+            document.getElementById('sales-dress').value = "";
+            document.getElementById('sales-2pc').value = "";
+
+            saveData(managedUser.phone);
+
+            if (currentDayName === "Sunday") {
+                renderWeekCompleteModal();
+                renderIndividualDashboard();
+                return;
+            }
+
+            let notificationMessage = `Saved for ${currentDayName}!`;
+
+            if (selectedDayIndex < mappedDay) {
+                selectedDayIndex = selectedDayIndex + 1;
+                notificationMessage += ` Switched to ${DAYS[selectedDayIndex]}.`;
+            }
+
+            showNotification(notificationMessage);
+            renderIndividualDashboard();
+        }
+
+        function handleStartNewWeek() {
+            const modal = document.getElementById('week-complete-modal');
+            if (modal) modal.remove();
+
+            const fullHistory = getFullHistory();
+            let finalPressure = { dresses: 0, twoPcs: 0 };
+
+            if (fullHistory.length > 0) {
+                const last = fullHistory[fullHistory.length - 1];
+                finalPressure = {
+                    dresses: last.remDresses || last.remaining || 0,
+                    twoPcs: last.remTwoPcs || 0
+                };
+            } else {
+                finalPressure = startingPressure;
+            }
+            
+            archive = [...archive, ...history];
+            history = []; 
+            startingPressure = finalPressure; 
+            selectedDayIndex = 0; 
+            
+            saveData(managedUser.phone);
+            showNotification("New week started!");
+            renderIndividualDashboard();
+        }
+
+        function handleDeleteLast() {
+            if (!managedUser) return;
+            const fullHistory = getFullHistory();
+            const lastEntry = history[history.length - 1]; 
+
+            if (!lastEntry) return;
+
+            if (isEntryLocked(lastEntry)) {
+                showNotification("Locked: 9AM deadline passed.");
+                return;
+            }
+
+            history.pop();
+            
+            // Recalculate starting pressure from the NEW last entry
+            const newLastEntry = getFullHistory()[getFullHistory().length - 1];
+            
+            if (newLastEntry) {
+                startingPressure = {
+                    dresses: newLastEntry.remDresses || newLastEntry.remaining || 0,
+                    twoPcs: newLastEntry.remTwoPcs || 0
+                };
+            } else if (archive.length > 0) {
+                const lastArch = archive[archive.length-1];
+                startingPressure = {
+                     dresses: lastArch.remDresses || lastArch.remaining || 0,
+                     twoPcs: lastArch.remTwoPcs || 0
+                };
+            } else {
+                 // Fallback to what was stored originally if history is empty and no archive
+                 // Note: Ideally we store the initial week's starting pressure separately, but this simplifies for now
+                 const savedPressure = localStorage.getItem(`trinah_starting_pressure_${managedUser.phone}`);
+                 try {
+                     startingPressure = JSON.parse(savedPressure) || { dresses: 0, twoPcs: 0};
+                 } catch (e) { startingPressure = { dresses: 0, twoPcs: 0} }
+            }
+
+            const dayIndex = DAYS.indexOf(lastEntry.date);
+            if (dayIndex !== -1) selectedDayIndex = dayIndex;
+
+            saveData(managedUser.phone);
+            showNotification(`Entry deleted.`);
+            renderIndividualDashboard();
+        }
+
+        async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
+            if (!managedUser) return;
+            if (data.length === 0) {
+                showNotification(`No data found for ${reportName} report.`);
+                return;
+            }
+            const loader = document.getElementById('pdf-loader');
+            if (loader) loader.style.display = 'flex';
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
+                const totalSoldDresses = data.reduce((sum, r) => sum + (Number(r.soldDresses) || 0), 0);
+                const totalSoldTwoPcs = data.reduce((sum, r) => sum + (Number(r.soldTwoPcs) || 0), 0);
+
+                // For simple display, sum them up or show breakdown
+                const totalSold = totalSoldDresses + totalSoldTwoPcs;
+
+                const rows = data.map(item => [
+                    item.fullDate, 
+                    `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
+                    `${item.remDresses || 0} / ${item.remTwoPcs || 0}`,
+                    item.profit.toLocaleString()
+                ]);
+
+                doc.setFillColor(30, 58, 138); // Primary Blue
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255,255,255);
+                doc.setFontSize(14);
+                doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
+                doc.setFontSize(10);
+                doc.text(`Format: Dresses / 2pcs`, 14, 26);
+
+                doc.autoTable({
+                    startY: 40,
+                    head: [['Date', 'Sold (D/2pc)', 'Rem (D/2pc)', 'Profit (KES)']],
+                    body: rows,
+                    theme: 'grid',
+                    foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', totalProfit.toLocaleString()]]
+                });
+
+                doc.save(`${managedUser.name}_${reportName}_Report.pdf`);
+                showNotification("PDF Downloaded!");
+
+            } catch (err) {
+                console.error("PDF Error", err);
+                showNotification("Failed to generate PDF.");
+            } finally {
+                if (loader) loader.style.display = 'none';
+            }
+        }
+
+        // --- Renderers ---
+
+        function renderWeekCompleteModal() {
+            const last = history.length > 0 ? history[history.length - 1] : null;
+            const remD = last ? last.remDresses : startingPressure.dresses;
+            const rem2 = last ? last.remTwoPcs : startingPressure.twoPcs;
+            
+            const modalHTML = `
+                <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('week-complete-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative z-10 text-center">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">Week Completed!</h2>
+                        <p class="text-slate-600 mb-4 text-sm">
+                            Final Inventory: <br>
+                            <span class="font-bold text-indigo-600"> ${remD} Dresses </span> & 
+                            <span class="font-bold text-purple-600"> ${rem2} 2pcs </span>
+                        </p>
+                        <div class="space-y-3">
+                            <button onclick="downloadReport(history, 'Weekly_Completed'); document.getElementById('week-complete-modal').remove();" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Download Report</button>
+                            <button onclick="handleStartNewWeek()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Start New Week</button>
+                            <button onclick="document.getElementById('week-complete-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+        }
+
+        function renderHeader() {
+            const isAdmin = currentUser && currentUser.role === 'admin';
+            const isManaging = isAdmin && managedUser;
+
+            return `
+                <header class="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+                    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">T</div>
+                            <div class="flex flex-col">
+                                <span class="text-lg font-bold text-indigo-900 leading-none">Trinah</span>
+                                <span class="text-[10px] text-slate-500">
+                                    ${isAdmin ? 'Admin Portal' : currentUser.name}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Desktop Nav -->
+                        <nav class="hidden md:flex items-center gap-4">
+                            ${isManaging ? `
+                                <button onclick="managedUser=null; renderApp()" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 flex items-center gap-2">
+                                    ${renderIcon('arrow-left', {class:'w-4 h-4'})} Back to Dashboard
+                                </button>
+                            ` : ''}
+
+                            ${isAdmin && !isManaging ? `
+                                <button onclick="setView('${VIEW_USERS}')" class="text-sm font-medium text-slate-600 hover:text-indigo-600 flex items-center gap-2">
+                                    ${renderIcon('users', {class:'w-4 h-4'})} Manage Staff
+                                </button>
+                                <button onclick="showReportsModal()" class="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg hover:bg-emerald-100 flex items-center gap-2">
+                                    ${renderIcon('file-bar-chart', {class:'w-4 h-4'})} Master Reports
+                                </button>
+                            ` : ''}
+
+                            <button onclick="handleLogout()" class="text-sm font-medium text-red-500 hover:text-red-700">Logout</button>
+                        </nav>
+
+                        <!-- Mobile Menu Button -->
+                        <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                            ${renderIcon('menu', { class: 'w-6 h-6' })}
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Mobile Menu Overlay -->
+                <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden"></div>
+
+                <!-- Mobile Menu Sidebar -->
+                <div id="mobile-menu" class="fixed right-0 top-0 h-full w-72 bg-white shadow-2xl z-50 p-6 flex flex-col gap-6 translate-x-full">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                        <span class="text-lg font-bold text-slate-800">Menu</span>
+                        <button onclick="toggleMobileMenu()" class="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                            ${renderIcon('x', { class: 'w-6 h-6' })}
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        ${isManaging ? `
+                            <button onclick="managedUser=null; renderApp(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-indigo-50 text-indigo-700">
+                                ${renderIcon('arrow-left', {class:'w-5 h-5'})} Back to Dashboard
+                            </button>
+                        ` : ''}
+
+                        ${isAdmin && !isManaging ? `
+                            <button onclick="setView('${VIEW_USERS}'); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
+                                ${renderIcon('users', {class:'w-5 h-5'})} Manage Staff
+                            </button>
+                            <button onclick="showReportsModal(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-emerald-50 text-emerald-700">
+                                ${renderIcon('file-bar-chart', {class:'w-5 h-5'})} Master Reports
+                            </button>
+                        ` : ''}
+
+                        <button onclick="handleLogout()" class="flex items-center gap-3 w-full p-3 rounded-xl bg-red-50 text-red-600 mt-auto">
+                            ${renderIcon('log-out', {class:'w-5 h-5'})} Log Out
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStatCard(title, value, iconName, colorClass) {
+            return `
+                <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">${title}</p>
+                        <p class="text-xl font-bold ${colorClass}">${value}</p>
+                    </div>
+                    <div class="p-2 rounded-lg bg-white shadow-sm">
+                        ${renderIcon(iconName, { class: `w-5 h-5 ${colorClass}` })}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminOverview() {
+            // Fetch all users except admin
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+            
+            // Generate Date Keys from selectedProcurementDate
+            const targetDateLocale = selectedProcurementDate.toLocaleDateString();
+            // Input date needs YYYY-MM-DD format
+            const y = selectedProcurementDate.getFullYear();
+            const m = String(selectedProcurementDate.getMonth() + 1).padStart(2, '0');
+            const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
+            const dateInputVal = `${y}-${m}-${d}`;
+            
+            let totalStock = 0;
+            let totalSalesToday = 0;
+            let totalProfitToday = 0;
+            let grandTotalDispatchedToday = 0;
+
+            const userCards = users.map(user => {
+                // Fetch user data directly from storage
+                const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
+                const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
+                
+                const userHistory = JSON.parse(hStr);
+                const userArchive = JSON.parse(aStr);
+                const allEntries = [...userArchive, ...userHistory];
+                
+                // Calculate User Metrics
+                const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
+                // Check if new format (soldDresses/soldTwoPcs) or legacy (sold)
+                const userSalesToday = todayEntries.reduce((sum, e) => {
+                    const legacy = Number(e.sold) || 0;
+                    const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0);
+                    // Use new format if soldDresses exists, else legacy
+                    return sum + (e.soldDresses !== undefined ? newFormat : legacy);
+                }, 0);
+
+                const userDispatchedToday = todayEntries.reduce((sum, e) => {
+                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0);
+                     return sum + (e.dispatchedDresses !== undefined ? val : (Number(e.dispatched)||0));
+                }, 0);
+                
+                const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
+                
+                let currentRemDresses = 0;
+                let currentRemTwoPcs = 0;
+
+                if (allEntries.length > 0) {
+                    const last = allEntries[allEntries.length - 1];
+                    currentRemDresses = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
+                    currentRemTwoPcs = last.remTwoPcs || 0;
+                } else {
+                     try {
+                        const p = JSON.parse(pStr);
+                        if (typeof p === 'number') currentRemDresses = p;
+                        else {
+                            currentRemDresses = p?.dresses || 0;
+                            currentRemTwoPcs = p?.twoPcs || 0;
+                        }
+                    } catch(e) {}
+                }
+
+                // Add to Grand Totals
+                totalStock += (currentRemDresses + currentRemTwoPcs);
+                totalSalesToday += userSalesToday;
+                totalProfitToday += userProfitToday;
+                grandTotalDispatchedToday += userDispatchedToday;
+
+                return `
+                    <div onclick="manageUser('${user.phone}')" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition cursor-pointer group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold group-hover:bg-indigo-100 group-hover:text-indigo-600 transition">
+                                    ${renderIcon('user', {class:'w-5 h-5'})}
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800">${user.name}</h3>
+                                    <p class="text-xs text-slate-400">${user.phone}</p>
+                                </div>
+                            </div>
+                            ${renderIcon('chevron-right', {class:'w-4 h-4 text-slate-300 group-hover:text-indigo-500'})}
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            <div class="bg-orange-50 p-2 rounded-lg">
+                                <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
+                                <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs}</p>
+                                <p class="text-[8px] text-orange-300">DRESS / 2PC</p>
+                            </div>
+                            <div class="bg-emerald-50 p-2 rounded-lg">
+                                <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Selected Date)</p>
+                                <p class="font-bold text-emerald-700">${userSalesToday}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // --- PROCUREMENT LOGIC ---
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const procurementToday = logs[targetDateLocale] || 0;
+            const variance = procurementToday - grandTotalDispatchedToday;
+            // -------------------------
+
+            appElement.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+                    <div class="mb-2">
+                        <h1 class="text-2xl font-bold text-slate-800">Admin Dashboard</h1>
+                        <p class="text-slate-500">Overview of all active accounts</p>
+                    </div>
+
+                    <!-- Grand Totals -->
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
+                        ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
+                        ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
+                    </div>
+                    
+                    <!-- Daily Stock Procurement Section -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                         <div class="flex-1 w-full">
+                            <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
+                                ${renderIcon('clipboard-list', {class:'w-5 h-5 text-indigo-600'})} Daily Stock Procurement
+                            </h2>
+                            <p class="text-sm text-slate-500 mb-4">Select a date to view/edit procurement and variance.</p>
+                            
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <!-- Date Picker -->
+                                <input type="date" value="${dateInputVal}" 
+                                    onchange="handleProcurementDateChange(this.value)"
+                                    class="p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700">
+                                
+                                <div class="flex gap-2 flex-1">
+                                    <input type="number" id="procurement-input" value="${procurementToday || ''}" placeholder="Total Bought" class="flex-1 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-bold">
+                                    <button onclick="handleProcurementSave()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
+                                </div>
+                            </div>
+                         </div>
+                         
+                         <div class="w-full md:w-1/3 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Stats for ${targetDateLocale}</div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-slate-500">Total Acquired:</span>
+                                <span class="font-bold text-slate-800">${procurementToday}</span>
+                            </div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-slate-500">Total Dispatched:</span>
+                                <span class="font-bold text-slate-800">${grandTotalDispatchedToday}</span>
+                            </div>
+                            <div class="border-t border-slate-200 my-2"></div>
+                            <div class="flex justify-between text-sm items-center">
+                                <span class="font-bold text-slate-500">Variance:</span>
+                                <span class="font-bold text-lg ${variance > 0 ? 'text-red-600' : (variance < 0 ? 'text-orange-500' : 'text-emerald-600')}">
+                                    ${variance > 0 ? `${variance} (Missing)` : (variance < 0 ? variance : 'Balanced')}
+                                </span>
+                            </div>
+                            ${variance > 0 ? `<p class="text-[10px] text-red-500 mt-2 font-bold">⚠️ High Alert: ${variance} items unaccounted for.</p>` : ''}
+                         </div>
+                    </div>
+
+                    <!-- Staff Grid -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-700">Staff Accounts</h2>
+                            <button onclick="showAddStaffModal()" class="text-sm text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                                ${renderIcon('plus', {class:'w-4 h-4'})} Add Staff
+                            </button>
+                        </div>
+                        
+                        ${users.length === 0 ? `
+                            <div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                <p class="text-slate-400 mb-4">No staff accounts found.</p>
+                                <button onclick="showAddStaffModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Add Your First Staff Member</button>
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                ${userCards}
+                            </div>
+                        `}
+                    </div>
+                </main>
+            `;
+            refreshIcons();
+        }
+
+        function renderIndividualDashboard() {
+            // This is the view for editing a specific user (Managed User)
+            if (!managedUser) return;
+
+            const fullHistory = getFullHistory();
+            const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
+            
+            // Get current pressures
+            let curDresses = 0;
+            let cur2pcs = 0;
+
+            if (lastEntry) {
+                curDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
+                cur2pcs = lastEntry.remTwoPcs || 0;
+            } else {
+                curDresses = startingPressure.dresses || 0;
+                cur2pcs = startingPressure.twoPcs || 0;
+            }
+            
+            const now = new Date();
+            const today = now.toLocaleDateString();
+
+            const filteredData = getFilteredHistory();
+            const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
+            
+            const todaysSales = history
+                .filter(entry => entry.fullDate === today)
+                .reduce((sum, entry) => {
+                    const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0);
+                    return sum + (entry.soldDresses !== undefined ? newF : (entry.sold||0));
+                }, 0);
+
+            // Price Labels for reference
+            const prices = managedUser.prices || { 
+                dressBuy: DEFAULT_BUY_PRICE, dressSell: DEFAULT_SELL_PRICE,
+                twoPcBuy: DEFAULT_BUY_PRICE, twoPcSell: DEFAULT_SELL_PRICE
+            };
+
+            appElement.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+                    
+                    <div class="flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-indigo-600 text-white rounded-lg">
+                                ${renderIcon('user-check', {class:'w-5 h-5'})}
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-indigo-400 uppercase">Managing Account</p>
+                                <h2 class="text-lg font-bold text-indigo-900">${managedUser.name}</h2>
+                            </div>
+                        </div>
+                        <div class="text-right hidden md:block">
+                            <p class="text-xs text-indigo-400 font-bold">LOGIN ID</p>
+                            <p class="text-sm font-bold text-indigo-700">${managedUser.phone}</p>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        ${renderStatCard("Stock (Dress)", curDresses, "shirt", "text-indigo-600")}
+                        ${renderStatCard("Stock (2pc)", cur2pcs, "layers", "text-purple-600")}
+                        ${renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")}
+                        ${renderStatCard("Today Sold", todaysSales, "trending-up", "text-amber-600")}
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <!-- Input Section -->
+                        <div class="md:col-span-1 space-y-6">
+                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
+                                </h2>
+                                
+                                <!-- Day Selection -->
+                                <div class="grid grid-cols-4 gap-2 mb-4">
+                                    ${DAYS.map((d, i) => {
+                                        const jsDay = now.getDay();
+                                        const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+                                        const isLocked = i > mappedDay;
+                                        
+                                        return `
+                                            <button 
+                                                onclick="selectedDayIndex = ${i}; renderIndividualDashboard();"
+                                                ${isLocked ? 'disabled' : ''}
+                                                class="text-[10px] p-2 rounded-lg text-center font-bold transition-all
+                                                ${selectedDayIndex === i ? 'bg-indigo-600 text-white shadow-md' : 
+                                                  (isLocked ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}">
+                                                ${d.substring(0,3)}
+                                            </button>
+                                        `;
+                                    }).join('')}
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses (Sell: ${prices.dressSell})</p>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces (Sell: ${prices.twoPcSell})</p>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Add Record</button>
+                                </div>
+                            </div>
+
+                            <!-- Last Entry Control -->
+                            ${lastEntry ? `
+                            <div class="bg-white rounded-2xl shadow p-4 border border-slate-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-slate-400">LAST ENTRY</span>
+                                    <span class="text-xs font-bold text-slate-600">${lastEntry.date} (${lastEntry.fullDate})</span>
+                                </div>
+                                <button onclick="handleDeleteLast()" class="w-full py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 flex items-center justify-center gap-2">
+                                    ${renderIcon('trash-2', {class:'w-4 h-4'})} Delete Last
+                                </button>
+                            </div>` : ''}
+                        </div>
+
+                        <!-- Report Section -->
+                        <div class="md:col-span-2">
+                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 h-full">
+                                <div class="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h2 class="text-lg font-bold text-slate-800">History Log</h2>
+                                        <p class="text-sm text-slate-500">Viewing: ${selectedReport}</p>
+                                    </div>
+                                    <div class="flex bg-slate-100 p-1 rounded-lg">
+                                        ${REPORT_TYPES.map(type => `
+                                            <button onclick="selectedReport='${type}'; renderIndividualDashboard();" 
+                                                class="px-3 py-1 text-xs font-bold rounded-md transition ${selectedReport === type ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}">
+                                                ${type}
+                                            </button>
+                                        `).join('')}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
-            `;
-        }
 
-        function renderDashboardView() {
-            const today = new Date().toISOString().substring(0, 10);
-            const todayData = state.productionData.find(d => d.date === today);
-            const currentWeekData = state.productionData.filter(d => getCurrentWeekId(new Date(d.date)) === state.currentWeek);
-            const weeklySummary = calculateReportSummary(currentWeekData);
-
-            return `
-                <div class="p-6 max-w-7xl mx-auto">
-                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                        <i data-lucide="layout-dashboard" class="w-7 h-7 mr-3 text-indigo-600"></i>
-                        Production Dashboard
-                    </h1>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <!-- Weekly Summary Card -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500">
-                            <p class="text-sm font-medium text-gray-500">Current Week Sales (${state.currentWeek})</p>
-                            <p class="text-3xl font-bold text-gray-900 mt-1">${formatCurrency(weeklySummary.totalSales)}</p>
-                            <p class="text-sm text-gray-400 mt-2">Total Items: ${weeklySummary.totalItems}</p>
-                        </div>
-                        
-                        <!-- Daily Input Status Card -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 ${todayData ? 'border-green-500' : 'border-yellow-500'}">
-                            <p class="text-sm font-medium text-gray-500">Today's Data Status (${formatDate(today)})</p>
-                            <p class="text-3xl font-bold ${todayData ? 'text-green-600' : 'text-yellow-600'} mt-1">
-                                ${todayData ? 'Recorded' : 'Pending'}
-                            </p>
-                            <p class="text-sm text-gray-400 mt-2">${todayData ? `Sales: ${formatCurrency(todayData.total)}` : 'Submit production figures now.'}</p>
-                        </div>
-
-                        <!-- Quick Actions Card -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 flex flex-col justify-center space-y-3">
-                            <button onclick="showReportsModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center justify-center">
-                                <i data-lucide="archive" class="w-5 h-5 mr-2"></i>
-                                Start New Weekly Report
-                            </button>
-                             <button onclick="handleDeleteLast()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center justify-center">
-                                <i data-lucide="trash-2" class="w-5 h-5 mr-2"></i>
-                                Delete Last Entry
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Production Data Input Form -->
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Record Daily Production</h2>
-                        <form onsubmit="handleSubmit(event)" id="production-form">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                <div>
-                                    <label for="input-date" class="block text-sm font-medium text-gray-700">Date</label>
-                                    <input type="date" id="input-date" value="${today}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                                <div class="overflow-y-auto max-h-[400px]">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
+                                            <tr>
+                                                <th class="px-4 py-3 rounded-l-lg">Date</th>
+                                                <th class="px-4 py-3">Sold <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
+                                                <th class="px-4 py-3">Stock <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
+                                                <th class="px-4 py-3 rounded-r-lg">Profit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            ${filteredData.length > 0 ? filteredData.map(d => `
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate} <span class="text-slate-400 text-xs block">${d.date.substring(0,3)}</span></td>
+                                                    <td class="px-4 py-3 text-emerald-600 font-bold">
+                                                        ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-orange-600 font-bold">
+                                                        ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-slate-600">${d.profit.toLocaleString()}</td>
+                                                </tr>
+                                            `).reverse().join('') : `
+                                                <tr>
+                                                    <td colspan="4" class="text-center py-8 text-slate-400">
+                                                        No records found for ${selectedReport} view.
+                                                    </td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div>
-                                    <label for="input-total" class="block text-sm font-medium text-gray-700">Total Sales (KES)</label>
-                                    <input type="number" id="input-total" placeholder="12500" step="0.01" value="${todayData ? todayData.total : ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0.01" required>
-                                </div>
-                                <div class="flex items-end">
-                                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-md transition duration-150">
-                                        ${todayData ? 'Update Data' : 'Save Data'}
+                                
+                                <div class="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                                    <button onclick="downloadReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2">
+                                        ${renderIcon('file-down', {class:'w-4 h-4'})} Download This PDF
                                     </button>
                                 </div>
                             </div>
-
-                            <h3 class="text-lg font-medium text-gray-700 mb-2">Items Produced/Sold</h3>
-                            <div id="item-rows-container">
-                                ${todayData && todayData.items.length > 0
-                                    ? todayData.items.map(i => createItemRow(i.item, i.quantity, i.price).outerHTML).join('')
-                                    : createItemRow().outerHTML
-                                }
-                            </div>
-                            
-                            <button type="button" onclick="handleAddItemRow()" class="mt-4 flex items-center text-indigo-600 hover:text-indigo-800 font-medium">
-                                <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Another Item
-                            </button>
-                            
-                        </form>
-                    </div>
-
-                    <!-- Recent Production Log -->
-                    <div class="mt-8 bg-white p-6 rounded-xl shadow-lg">
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Recent Production Log</h2>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    ${state.productionData.slice(-5).reverse().map(d => `
-                                        <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatDate(d.date)}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-500">
-                                                ${d.items.map(i => `${i.item} (${i.quantity})`).join(', ')}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">${formatCurrency(d.total)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
                         </div>
-                         ${state.productionData.length === 0 ? '<p class="text-center py-4 text-gray-500">No production data recorded yet.</p>' : ''}
                     </div>
-                </div>
+                </main>
             `;
-        }
-        
-        // --- Report Generation/Viewing Logic (using jsPDF) ---
-
-        function generatePdfReport(report) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            const margin = 15;
-            let y = margin;
-            const pageWidth = doc.internal.pageSize.getWidth();
-
-            // Set up Autotable plugin for tables
-            const startY = 50;
-
-            // Show loader
-            document.getElementById('pdf-loader').style.display = 'flex';
-
-            try {
-                // Header
-                doc.setFontSize(18);
-                doc.setTextColor(50, 50, 50);
-                doc.text('Trinah Designs Weekly Sales Report', pageWidth / 2, y, { align: 'center' });
-                y += 8;
-                doc.setFontSize(12);
-                doc.setTextColor(100, 100, 100);
-                doc.text(`Report for Week: ${report.weekId}`, pageWidth / 2, y, { align: 'center' });
-                y += 6;
-                doc.text(`Period: ${formatDate(report.startDate)} - ${formatDate(report.endDate)}`, pageWidth / 2, y, { align: 'center' });
-                y = startY;
-
-                // Summary Table
-                const summary = report.summary;
-                const summaryData = [
-                    ['Total Sales', formatCurrency(summary.totalSales)],
-                    ['Estimated Cost of Goods', formatCurrency(summary.totalExpenses - 5000)], // Subtract placeholder overhead
-                    ['Estimated Overhead', formatCurrency(5000)],
-                    ['TOTAL EXPENSES', formatCurrency(summary.totalExpenses)],
-                    ['NET PROFIT', formatCurrency(summary.netProfit)],
-                    ['Total Items Sold', summary.totalItems.toString()],
-                ];
-
-                doc.autoTable({
-                    startY: y,
-                    head: [['Financial Summary', 'Amount']],
-                    body: summaryData,
-                    theme: 'grid',
-                    headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
-                    columnStyles: {
-                        1: { halign: 'right' }
-                    },
-                    margin: { left: margin, right: margin },
-                    didDrawPage: function (data) {
-                        // Footer
-                        doc.setFontSize(10);
-                        doc.text(`Generated by ${report.generatedBy} on ${formatDate(report.generatedAt)}`, margin, doc.internal.pageSize.getHeight() - 10);
-                    }
-                });
-                y = doc.autoTable.previous.finalY + 10;
-
-                // Detailed Production Data Table
-                const detailedData = JSON.parse(report.detailedData);
-                const tableBody = [];
-                let runningY = y;
-
-                detailedData.forEach(day => {
-                    const totalItems = day.items.reduce((sum, i) => sum + i.quantity, 0);
-                    tableBody.push([
-                        { content: formatDate(day.date), rowSpan: day.items.length },
-                        { content: `${totalItems} items`, rowSpan: day.items.length },
-                        day.items[0].item,
-                        day.items[0].quantity.toString(),
-                        formatCurrency(day.items[0].price),
-                        formatCurrency(day.total),
-                    ]);
-                    for (let i = 1; i < day.items.length; i++) {
-                        tableBody.push([
-                            day.items[i].item,
-                            day.items[i].quantity.toString(),
-                            formatCurrency(day.items[i].price),
-                        ]);
-                    }
-                });
-
-                doc.autoTable({
-                    startY: runningY,
-                    head: [['Date', 'Daily Total', 'Item Name', 'Qty', 'Unit Price', 'Daily Sales']],
-                    body: tableBody,
-                    theme: 'striped',
-                    styles: { fontSize: 8 },
-                    headStyles: { fillColor: [52, 211, 163], textColor: 0 },
-                    columnStyles: {
-                        0: { fontStyle: 'bold' },
-                        1: { halign: 'center' },
-                        3: { halign: 'center' },
-                        4: { halign: 'right' },
-                        5: { halign: 'right', fontStyle: 'bold' }
-                    },
-                    margin: { left: margin, right: margin },
-                    didParseCell: function (data) {
-                        if (data.section === 'body' && data.column.dataKey === 5 && data.row.raw[data.row.index].length === 6) {
-                            // Style the daily sales column for the first row of a date block
-                             data.cell.styles.fillColor = [243, 244, 246];
-                        }
-                    }
-                });
-
-
-                // Save and display the PDF
-                const pdfDataUri = doc.output('datauristring');
-                openPdfInNewWindow(pdfDataUri, `Weekly_Report_${report.weekId}`);
-
-            } catch (e) {
-                console.error("Error during PDF generation:", e);
-                showCustomAlert("Failed to generate PDF report. Check console for details.", 'error');
-            } finally {
-                // Hide loader
-                document.getElementById('pdf-loader').style.display = 'none';
-            }
-        }
-
-        function openPdfInNewWindow(dataUri, fileName) {
-            const newWindow = window.open();
-            newWindow.document.write(`
-                <html>
-                <head>
-                    <title>${fileName}</title>
-                    <style>
-                        body { margin: 0; padding: 0; overflow: hidden; background-color: #f0f0f0; }
-                        #pdf-viewer { width: 100vw; height: 100vh; border: none; }
-                    </style>
-                </head>
-                <body>
-                    <iframe id="pdf-viewer" src="${dataUri}"></iframe>
-                </body>
-                </html>
-            `);
-            newWindow.document.close();
-        }
-
-        function downloadMasterReport() {
-            // In a production environment, this would involve a server-side call.
-            // Here, we combine all weekly reports into one PDF.
-            if (state.weeklyReports.length === 0) {
-                showCustomAlert('No weekly reports available to download.', 'warning');
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            // Show loader
-            document.getElementById('pdf-loader').style.display = 'flex';
-            
-            let y = 15;
-            const margin = 15;
-            const pageWidth = doc.internal.pageSize.getWidth();
-            
-            try {
-                doc.setFontSize(22);
-                doc.setTextColor(29, 78, 216);
-                doc.text('Trinah Designs Master Report', pageWidth / 2, y, { align: 'center' });
-                y += 10;
-                doc.setFontSize(14);
-                doc.setTextColor(100, 100, 100);
-                doc.text(`Total Reports Included: ${state.weeklyReports.length}`, pageWidth / 2, y, { align: 'center' });
-                y += 15;
-                
-                state.weeklyReports.forEach((report, index) => {
-                    if (index > 0) {
-                        doc.addPage();
-                        y = 15;
-                    }
-
-                    // Report Title
-                    doc.setFontSize(16);
-                    doc.setTextColor(50, 50, 50);
-                    doc.text(`WEEKLY REPORT: ${report.weekId}`, margin, y);
-                    y += 6;
-                    doc.setFontSize(10);
-                    doc.text(`Period: ${formatDate(report.startDate)} - ${formatDate(report.endDate)}`, margin, y);
-                    y += 5;
-                    
-                    // Summary Table
-                    const summary = report.summary;
-                    const summaryData = [
-                        ['Total Sales', formatCurrency(summary.totalSales)],
-                        ['Total Expenses', formatCurrency(summary.totalExpenses)],
-                        ['NET PROFIT', formatCurrency(summary.netProfit)],
-                        ['Total Items Sold', summary.totalItems.toString()],
-                    ];
-
-                    doc.autoTable({
-                        startY: y,
-                        head: [['Financial Summary', 'Amount']],
-                        body: summaryData,
-                        theme: 'grid',
-                        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
-                        columnStyles: {
-                            1: { halign: 'right' }
-                        },
-                        margin: { left: margin, right: margin },
-                        styles: { fontSize: 10 },
-                    });
-                    
-                    y = doc.autoTable.previous.finalY + 5;
-                    
-                    // Add a small spacer/separator
-                    if (index < state.weeklyReports.length - 1) {
-                        doc.setDrawColor(200);
-                        doc.setLineWidth(0.5);
-                        doc.line(margin, y, pageWidth - margin, y);
-                        y += 5;
-                    }
-                });
-
-                doc.save(`Trinah_Designs_Master_Report_${new Date().getFullYear()}.pdf`);
-                showCustomAlert('Master Report downloaded successfully!');
-
-            } catch (e) {
-                console.error("Error during Master Report PDF generation:", e);
-                showCustomAlert("Failed to generate Master Report PDF. Check console for details.", 'error');
-            } finally {
-                // Hide loader
-                document.getElementById('pdf-loader').style.display = 'none';
-            }
-        }
-
-
-        // --- Render Views ---
-
-        function renderReportsView() {
-            return `
-                <div class="p-6 max-w-7xl mx-auto">
-                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                        <i data-lucide="bar-chart-3" class="w-7 h-7 mr-3 text-indigo-600"></i>
-                        Weekly Reports Archive
-                    </h1>
-                    
-                    <div class="flex justify-end space-x-3 mb-6">
-                         <button onclick="downloadMasterReport()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center">
-                            <i data-lucide="download" class="w-5 h-5 mr-2"></i>
-                            Download Master Report
-                        </button>
-                        <button onclick="showReportsModal()" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center">
-                            <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
-                            Generate Current Week Report
-                        </button>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-xl shadow-lg reports-table-container overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Net Profit</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                ${state.weeklyReports.map(r => `
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600">${r.weekId}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(r.startDate)} - ${formatDate(r.endDate)}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">${formatCurrency(r.summary.totalSales)}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold ${r.summary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'} text-right">${formatCurrency(r.summary.netProfit)}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onclick="generatePdfReport(${JSON.stringify(r).split('"').join("&#34;")})" class="text-blue-600 hover:text-blue-900 mr-3 p-2 rounded-md hover:bg-blue-50 transition duration-150">
-                                                <i data-lucide="file-text" class="w-5 h-5 inline-block align-text-bottom"></i> View PDF
-                                            </button>
-                                            <button onclick="handleDeleteReport('${r.id}')" class="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition duration-150">
-                                                <i data-lucide="trash-2" class="w-5 h-5 inline-block align-text-bottom"></i> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                        ${state.weeklyReports.length === 0 ? '<p class="text-center py-4 text-gray-500">No weekly reports have been generated yet.</p>' : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderManageStaffView() {
-             return `
-                <div class="p-6 max-w-7xl mx-auto">
-                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                        <i data-lucide="users" class="w-7 h-7 mr-3 text-indigo-600"></i>
-                        Staff Management
-                    </h1>
-                    
-                    <div class="flex justify-end mb-6">
-                        <button onclick="showAddStaffModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-150 flex items-center">
-                            <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i>
-                            Add New Staff Member
-                        </button>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    ${state.staff.map(s => `
-                                        <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.name}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.role}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                                    ${s.isActive ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-                                                <button onclick="handleStaffEdit('${s.id}')" class="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50 transition duration-150">
-                                                    <i data-lucide="pencil" class="w-5 h-5 inline-block align-text-bottom"></i> Edit
-                                                </button>
-                                                <button onclick="handleDeleteStaff('${s.id}', '${s.name}')" class="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition duration-150">
-                                                    <i data-lucide="user-x" class="w-5 h-5 inline-block align-text-bottom"></i> Deactivate
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                        ${state.staff.length === 0 ? '<p class="text-center py-4 text-gray-500">No staff members have been added yet.</p>' : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderProcurementView() {
-            const today = state.procurementDate;
-
-            // Calculate total procurement cost
-            const totalCost = state.procurementLog.reduce((sum, entry) => sum + entry.cost, 0);
-
-            return `
-                <div class="p-6 max-w-7xl mx-auto">
-                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                        <i data-lucide="shopping-bag" class="w-7 h-7 mr-3 text-indigo-600"></i>
-                        Procurement & Expense Log
-                    </h1>
-                    
-                    <!-- Total Cost Card -->
-                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-amber-500 mb-8">
-                        <p class="text-sm font-medium text-gray-500">Total Recorded Procurement Cost (All Time)</p>
-                        <p class="text-3xl font-bold text-amber-700 mt-1">${formatCurrency(totalCost)}</p>
-                        <p class="text-sm text-gray-400 mt-2">Reflects sum of all entries below.</p>
-                    </div>
-
-                    <!-- Procurement Input Form -->
-                    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Record New Purchase</h2>
-                        <form onsubmit="handleProcurementSave(event)">
-                            <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
-                                <div class="md:col-span-1">
-                                    <label for="procurement-date" class="block text-sm font-medium text-gray-700">Date</label>
-                                    <input type="date" id="procurement-date" value="${today}" onchange="handleProcurementDateChange(event)" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label for="procurement-item" class="block text-sm font-medium text-gray-700">Item Name/Description</label>
-                                    <input type="text" id="procurement-item" placeholder="Fabric, Thread, Machine Repair..." class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
-                                </div>
-                                <div>
-                                    <label for="procurement-quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
-                                    <input type="number" id="procurement-quantity" placeholder="10" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0.01" required>
-                                </div>
-                                <div>
-                                    <label for="procurement-unit" class="block text-sm font-medium text-gray-700">Unit</label>
-                                    <input type="text" id="procurement-unit" placeholder="m/roll/hr" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
-                                </div>
-                                <div>
-                                    <label for="procurement-cost" class="block text-sm font-medium text-gray-700">Total Cost (KES)</label>
-                                    <input type="number" id="procurement-cost" placeholder="5000" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0.01" required>
-                                </div>
-                            </div>
-                            <div class="flex justify-end">
-                                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition duration-150 flex items-center">
-                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i> Record Purchase
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Procurement Log Table -->
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Recent Purchases Log</h2>
-                        <div class="overflow-x-auto reports-table-container">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item/Description</th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
-                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    ${state.procurementLog.map(p => `
-                                        <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatDate(p.date)}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-500">${p.item}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">${p.quantity} ${p.unit}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600 text-right">${formatCurrency(p.cost)}</td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                                <button onclick="handleDeleteProcurementEntry('${p.id}')" class="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition duration-150">
-                                                    <i data-lucide="trash-2" class="w-5 h-5 inline-block align-text-bottom"></i> Delete
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                        ${state.procurementLog.length === 0 ? '<p class="text-center py-4 text-gray-500">No procurement entries recorded yet.</p>' : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderSettingsView() {
-            // Placeholder for last report date, to be fetched from 'settings' collection
-            const lastReport = state.weeklyReports.length > 0 ? state.weeklyReports[0] : null;
-
-            return `
-                <div class="p-6 max-w-7xl mx-auto">
-                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                        <i data-lucide="settings" class="w-7 h-7 mr-3 text-indigo-600"></i>
-                        System Settings
-                    </h1>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        
-                        <!-- System Status -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg">
-                            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">System Status</h2>
-                            <ul class="space-y-3 text-gray-700">
-                                <li class="flex justify-between items-center">
-                                    <span class="font-medium">Current Week:</span>
-                                    <span class="font-semibold text-indigo-600">${state.currentWeek}</span>
-                                </li>
-                                <li class="flex justify-between items-center">
-                                    <span class="font-medium">Last Report Generated:</span>
-                                    <span class="text-sm ${lastReport ? 'text-green-600 font-semibold' : 'text-yellow-600'}">${lastReport ? `${lastReport.weekId} on ${formatDate(lastReport.generatedAt)}` : 'N/A'}</span>
-                                </li>
-                                <li class="flex justify-between items-center">
-                                    <span class="font-medium">Production Entries:</span>
-                                    <span class="font-semibold">${state.productionData.length} entries</span>
-                                </li>
-                                <li class="flex justify-between items-center">
-                                    <span class="font-medium">Active Staff:</span>
-                                    <span class="font-semibold">${state.staff.length} members</span>
-                                </li>
-                                <li class="flex justify-between items-center">
-                                    <span class="font-medium">Manager ID (for support):</span>
-                                    <span class="text-xs font-mono text-gray-500">${userId}</span>
-                                </li>
-                            </ul>
-                        </div>
-                        
-                        <!-- Management Actions -->
-                        <div class="bg-white p-6 rounded-xl shadow-lg">
-                            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Management Actions</h2>
-                            <div class="space-y-4">
-                                <button onclick="showChangePinModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-150 flex items-center justify-center">
-                                    <i data-lucide="key" class="w-5 h-5 mr-2"></i>
-                                    Change System PIN
-                                </button>
-                                <button onclick="showResetModal()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-150 flex items-center justify-center">
-                                    <i data-lucide="alert-octagon" class="w-5 h-5 mr-2"></i>
-                                    Perform Factory Reset (DANGER)
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-
-        // --- Modals ---
-
-        function renderModal() {
-            if (!state.isModalOpen) return '';
-
-            let title = '';
-            let content = '';
-
-            switch (state.modalType) {
-                case 'reports':
-                    title = 'Generate Weekly Report';
-                    const currentWeekData = state.productionData.filter(d => getCurrentWeekId(new Date(d.date)) === state.currentWeek);
-                    const summary = calculateReportSummary(currentWeekData);
-
-                    content = `
-                        <p class="mb-4 text-gray-600">You are about to generate the weekly report for <strong>Week ${state.currentWeek}</strong>.</p>
-                        <div class="bg-indigo-50 p-4 rounded-lg mb-6 border border-indigo-200">
-                            <p class="font-semibold text-indigo-800">Summary of data to be included:</p>
-                            <ul class="list-disc list-inside mt-2 text-indigo-700 space-y-1">
-                                <li><strong>${currentWeekData.length}</strong> days of production entries.</li>
-                                <li>Estimated Gross Sales: <strong>${formatCurrency(summary.totalSales)}</strong></li>
-                                <li>Estimated Net Profit: <strong class="${summary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(summary.netProfit)}</strong></li>
-                            </ul>
-                        </div>
-                        <p class="text-red-600 font-medium">WARNING: All ${currentWeekData.length} production entries for this week will be PERMANENTLY DELETED (archived in the report) after generation.</p>
-                        <div class="mt-6 flex justify-end space-x-3">
-                            <button onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
-                            <button onclick="handleStartNewWeek()" class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition duration-150 flex items-center">
-                                <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Confirm & Generate Report
-                            </button>
-                        </div>
-                    `;
-                    break;
-                case 'reset':
-                    title = 'Factory Reset Confirmation';
-                    content = `
-                        <p class="mb-4 text-red-600 font-bold">DANGER: This action will permanently erase ALL production data, all weekly reports, staff list, and procurement logs. This is irreversible.</p>
-                        <p class="mb-4 text-gray-600">To proceed, please enter the 4-digit System PIN.</p>
-                        <input type="password" id="reset-pin" placeholder="Enter System PIN" maxlength="4" class="w-full p-3 border border-red-300 rounded-lg text-center text-xl tracking-widest focus:ring-red-500 focus:border-red-500" required>
-                        <div class="mt-6 flex justify-end space-x-3">
-                            <button onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
-                            <button onclick="handleFactoryReset()" class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150 flex items-center">
-                                <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i> Confirm Reset
-                            </button>
-                        </div>
-                    `;
-                    break;
-                case 'changePin':
-                    title = 'Change System PIN';
-                    content = `
-                        <form onsubmit="handleSystemPinChange(event)">
-                            <p class="mb-4 text-gray-600">The System PIN is required for critical actions like Factory Reset.</p>
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="old-pin" class="block text-sm font-medium text-gray-700">Current System PIN</label>
-                                    <input type="password" id="old-pin" placeholder="Current PIN" maxlength="4" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl tracking-widest focus:ring-blue-500 focus:border-blue-500" required>
-                                </div>
-                                <div>
-                                    <label for="new-pin" class="block text-sm font-medium text-gray-700">New 4-digit PIN</label>
-                                    <input type="password" id="new-pin" placeholder="New PIN" maxlength="4" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl tracking-widest focus:ring-blue-500 focus:border-blue-500" required>
-                                </div>
-                                <div>
-                                    <label for="confirm-pin" class="block text-sm font-medium text-gray-700">Confirm New PIN</label>
-                                    <input type="password" id="confirm-pin" placeholder="Confirm PIN" maxlength="4" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl tracking-widest focus:ring-blue-500 focus:border-blue-500" required>
-                                </div>
-                            </div>
-                            <div class="mt-6 flex justify-end space-x-3">
-                                <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
-                                <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-150 flex items-center">
-                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i> Save New PIN
-                                </button>
-                            </div>
-                        </form>
-                    `;
-                    break;
-                case 'addStaff':
-                    const staff = state.modalData || {};
-                    const isEdit = !!staff.id;
-                    title = isEdit ? `Edit Staff: ${staff.name}` : 'Add New Staff Member';
-                    
-                    content = `
-                        <form onsubmit="handleSaveStaff(event)">
-                            <input type="hidden" id="staff-id" value="${staff.id || ''}">
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="staff-name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                                    <input type="text" id="staff-name" value="${staff.name || ''}" placeholder="Jane Doe" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-                                </div>
-                                <div>
-                                    <label for="staff-role" class="block text-sm font-medium text-gray-700">Role/Designation</label>
-                                    <input type="text" id="staff-role" value="${staff.role || ''}" placeholder="Seamstress / Accountant" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
-                                </div>
-                            </div>
-                            <div class="mt-6 flex justify-end space-x-3">
-                                <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
-                                <button type="submit" class="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-150 flex items-center">
-                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i> ${isEdit ? 'Update Staff' : 'Add Staff'}
-                                </button>
-                            </div>
-                        </form>
-                    `;
-                    break;
-                default:
-                    return ''; // Should not happen
-            }
-
-            return `
-                <div class="modal-overlay fixed inset-0 flex items-center justify-center z-50 transition-opacity duration-300">
-                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4 transform transition-all duration-300">
-                        <div class="flex justify-between items-center border-b pb-3 mb-4">
-                            <h3 class="text-2xl font-bold text-gray-800">${title}</h3>
-                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
-                                <i data-lucide="x" class="w-6 h-6"></i>
-                            </button>
-                        </div>
-                        <div>
-                            ${content}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // --- Auth and Error Screens ---
-        
-        function renderErrorScreen(title, message) {
-            const appDiv = document.getElementById('app');
-            appDiv.innerHTML = `
-                <div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-                    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
-                        <i data-lucide="frown" class="w-16 h-16 text-red-500 mx-auto mb-4"></i>
-                        <h1 class="text-3xl font-bold text-gray-900 mb-2">${title}</h1>
-                        <p class="text-gray-600 mb-6">${message}</p>
-                        <button onclick="window.location.reload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
-                            Try Restarting App
-                        </button>
-                    </div>
-                </div>
-            `;
-            lucide.createIcons();
+            refreshIcons();
         }
 
         function renderAuthScreen() {
-            const appDiv = document.getElementById('app');
-            appDiv.innerHTML = `
-                <div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-                    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
-                        <div class="text-center mb-6">
-                            <h1 class="text-3xl font-bold text-indigo-600">Trinah Designs Admin</h1>
-                            <p class="text-gray-500 mt-2">Manager Login</p>
-                        </div>
-                        <p class="text-sm text-center text-gray-500 mb-4">
-                            Your account is automatically managed. Please enter your name to start your session.
-                        </p>
-                        <form onsubmit="handleAuthSubmit(event)" class="space-y-4" id="login-form">
-                            <div>
-                                <label for="login-name" class="block text-sm font-medium text-gray-700">Manager Name</label>
-                                <input type="text" id="login-name" placeholder="Your Name" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const isFirstRun = users.length === 0;
+
+            // If First Run and Admin Creation NOT unlocked, show System Initialization
+            if (isFirstRun && !showAdminCreation) {
+                appElement.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center p-4">
+                        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100 text-center">
+                            <div class="w-16 h-16 bg-slate-800 text-white rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                ${renderIcon('shield-lock', {class:'w-8 h-8'})}
                             </div>
-                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-150">
-                                Start Session
-                            </button>
-                        </form>
-                         <p class="text-center text-xs text-gray-400 mt-4">User ID: ${userId ? userId.substring(0, 8) + '...' : 'Authenticating...'}</p>
+                            <h1 class="text-2xl font-bold text-slate-800">System Initialization</h1>
+                            <p class="text-sm text-slate-500 mb-6">Enter System PIN to create the first Admin account.</p>
+
+                            <div class="space-y-4">
+                                <input type="password" id="system-pin-input" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 text-center tracking-widest text-lg" placeholder="PIN">
+                                <p id="pin-error" class="text-red-500 text-xs hidden">Invalid PIN. Try "2580"</p>
+                                <button onclick="verifySystemPin()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition">Unlock System</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            `;
-            lucide.createIcons();
-        }
-
-
-        // --- Main Render Function ---
-
-        function renderApp() {
-            const appDiv = document.getElementById('app');
-
-            if (!state.currentUser) {
-                // Should be handled by onAuthStateChanged listener calling renderAuthScreen()
-                // But this is a fallback
-                // renderAuthScreen(); 
+                `;
+                refreshIcons();
                 return;
             }
 
-            let content = '';
-            switch (state.view) {
-                case 'reports':
-                    content = renderReportsView();
-                    break;
-                case 'manageStaff':
-                    content = renderManageStaffView();
-                    break;
-                case 'procurement':
-                    content = renderProcurementView();
-                    break;
-                case 'settings':
-                    content = renderSettingsView();
-                    break;
-                case 'dashboard':
-                default:
-                    content = renderDashboardView();
-            }
+            // Standard Auth Screen (Login or Create Admin if unlocked)
+            appElement.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4">T</div>
+                            <h1 class="text-2xl font-bold text-slate-800">Trinah Designs</h1>
+                            <p class="text-sm text-slate-500">${showAdminCreation ? 'Create Main Admin Account' : 'Authorized Access Only'}</p>
+                        </div>
 
-            appDiv.innerHTML = `
-                ${renderNavbar()}
-                <main class="py-8">
-                    ${content}
-                </main>
-                ${renderModal()}
+                        ${showAdminCreation ? `
+                            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-sm mb-6 flex items-start gap-2">
+                                ${renderIcon('unlock', {class:'w-4 h-4 mt-1'})}
+                                <div>
+                                    <strong>System Unlocked!</strong><br>
+                                    Please set up your Admin credentials below.
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <form onsubmit="window.authHandler(event)" class="space-y-4">
+                            ${showAdminCreation ? `
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">ADMIN NAME</label>
+                                <input type="text" id="auth-name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="e.g. Trinah Admin">
+                            </div>` : ''}
+                            
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PHONE</label>
+                                <input type="text" id="auth-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PASSWORD</label>
+                                <input type="password" id="auth-password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                            </div>
+                            
+                            <div class="flex justify-end pt-1">
+                                <button type="button" onclick="renderRecoveryScreen()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">Forgot Password?</button>
+                            </div>
+
+                            ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition" ${authLoading ? 'disabled' : ''}>
+                                ${authLoading ? 'Processing...' : (showAdminCreation ? 'Create Admin Account' : 'Login')}
+                            </button>
+                        </form>
+                    </div>
+                </div>
             `;
-            
-            // Re-create icons for the new content
-            lucide.createIcons();
+            refreshIcons();
         }
+
+        function renderUserManagementScreen() {
+            // Only admins should really be here, mainly for resets
+            const storedUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+            
+            appElement.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <button onclick="setView('${VIEW_DASHBOARD}')" class="p-2 hover:bg-white rounded-lg text-slate-500">
+                             ${renderIcon('arrow-left', {class:'w-5 h-5'})}
+                        </button>
+                        <h2 class="text-xl font-bold text-slate-800">User Management</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="showAddStaffModal()" class="bg-indigo-600 text-white rounded-2xl p-6 shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex flex-col items-center justify-center gap-2">
+                             ${renderIcon('user-plus', {class:'w-8 h-8'})} 
+                             <span class="font-bold">Add New Staff</span>
+                        </button>
+                        <button onclick="showResetModal()" class="bg-white border border-red-100 text-red-600 rounded-2xl p-6 shadow-sm hover:bg-red-50 transition flex flex-col items-center justify-center gap-2">
+                             ${renderIcon('trash-2', {class:'w-8 h-8'})} 
+                             <span class="font-bold">System Reset</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">Existing Staff</h2>
+                        <div class="space-y-3">
+                            ${storedUsers.map(user => {
+                                const prices = user.prices || {};
+                                return `
+                                    <div class="p-4 rounded-xl border border-slate-200">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div class="flex items-center gap-3">
+                                                <div class="p-2 rounded-full bg-slate-100 text-slate-600">
+                                                    ${renderIcon('user', {class:'w-4 h-4'})}
+                                                </div>
+                                                <div>
+                                                    <p class="font-bold text-slate-800">${user.name}</p>
+                                                    <p class="text-xs text-slate-500">${user.phone}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="flex gap-2">
+                                                <button onclick="showAddStaffModal(true, '${user.phone}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Edit Staff">
+                                                    ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                </button>
+                                                <button onclick="handleDeleteStaff('${user.phone}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete Staff">
+                                                    ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded flex gap-4">
+                                            <span><strong>Dress Sell:</strong> ${prices.dressSell || 200}</span>
+                                            <span><strong>2pc Sell:</strong> ${prices.twoPcSell || 200}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                            ${storedUsers.length === 0 ? '<p class="text-slate-400 text-sm text-center">No staff added yet.</p>' : ''}
+                        </div>
+                    </div>
+                </main>
+            `;
+            refreshIcons();
+        }
+
+        function renderApp() {
+            if (!currentUser) {
+                renderAuthScreen();
+            } else if (currentView === VIEW_USERS) {
+                renderUserManagementScreen();
+            } else if (currentUser.role === 'admin' && !managedUser) {
+                renderAdminOverview();
+            } else {
+                renderIndividualDashboard();
+            }
+            refreshIcons();
+        }
+
+        // --- Init ---
+        window.toggleAuthMode = () => {}; 
+        window.authHandler = authHandler;
+        window.handleSwitchUser = handleSwitchUser;
+        window.handleLogout = handleLogout;
+        window.downloadReport = downloadReport;
+        window.downloadMasterReport = downloadMasterReport;
+        window.handleSubmit = handleSubmit;
+        window.handleDeleteLast = handleDeleteLast;
+        window.handleStartNewWeek = handleStartNewWeek;
+        window.handleAddStaff = handleAddStaff;
+        window.showAddStaffModal = showAddStaffModal;
+        window.showReportsModal = showReportsModal;
+        window.showResetModal = showResetModal;
+        window.handleFactoryReset = handleFactoryReset;
+        window.manageUser = manageUser;
+        window.setView = setView;
         
-        // --- Application Start ---
+        // New Handlers
+        window.handleSaveStaff = handleSaveStaff;
+        window.handleDeleteStaff = handleDeleteStaff;
+        window.handleProcurementSave = handleProcurementSave;
+        window.handleProcurementDateChange = handleProcurementDateChange;
+        
+        // Recovery Logic
+        window.renderRecoveryScreen = renderRecoveryScreen;
+        window.handleRecoveryStep1 = handleRecoveryStep1;
+        window.handleRecoveryStep2 = handleRecoveryStep2;
+        window.verifySystemPin = verifySystemPin;
         
         window.onload = function() {
-            // Start the initialization and authentication process
-            initializeAndAuthenticate();
+            const sessionUser = localStorage.getItem(SESSION_KEY);
+            if (sessionUser) {
+                try {
+                    handleLogin(JSON.parse(sessionUser));
+                } catch(e) {
+                    renderAuthScreen();
+                }
+            } else {
+                renderAuthScreen();
+            }
         };
-
-        // Expose functions for buttons that might be rendered early
-        window.initializeAndAuthenticate = initializeAndAuthenticate; 
     </script>
 </body>
 </html>
