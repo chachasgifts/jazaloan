@@ -67,14 +67,14 @@
 
     <script>
         // --- Configuration & Constants ---
-        const BUY_PRICE = 120;
-        const SELL_PRICE = 200;
+        // DEPRECATED CONSTANTS (Used as fallbacks for old users)
+        const DEFAULT_BUY_PRICE = 120;
+        const DEFAULT_SELL_PRICE = 200;
+
         const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         const REPORT_TYPES = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
         
         // SECURITY CONFIGURATION
-        // This PIN is required to create the Admin account on a new device/browser
-        // and to reset the Admin password.
         const SYSTEM_PIN = "2580"; 
 
         // Local Storage Keys
@@ -86,14 +86,15 @@
         const VIEW_USERS = 'users';
 
         // Global State Variables
-        let currentUser = null; // The logged-in user (Admin or Staff)
-        let managedUser = null; // The user whose data is being viewed/edited
+        let currentUser = null; 
+        let managedUser = null; 
         let currentView = VIEW_DASHBOARD;
         
         // Data for managed user
         let history = []; 
         let archive = []; 
-        let startingPressure = 0; 
+        // startingPressure is now an object: { dresses: 0, twoPcs: 0 }
+        let startingPressure = { dresses: 0, twoPcs: 0 }; 
         
         let selectedDayIndex = 0;
         let selectedReport = "Daily"; 
@@ -101,7 +102,7 @@
         // Auth State
         let authError = "";
         let authLoading = false;
-        let showAdminCreation = false; // Controls visibility of admin creation form
+        let showAdminCreation = false;
 
         const appElement = document.getElementById('app');
         const notificationContainer = document.getElementById('notification-container');
@@ -129,7 +130,7 @@
             if (!phone) return;
             localStorage.setItem(`trinah_current_week_${phone}`, JSON.stringify(history));
             localStorage.setItem(`trinah_archive_${phone}`, JSON.stringify(archive));
-            localStorage.setItem(`trinah_starting_pressure_${phone}`, startingPressure.toString());
+            localStorage.setItem(`trinah_starting_pressure_${phone}`, JSON.stringify(startingPressure));
         }
 
         function loadData(user) {
@@ -144,10 +145,29 @@
             else archive = [];
             
             const savedPressure = localStorage.getItem(`trinah_starting_pressure_${phone}`);
-            startingPressure = savedPressure ? Number(savedPressure) : 0;
+            if (savedPressure) {
+                try {
+                    const parsed = JSON.parse(savedPressure);
+                    // Handle migration from old number format to new object format
+                    if (typeof parsed === 'number') {
+                        startingPressure = { dresses: parsed, twoPcs: 0 };
+                    } else {
+                        startingPressure = parsed;
+                    }
+                } catch (e) {
+                    startingPressure = { dresses: 0, twoPcs: 0 };
+                }
+            } else {
+                startingPressure = { dresses: 0, twoPcs: 0 };
+            }
 
+            // Recalculate from last archive entry if exists and history is empty
             if (history.length === 0 && archive.length > 0) {
-                startingPressure = archive[archive.length - 1].remaining;
+                const last = archive[archive.length - 1];
+                startingPressure = {
+                    dresses: last.remDresses || last.remaining || 0, // Fallback for old data
+                    twoPcs: last.remTwoPcs || 0
+                };
             }
 
             // Set default day to today
@@ -248,14 +268,14 @@
                 const todayLocale = new Date().toLocaleDateString();
                 
                 let reportRows = [];
-                let grandTotalDispatch = 0;
-                let grandTotalSold = 0;
+                let grandTotalSoldDresses = 0;
+                let grandTotalSoldTwoPcs = 0;
                 let grandTotalProfit = 0;
 
                 allUsers.forEach(user => {
                     const userHistoryStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
                     const userArchiveStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
-                    const userPressureStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`) || "0";
+                    const userPressureStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
                     
                     const userHistory = JSON.parse(userHistoryStr);
                     const userArchive = JSON.parse(userArchiveStr);
@@ -268,26 +288,45 @@
                         filteredEntries = allEntries;
                     }
 
-                    const totalDispatch = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatched)||0), 0);
-                    const totalSold = filteredEntries.reduce((acc, curr) => acc + (Number(curr.sold)||0), 0);
+                    const soldDresses = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldDresses)||0), 0);
+                    const soldTwoPcs = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldTwoPcs)||0), 0);
+                    // Legacy support for 'sold' field if exists
+                    const soldLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.soldDresses ? 0 : (Number(curr.sold)||0)), 0); 
+                    
+                    const totalSoldDresses = soldDresses + soldLegacy; // Treat legacy sold as dresses
                     const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
                     
-                    let currentRemaining = 0;
+                    let currentRemDresses = 0;
+                    let currentRemTwoPcs = 0;
+
                     if (allEntries.length > 0) {
-                        currentRemaining = allEntries[allEntries.length - 1].remaining;
+                        const last = allEntries[allEntries.length - 1];
+                        currentRemDresses = last.remDresses || last.remaining || 0;
+                        currentRemTwoPcs = last.remTwoPcs || 0;
                     } else {
-                        currentRemaining = Number(userPressureStr);
+                        // Parse pressure
+                        try {
+                            const p = JSON.parse(userPressureStr);
+                             if (typeof p === 'number') {
+                                currentRemDresses = p;
+                            } else {
+                                currentRemDresses = p?.dresses || 0;
+                                currentRemTwoPcs = p?.twoPcs || 0;
+                            }
+                        } catch(e) {
+                            currentRemDresses = 0;
+                        }
                     }
 
-                    grandTotalDispatch += totalDispatch;
-                    grandTotalSold += totalSold;
+                    grandTotalSoldDresses += totalSoldDresses;
+                    grandTotalSoldTwoPcs += soldTwoPcs;
                     grandTotalProfit += totalProfit;
 
                     reportRows.push([
                         user.name,
-                        String(totalDispatch),
-                        String(totalSold),
-                        String(currentRemaining),
+                        String(totalSoldDresses),
+                        String(soldTwoPcs),
+                        `${currentRemDresses} / ${currentRemTwoPcs}`,
                         formatCurrency(totalProfit)
                     ]);
                 });
@@ -308,9 +347,9 @@
 
                 doc.autoTable({
                     startY: 50,
-                    head: [['Staff Name', 'Dispatched', 'Sold', 'Stock On Hand', 'Profit']],
+                    head: [['Staff Name', 'Sold Dresses', 'Sold 2pcs', 'Stock (Drs/2pc)', 'Profit']],
                     body: reportRows,
-                    foot: [['TOTALS', String(grandTotalDispatch), String(grandTotalSold), '-', formatCurrency(grandTotalProfit)]],
+                    foot: [['TOTALS', String(grandTotalSoldDresses), String(grandTotalSoldTwoPcs), '-', formatCurrency(grandTotalProfit)]],
                     theme: 'grid',
                     headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
                     footStyles: { fillColor: [241, 245, 249], textColor: 0, fontStyle: 'bold' },
@@ -407,7 +446,7 @@
             localStorage.removeItem(SESSION_KEY);
             history = [];
             archive = [];
-            startingPressure = 0;
+            startingPressure = { dresses: 0, twoPcs: 0 };
             renderApp();
         }
 
@@ -422,7 +461,7 @@
             const modalHTML = `
                 <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-staff-modal').remove()"></div>
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative z-10">
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                                 ${renderIcon('user-plus', {class:'w-6 h-6 text-indigo-600'})} Add New Staff
@@ -433,17 +472,41 @@
                         </div>
                         
                         <form onsubmit="window.handleAddStaff(event)" class="space-y-4">
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 uppercase">Staff Name</label>
-                                <input id="new-staff-name" placeholder="e.g. John Doe" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 uppercase">Phone Number (Login ID)</label>
-                                <input id="new-staff-phone" placeholder="e.g. 0712 345 678" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 uppercase">Staff Name</label>
+                                    <input id="new-staff-name" placeholder="Name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 uppercase">Phone (ID)</label>
+                                    <input id="new-staff-phone" placeholder="Phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                </div>
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
-                                <input id="new-staff-pass" type="text" placeholder="Set initial password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                <input id="new-staff-pass" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            </div>
+
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
+                                <h3 class="text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">Price Configuration (KES)</h3>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES</p>
+                                        <div class="space-y-2">
+                                            <input id="price-dress-buy" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-sell" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES (2PCS)</p>
+                                        <div class="space-y-2">
+                                            <input id="price-2pc-buy" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-sell" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-slate-400">Profit will be calculated based on these margins.</p>
                             </div>
                             
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">Create Account</button>
@@ -511,9 +574,20 @@
             const name = document.getElementById('new-staff-name').value.trim();
             const phone = document.getElementById('new-staff-phone').value.trim();
             const password = document.getElementById('new-staff-pass').value.trim();
+            
+            // New Price Fields
+            const dressBuy = Number(document.getElementById('price-dress-buy').value);
+            const dressSell = Number(document.getElementById('price-dress-sell').value);
+            const twoPcBuy = Number(document.getElementById('price-2pc-buy').value);
+            const twoPcSell = Number(document.getElementById('price-2pc-sell').value);
 
             if (!name || !phone || !password) {
-                showNotification("Please fill all fields.");
+                showNotification("Please fill name, phone and password.");
+                return;
+            }
+
+            if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell) {
+                showNotification("Please set all prices for dresses and 2pcs.");
                 return;
             }
 
@@ -523,11 +597,21 @@
                 return;
             }
 
-            const newUser = { name, phone, password, role: 'staff' };
+            const newUser = { 
+                name, 
+                phone, 
+                password, 
+                role: 'staff',
+                prices: {
+                    dressBuy, dressSell,
+                    twoPcBuy, twoPcSell
+                }
+            };
+            
             users.push(newUser);
             localStorage.setItem(DB_KEY, JSON.stringify(users));
             
-            showNotification(`Staff member ${name} added!`);
+            showNotification(`Staff member ${name} added with custom pricing!`);
             
             // Close modal
             const modal = document.getElementById('add-staff-modal');
@@ -742,16 +826,27 @@
         function handleSubmit() {
             if (!managedUser) return; // Safety check
 
-            const dispatchInput = document.getElementById('dispatch-input');
-            const salesInput = document.getElementById('sales-input');
+            const dispatchDressIn = document.getElementById('dispatch-dress').value;
+            const dispatch2pcIn = document.getElementById('dispatch-2pc').value;
+            const salesDressIn = document.getElementById('sales-dress').value;
+            const sales2pcIn = document.getElementById('sales-2pc').value;
 
-            const numDispatch = Number(dispatchInput.value) || 0;
-            const numSales = Number(salesInput.value) || 0;
+            const dDress = Number(dispatchDressIn) || 0;
+            const d2pc = Number(dispatch2pcIn) || 0;
+            const sDress = Number(salesDressIn) || 0;
+            const s2pc = Number(sales2pcIn) || 0;
 
-            if (numDispatch === 0 && numSales === 0) {
+            if (dDress === 0 && d2pc === 0 && sDress === 0 && s2pc === 0) {
                 showNotification("Please enter dispatch or sales amount.");
                 return;
             }
+
+            // Get Prices (with fallback for old users)
+            const prices = managedUser.prices || {};
+            const dressBuy = prices.dressBuy || DEFAULT_BUY_PRICE;
+            const dressSell = prices.dressSell || DEFAULT_SELL_PRICE;
+            const twoPcBuy = prices.twoPcBuy || DEFAULT_BUY_PRICE; // Fallback same as dress
+            const twoPcSell = prices.twoPcSell || DEFAULT_SELL_PRICE; // Fallback same as dress
 
             const now = new Date();
             const jsDay = now.getDay(); 
@@ -769,32 +864,59 @@
             const currentDayName = DAYS[selectedDayIndex];
             const fullDateString = targetDate.toLocaleDateString();
 
-            const prevRemaining = getFullHistory().length > 0
-                    ? getFullHistory()[getFullHistory().length - 1].remaining
-                    : startingPressure;
+            // Calculate Pressure
+            let prevRemDress = 0;
+            let prevRem2pc = 0;
 
-            const newRemaining = prevRemaining + numDispatch - numSales;
+            const fullHistory = getFullHistory();
 
-            if (newRemaining < 0) {
+            if (fullHistory.length > 0) {
+                const last = fullHistory[fullHistory.length - 1];
+                prevRemDress = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
+                prevRem2pc = last.remTwoPcs !== undefined ? last.remTwoPcs : 0;
+            } else {
+                prevRemDress = startingPressure.dresses;
+                prevRem2pc = startingPressure.twoPcs;
+            }
+
+            const newRemDress = prevRemDress + dDress - sDress;
+            const newRem2pc = prevRem2pc + d2pc - s2pc;
+
+            if (newRemDress < 0 || newRem2pc < 0) {
                 showNotification("Error: Sales cannot exceed inventory.");
                 return;
             }
+
+            // Calculate Profit
+            const profitDress = sDress * (dressSell - dressBuy);
+            const profit2pc = s2pc * (twoPcSell - twoPcBuy);
+            const totalProfit = profitDress + profit2pc;
 
             const record = {
                 id: Date.now(),
                 date: currentDayName,
                 fullDate: fullDateString,
-                dispatched: numDispatch,
-                sold: numSales,
-                remaining: newRemaining,
-                profit: numSales * (SELL_PRICE - BUY_PRICE),
+                dispatchedDresses: dDress,
+                dispatchedTwoPcs: d2pc,
+                soldDresses: sDress,
+                soldTwoPcs: s2pc,
+                remDresses: newRemDress,
+                remTwoPcs: newRem2pc,
+                profit: totalProfit,
+                // keep these for backward compat in basic displays if needed
+                dispatched: dDress + d2pc,
+                sold: sDress + s2pc,
+                remaining: newRemDress + newRem2pc 
             };
 
             history.push(record);
-            startingPressure = newRemaining;
+            startingPressure = { dresses: newRemDress, twoPcs: newRem2pc };
 
-            dispatchInput.value = "";
-            salesInput.value = "";
+            // Clear inputs
+            document.getElementById('dispatch-dress').value = "";
+            document.getElementById('dispatch-2pc').value = "";
+            document.getElementById('sales-dress').value = "";
+            document.getElementById('sales-2pc').value = "";
 
             saveData(managedUser.phone);
 
@@ -804,7 +926,7 @@
                 return;
             }
 
-            let notificationMessage = `Saved for ${currentDayName} (${managedUser.name})!`;
+            let notificationMessage = `Saved for ${currentDayName}!`;
 
             if (selectedDayIndex < mappedDay) {
                 selectedDayIndex = selectedDayIndex + 1;
@@ -819,7 +941,18 @@
             const modal = document.getElementById('week-complete-modal');
             if (modal) modal.remove();
 
-            const finalPressure = getFullHistory().length > 0 ? getFullHistory()[getFullHistory().length - 1].remaining : startingPressure;
+            const fullHistory = getFullHistory();
+            let finalPressure = { dresses: 0, twoPcs: 0 };
+
+            if (fullHistory.length > 0) {
+                const last = fullHistory[fullHistory.length - 1];
+                finalPressure = {
+                    dresses: last.remDresses || last.remaining || 0,
+                    twoPcs: last.remTwoPcs || 0
+                };
+            } else {
+                finalPressure = startingPressure;
+            }
             
             archive = [...archive, ...history];
             history = []; 
@@ -845,11 +978,29 @@
 
             history.pop();
             
+            // Recalculate starting pressure from the NEW last entry
             const newLastEntry = getFullHistory()[getFullHistory().length - 1];
-            startingPressure = newLastEntry 
-                ? newLastEntry.remaining
-                : archive.length > 0 ? archive[archive.length - 1].remaining : 0;
             
+            if (newLastEntry) {
+                startingPressure = {
+                    dresses: newLastEntry.remDresses || newLastEntry.remaining || 0,
+                    twoPcs: newLastEntry.remTwoPcs || 0
+                };
+            } else if (archive.length > 0) {
+                const lastArch = archive[archive.length-1];
+                startingPressure = {
+                     dresses: lastArch.remDresses || lastArch.remaining || 0,
+                     twoPcs: lastArch.remTwoPcs || 0
+                };
+            } else {
+                 // Fallback to what was stored originally if history is empty and no archive
+                 // Note: Ideally we store the initial week's starting pressure separately, but this simplifies for now
+                 const savedPressure = localStorage.getItem(`trinah_starting_pressure_${managedUser.phone}`);
+                 try {
+                     startingPressure = JSON.parse(savedPressure) || { dresses: 0, twoPcs: 0};
+                 } catch (e) { startingPressure = { dresses: 0, twoPcs: 0} }
+            }
+
             const dayIndex = DAYS.indexOf(lastEntry.date);
             if (dayIndex !== -1) selectedDayIndex = dayIndex;
 
@@ -872,23 +1023,33 @@
                 const doc = new jsPDF();
 
                 const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
-                const totalSold = data.reduce((sum, r) => sum + (Number(r.sold) || 0), 0);
-                const totalDispatch = data.reduce((sum, r) => sum + (Number(r.dispatched) || 0), 0);
+                const totalSoldDresses = data.reduce((sum, r) => sum + (Number(r.soldDresses) || 0), 0);
+                const totalSoldTwoPcs = data.reduce((sum, r) => sum + (Number(r.soldTwoPcs) || 0), 0);
 
-                const rows = data.map(item => [item.fullDate, String(item.sold), String(item.remaining), item.profit.toLocaleString()]);
+                // For simple display, sum them up or show breakdown
+                const totalSold = totalSoldDresses + totalSoldTwoPcs;
+
+                const rows = data.map(item => [
+                    item.fullDate, 
+                    `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
+                    `${item.remDresses || 0} / ${item.remTwoPcs || 0}`,
+                    item.profit.toLocaleString()
+                ]);
 
                 doc.setFillColor(30, 58, 138); // Primary Blue
                 doc.rect(0, 0, 210, 30, 'F');
                 doc.setTextColor(255,255,255);
                 doc.setFontSize(14);
                 doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
+                doc.setFontSize(10);
+                doc.text(`Format: Dresses / 2pcs`, 14, 26);
 
                 doc.autoTable({
                     startY: 40,
-                    head: [['Date', 'Sold', 'Remaining', 'Profit (KES)']],
+                    head: [['Date', 'Sold (D/2pc)', 'Rem (D/2pc)', 'Profit (KES)']],
                     body: rows,
                     theme: 'grid',
-                    foot: [['TOTAL', String(totalSold), '-', totalProfit.toLocaleString()]]
+                    foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', totalProfit.toLocaleString()]]
                 });
 
                 doc.save(`${managedUser.name}_${reportName}_Report.pdf`);
@@ -905,7 +1066,9 @@
         // --- Renderers ---
 
         function renderWeekCompleteModal() {
-            const finalPressure = history.length > 0 ? history[history.length - 1].remaining : startingPressure;
+            const last = history.length > 0 ? history[history.length - 1] : null;
+            const remD = last ? last.remDresses : startingPressure.dresses;
+            const rem2 = last ? last.remTwoPcs : startingPressure.twoPcs;
             
             const modalHTML = `
                 <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -913,7 +1076,9 @@
                     <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative z-10 text-center">
                         <h2 class="text-2xl font-bold text-slate-800 mb-2">Week Completed!</h2>
                         <p class="text-slate-600 mb-4 text-sm">
-                            Final Inventory: <span class="font-bold text-orange-600"> ${finalPressure} units </span> 
+                            Final Inventory: <br>
+                            <span class="font-bold text-indigo-600"> ${remD} Dresses </span> & 
+                            <span class="font-bold text-purple-600"> ${rem2} 2pcs </span>
                         </p>
                         <div class="space-y-3">
                             <button onclick="downloadReport(history, 'Weekly_Completed'); document.getElementById('week-complete-modal').remove();" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Download Report</button>
@@ -1032,7 +1197,7 @@
                 // Fetch user data directly from storage
                 const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
                 const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
-                const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`) || "0";
+                const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
                 
                 const userHistory = JSON.parse(hStr);
                 const userArchive = JSON.parse(aStr);
@@ -1040,18 +1205,36 @@
                 
                 // Calculate User Metrics
                 const todayEntries = userHistory.filter(e => e.fullDate === todayLocale);
-                const userSalesToday = todayEntries.reduce((sum, e) => sum + (Number(e.sold)||0), 0);
+                // Check if new format (soldDresses/soldTwoPcs) or legacy (sold)
+                const userSalesToday = todayEntries.reduce((sum, e) => {
+                    const legacy = Number(e.sold) || 0;
+                    const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0);
+                    // Use new format if soldDresses exists, else legacy
+                    return sum + (e.soldDresses !== undefined ? newFormat : legacy);
+                }, 0);
+                
                 const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
                 
-                let currentRemaining = 0;
+                let currentRemDresses = 0;
+                let currentRemTwoPcs = 0;
+
                 if (allEntries.length > 0) {
-                    currentRemaining = allEntries[allEntries.length - 1].remaining;
+                    const last = allEntries[allEntries.length - 1];
+                    currentRemDresses = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
+                    currentRemTwoPcs = last.remTwoPcs || 0;
                 } else {
-                    currentRemaining = Number(pStr);
+                     try {
+                        const p = JSON.parse(pStr);
+                        if (typeof p === 'number') currentRemDresses = p;
+                        else {
+                            currentRemDresses = p?.dresses || 0;
+                            currentRemTwoPcs = p?.twoPcs || 0;
+                        }
+                    } catch(e) {}
                 }
 
                 // Add to Grand Totals
-                totalStock += currentRemaining;
+                totalStock += (currentRemDresses + currentRemTwoPcs);
                 totalSalesToday += userSalesToday;
                 totalProfitToday += userProfitToday;
 
@@ -1072,7 +1255,8 @@
                         <div class="grid grid-cols-2 gap-2 text-center">
                             <div class="bg-orange-50 p-2 rounded-lg">
                                 <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
-                                <p class="font-bold text-orange-700">${currentRemaining}</p>
+                                <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs}</p>
+                                <p class="text-[8px] text-orange-300">DRESS / 2PC</p>
                             </div>
                             <div class="bg-emerald-50 p-2 rounded-lg">
                                 <p class="text-[10px] uppercase font-bold text-emerald-400">Sold Today</p>
@@ -1129,7 +1313,18 @@
 
             const fullHistory = getFullHistory();
             const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
-            const currentPressure = lastEntry ? lastEntry.remaining : startingPressure;
+            
+            // Get current pressures
+            let curDresses = 0;
+            let cur2pcs = 0;
+
+            if (lastEntry) {
+                curDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
+                cur2pcs = lastEntry.remTwoPcs || 0;
+            } else {
+                curDresses = startingPressure.dresses || 0;
+                cur2pcs = startingPressure.twoPcs || 0;
+            }
             
             const now = new Date();
             const today = now.toLocaleDateString();
@@ -1139,7 +1334,16 @@
             
             const todaysSales = history
                 .filter(entry => entry.fullDate === today)
-                .reduce((sum, entry) => sum + entry.sold, 0);
+                .reduce((sum, entry) => {
+                    const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0);
+                    return sum + (entry.soldDresses !== undefined ? newF : (entry.sold||0));
+                }, 0);
+
+            // Price Labels for reference
+            const prices = managedUser.prices || { 
+                dressBuy: DEFAULT_BUY_PRICE, dressSell: DEFAULT_SELL_PRICE,
+                twoPcBuy: DEFAULT_BUY_PRICE, twoPcSell: DEFAULT_SELL_PRICE
+            };
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1163,10 +1367,10 @@
 
                     <!-- Stats Grid -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        ${renderStatCard("Pressure", currentPressure, "gauge", "text-orange-600")}
+                        ${renderStatCard("Stock (Dress)", curDresses, "shirt", "text-indigo-600")}
+                        ${renderStatCard("Stock (2pc)", cur2pcs, "layers", "text-purple-600")}
                         ${renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")}
                         ${renderStatCard("Today Sold", todaysSales, "trending-up", "text-amber-600")}
-                        ${renderStatCard("Entries", filteredData.length, "file-text", "text-purple-600")}
                     </div>
 
                     <div class="grid md:grid-cols-3 gap-6">
@@ -1197,15 +1401,35 @@
                                     }).join('')}
                                 </div>
 
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="text-xs font-bold text-slate-500">DISPATCH</label>
-                                        <input type="number" id="dispatch-input" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0">
+                                <div class="space-y-4">
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses (Sell: ${prices.dressSell})</p>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="text-xs font-bold text-slate-500">SOLD</label>
-                                        <input type="number" id="sales-input" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0">
+
+                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces (Sell: ${prices.twoPcSell})</p>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                            </div>
+                                        </div>
                                     </div>
+                                    
                                     <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Add Record</button>
                                 </div>
                             </div>
@@ -1246,24 +1470,26 @@
                                         <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
                                             <tr>
                                                 <th class="px-4 py-3 rounded-l-lg">Date</th>
-                                                <th class="px-4 py-3">Dispatch</th>
-                                                <th class="px-4 py-3">Sold</th>
-                                                <th class="px-4 py-3">Profit</th>
-                                                <th class="px-4 py-3 rounded-r-lg">Rem.</th>
+                                                <th class="px-4 py-3">Sold <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
+                                                <th class="px-4 py-3">Stock <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
+                                                <th class="px-4 py-3 rounded-r-lg">Profit</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
                                             ${filteredData.length > 0 ? filteredData.map(d => `
                                                 <tr class="hover:bg-slate-50">
                                                     <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate} <span class="text-slate-400 text-xs block">${d.date.substring(0,3)}</span></td>
-                                                    <td class="px-4 py-3 text-slate-600">${d.dispatched}</td>
-                                                    <td class="px-4 py-3 text-emerald-600 font-bold">${d.sold}</td>
-                                                    <td class="px-4 py-3 text-slate-600">${d.profit}</td>
-                                                    <td class="px-4 py-3 text-orange-600 font-bold">${d.remaining}</td>
+                                                    <td class="px-4 py-3 text-emerald-600 font-bold">
+                                                        ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-orange-600 font-bold">
+                                                        ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0}
+                                                    </td>
+                                                    <td class="px-4 py-3 text-slate-600">${d.profit.toLocaleString()}</td>
                                                 </tr>
                                             `).reverse().join('') : `
                                                 <tr>
-                                                    <td colspan="5" class="text-center py-8 text-slate-400">
+                                                    <td colspan="4" class="text-center py-8 text-slate-400">
                                                         No records found for ${selectedReport} view.
                                                     </td>
                                                 </tr>
@@ -1392,16 +1618,23 @@
                         <h2 class="text-lg font-bold text-slate-800 mb-4">Existing Staff</h2>
                         <div class="space-y-3">
                             ${storedUsers.map(user => {
+                                const prices = user.prices || {};
                                 return `
-                                    <div class="p-4 rounded-xl border border-slate-200 flex justify-between items-center">
-                                        <div class="flex items-center gap-3">
-                                            <div class="p-2 rounded-full bg-slate-100 text-slate-600">
-                                                ${renderIcon('user', {class:'w-4 h-4'})}
+                                    <div class="p-4 rounded-xl border border-slate-200">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <div class="flex items-center gap-3">
+                                                <div class="p-2 rounded-full bg-slate-100 text-slate-600">
+                                                    ${renderIcon('user', {class:'w-4 h-4'})}
+                                                </div>
+                                                <div>
+                                                    <p class="font-bold text-slate-800">${user.name}</p>
+                                                    <p class="text-xs text-slate-500">${user.phone}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p class="font-bold text-slate-800">${user.name}</p>
-                                                <p class="text-xs text-slate-500">${user.phone}</p>
-                                            </div>
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded flex gap-4">
+                                            <span><strong>Dress Sell:</strong> ${prices.dressSell || 200}</span>
+                                            <span><strong>2pc Sell:</strong> ${prices.twoPcSell || 200}</span>
                                         </div>
                                     </div>
                                 `;
