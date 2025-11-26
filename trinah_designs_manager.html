@@ -100,6 +100,9 @@
         let selectedDayIndex = 0;
         let selectedReport = "Daily"; 
         
+        // Admin Overview Date State
+        let selectedProcurementDate = new Date(); // Default to today
+
         // Auth State
         let authError = "";
         let authLoading = false;
@@ -485,6 +488,8 @@
 
             if (currentUser.role === 'admin') {
                 managedUser = null; // Admin starts in Overview
+                // Reset date to today on login
+                selectedProcurementDate = new Date();
             } else {
                 managedUser = currentUser; // Staff manage themselves
                 loadData(currentUser);
@@ -716,17 +721,25 @@
             }
         }
         
+        function handleProcurementDateChange(dateStr) {
+            if (!dateStr) return;
+            // dateStr is YYYY-MM-DD
+            const [y, m, d] = dateStr.split('-').map(Number);
+            selectedProcurementDate = new Date(y, m - 1, d);
+            renderAdminOverview();
+        }
+
         function handleProcurementSave() {
             const val = document.getElementById('procurement-input').value;
             if(!val) return;
             
             const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-            const today = new Date().toLocaleDateString();
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
             
-            logs[today] = Number(val);
+            logs[targetDateKey] = Number(val);
             localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
             
-            showNotification("Stock procurement saved!");
+            showNotification(`Stock saved for ${targetDateKey}!`);
             renderAdminOverview(); // Refresh to update variance
         }
 
@@ -1296,7 +1309,14 @@
         function renderAdminOverview() {
             // Fetch all users except admin
             const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
-            const todayLocale = new Date().toLocaleDateString();
+            
+            // Generate Date Keys from selectedProcurementDate
+            const targetDateLocale = selectedProcurementDate.toLocaleDateString();
+            // Input date needs YYYY-MM-DD format
+            const y = selectedProcurementDate.getFullYear();
+            const m = String(selectedProcurementDate.getMonth() + 1).padStart(2, '0');
+            const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
+            const dateInputVal = `${y}-${m}-${d}`;
             
             let totalStock = 0;
             let totalSalesToday = 0;
@@ -1314,7 +1334,7 @@
                 const allEntries = [...userArchive, ...userHistory];
                 
                 // Calculate User Metrics
-                const todayEntries = userHistory.filter(e => e.fullDate === todayLocale);
+                const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
                 // Check if new format (soldDresses/soldTwoPcs) or legacy (sold)
                 const userSalesToday = todayEntries.reduce((sum, e) => {
                     const legacy = Number(e.sold) || 0;
@@ -1375,7 +1395,7 @@
                                 <p class="text-[8px] text-orange-300">DRESS / 2PC</p>
                             </div>
                             <div class="bg-emerald-50 p-2 rounded-lg">
-                                <p class="text-[10px] uppercase font-bold text-emerald-400">Sold Today</p>
+                                <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Selected Date)</p>
                                 <p class="font-bold text-emerald-700">${userSalesToday}</p>
                             </div>
                         </div>
@@ -1385,7 +1405,7 @@
 
             // --- PROCUREMENT LOGIC ---
             const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-            const procurementToday = logs[todayLocale] || 0;
+            const procurementToday = logs[targetDateLocale] || 0;
             const variance = procurementToday - grandTotalDispatchedToday;
             // -------------------------
 
@@ -1399,9 +1419,9 @@
 
                     <!-- Grand Totals -->
                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        ${renderStatCard("Total Stock (All)", totalStock, "layers", "text-orange-600")}
-                        ${renderStatCard("Total Sales (Today)", totalSalesToday, "shopping-bag", "text-blue-600")}
-                        ${renderStatCard("Total Profit (Today)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
+                        ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
+                        ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
+                        ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
                     </div>
                     
                     <!-- Daily Stock Procurement Section -->
@@ -1410,14 +1430,23 @@
                             <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
                                 ${renderIcon('clipboard-list', {class:'w-5 h-5 text-indigo-600'})} Daily Stock Procurement
                             </h2>
-                            <p class="text-sm text-slate-500 mb-4">Enter total number of items (Dresses + 2pcs) acquired today to track missing stock.</p>
-                            <div class="flex gap-2">
-                                <input type="number" id="procurement-input" value="${procurementToday || ''}" placeholder="Enter Total Bought" class="flex-1 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-bold">
-                                <button onclick="handleProcurementSave()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
+                            <p class="text-sm text-slate-500 mb-4">Select a date to view/edit procurement and variance.</p>
+                            
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <!-- Date Picker -->
+                                <input type="date" value="${dateInputVal}" 
+                                    onchange="handleProcurementDateChange(this.value)"
+                                    class="p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700">
+                                
+                                <div class="flex gap-2 flex-1">
+                                    <input type="number" id="procurement-input" value="${procurementToday || ''}" placeholder="Total Bought" class="flex-1 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-bold">
+                                    <button onclick="handleProcurementSave()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
+                                </div>
                             </div>
                          </div>
                          
                          <div class="w-full md:w-1/3 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Stats for ${targetDateLocale}</div>
                             <div class="flex justify-between text-sm mb-2">
                                 <span class="text-slate-500">Total Acquired:</span>
                                 <span class="font-bold text-slate-800">${procurementToday}</span>
@@ -1846,6 +1875,7 @@
         window.handleSaveStaff = handleSaveStaff;
         window.handleDeleteStaff = handleDeleteStaff;
         window.handleProcurementSave = handleProcurementSave;
+        window.handleProcurementDateChange = handleProcurementDateChange;
         
         // Recovery Logic
         window.renderRecoveryScreen = renderRecoveryScreen;
