@@ -218,30 +218,12 @@
             return new Date() > deadline;
         }
 
-        // Helper to get the actual Date object corresponding to the selected day index (Mon-Sun)
-        function getTargetDateForSelectedDay() {
-            const now = new Date();
-            const jsDay = now.getDay();
-            const mappedDay = jsDay === 0 ? 6 : jsDay - 1; // Mon=0 .. Sun=6
-            
-            // If selectedDayIndex is somehow future or undefined, fallback to today
-            let targetIndex = selectedDayIndex;
-            if (typeof targetIndex === 'undefined') targetIndex = mappedDay;
-            
-            const dayDiff = mappedDay - targetIndex;
-            const targetDate = new Date();
-            targetDate.setDate(now.getDate() - dayDiff);
-            
-            // Reset to midnight
-            targetDate.setHours(0,0,0,0);
-            return targetDate;
-        }
-
         function getFilteredHistory() {
             const fullHistory = getFullHistory();
             const now = new Date();
             // Create midnight timestamps for safe comparison
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const todayEnd = todayStart + (24 * 60 * 60 * 1000);
 
             return fullHistory.filter(entry => {
                 // Use entry.id (which is a timestamp) for robust comparison across all devices
@@ -255,12 +237,8 @@
 
                 switch (selectedReport) {
                     case "Daily": 
-                        // Show entries for the SELECTED DAY (not necessarily today)
-                        const targetDate = getTargetDateForSelectedDay();
-                        const targetStart = targetDate.getTime();
-                        const targetEnd = targetStart + (24 * 60 * 60 * 1000);
-                        
-                        return entryTime >= targetStart && entryTime < targetEnd;
+                        // Show entries that happened today
+                        return entryTime >= todayStart && entryTime < todayEnd;
                     
                     case "Weekly": {
                         // Show entries from last 7 days (rolling week)
@@ -1628,25 +1606,14 @@
                 cur2pcs = startingPressure.twoPcs || 0;
             }
             
-            // Calculate stats based on the SELECTED day, not necessarily Today
-            const targetDate = getTargetDateForSelectedDay();
-            const targetStart = targetDate.getTime();
-            const targetEnd = targetStart + (24 * 60 * 60 * 1000);
+            const now = new Date();
+            const today = now.toLocaleDateString();
 
             const filteredData = getFilteredHistory();
             const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
             
-            // Calculate sales strictly for the day being viewed
-            const selectedDaySales = history
-                .filter(entry => {
-                    let entryTime = entry.id;
-                    if (!entryTime) {
-                        const parsed = new Date(entry.fullDate);
-                        if (!isNaN(parsed.getTime())) entryTime = parsed.getTime();
-                        else return false;
-                    }
-                    return entryTime >= targetStart && entryTime < targetEnd;
-                })
+            const todaysSales = history
+                .filter(entry => entry.fullDate === today)
                 .reduce((sum, entry) => {
                     const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0);
                     return sum + (entry.soldDresses !== undefined ? newF : (entry.sold||0));
@@ -1657,10 +1624,6 @@
                 dressBuy: DEFAULT_BUY_PRICE, dressSell: DEFAULT_SELL_PRICE,
                 twoPcBuy: DEFAULT_BUY_PRICE, twoPcSell: DEFAULT_SELL_PRICE
             };
-
-            const now = new Date();
-            const jsDay = now.getDay();
-            const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1687,7 +1650,7 @@
                         ${renderStatCard("Stock (Dress)", curDresses, "shirt", "text-indigo-600")}
                         ${renderStatCard("Stock (2pc)", cur2pcs, "layers", "text-purple-600")}
                         ${renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")}
-                        ${renderStatCard("Selected Day Sold", selectedDaySales, "trending-up", "text-amber-600")}
+                        ${renderStatCard("Today Sold", todaysSales, "trending-up", "text-amber-600")}
                     </div>
 
                     <div class="grid md:grid-cols-3 gap-6">
@@ -1701,6 +1664,8 @@
                                 <!-- Day Selection -->
                                 <div class="grid grid-cols-4 gap-2 mb-4">
                                     ${DAYS.map((d, i) => {
+                                        const jsDay = now.getDay();
+                                        const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
                                         const isLocked = i > mappedDay;
                                         
                                         return `
@@ -1768,10 +1733,7 @@
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
                                         <h2 class="text-lg font-bold text-slate-800">History Log</h2>
-                                        <p class="text-sm text-slate-500">
-                                            Viewing: ${selectedReport} 
-                                            ${selectedReport === 'Daily' ? `<span class="font-bold text-indigo-600">- ${DAYS[selectedDayIndex]} (${targetDate.toLocaleDateString()})</span>` : ''}
-                                        </p>
+                                        <p class="text-sm text-slate-500">Viewing: ${selectedReport}</p>
                                     </div>
                                     <div class="flex bg-slate-100 p-1 rounded-lg">
                                         ${REPORT_TYPES.map(type => `
