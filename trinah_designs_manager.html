@@ -80,6 +80,7 @@
         // Local Storage Keys
         const DB_KEY = "trinah_users_db";
         const SESSION_KEY = "trinah_active_session";
+        const PROCUREMENT_KEY = "trinah_procurement_log";
 
         // View States
         const VIEW_DASHBOARD = 'dashboard';
@@ -271,6 +272,7 @@
                 let grandTotalSoldDresses = 0;
                 let grandTotalSoldTwoPcs = 0;
                 let grandTotalProfit = 0;
+                let grandTotalDispatched = 0;
 
                 allUsers.forEach(user => {
                     const userHistoryStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
@@ -293,6 +295,14 @@
                     // Legacy support for 'sold' field if exists
                     const soldLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.soldDresses ? 0 : (Number(curr.sold)||0)), 0); 
                     
+                    // Dispatch Calcs for report
+                    const dispatchedDresses = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatchedDresses)||0), 0);
+                    const dispatchedTwoPcs = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatchedTwoPcs)||0), 0);
+                    const dispatchedLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.dispatchedDresses ? 0 : (Number(curr.dispatched)||0)), 0);
+                    const userTotalDispatched = dispatchedDresses + dispatchedTwoPcs + dispatchedLegacy;
+
+                    grandTotalDispatched += userTotalDispatched;
+
                     const totalSoldDresses = soldDresses + soldLegacy; // Treat legacy sold as dresses
                     const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
                     
@@ -304,7 +314,6 @@
                         currentRemDresses = last.remDresses || last.remaining || 0;
                         currentRemTwoPcs = last.remTwoPcs || 0;
                     } else {
-                        // Parse pressure
                         try {
                             const p = JSON.parse(userPressureStr);
                              if (typeof p === 'number') {
@@ -354,6 +363,44 @@
                     headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
                     footStyles: { fillColor: [241, 245, 249], textColor: 0, fontStyle: 'bold' },
                 });
+
+                // --- Stock Reconciliation Section (Added) ---
+                if (type === 'Daily') {
+                    const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+                    const procurementToday = logs[todayLocale] || 0;
+                    const variance = procurementToday - grandTotalDispatched;
+                    
+                    const finalY = doc.lastAutoTable.finalY + 15;
+                    
+                    doc.setFillColor(variance > 0 ? 254 : 241, variance > 0 ? 226 : 245, variance > 0 ? 226 : 249); // Red tint if variance, else slate
+                    doc.rect(14, finalY, 182, 40, 'F');
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(14, finalY, 182, 40, 'S');
+
+                    doc.setTextColor(30, 58, 138);
+                    doc.setFontSize(12);
+                    doc.text("Stock Reconciliation Analysis", 20, finalY + 10);
+                    
+                    doc.setFontSize(10);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`Total Stock Acquired (Today): ${procurementToday}`, 20, finalY + 20);
+                    doc.text(`Total Stock Dispatched (All Staff): ${grandTotalDispatched}`, 20, finalY + 26);
+                    
+                    doc.setFont(undefined, 'bold');
+                    if (variance > 0) {
+                        doc.setTextColor(220, 38, 38); // Red
+                        doc.text(`Undispatched / Missing: ${variance} items`, 20, finalY + 32);
+                        doc.text(`RECOMMENDATION: High Alert. ${variance} items are unaccounted for.`, 20, finalY + 38);
+                        doc.text(`Please verify if these are in main storage or lost.`, 20, finalY + 43);
+                    } else if (variance < 0) {
+                         doc.setTextColor(217, 119, 6); // Orange
+                         doc.text(`Variance: ${variance} (Dispatched > Acquired)`, 20, finalY + 32);
+                         doc.text(`Note: Staff received stock from previous inventory.`, 20, finalY + 38);
+                    } else {
+                        doc.setTextColor(22, 163, 74); // Green
+                        doc.text(`Status: Balanced (All acquired stock dispatched)`, 20, finalY + 32);
+                    }
+                }
 
                 doc.save(`Trinah_Master_${type}_Report.pdf`);
                 showNotification("Master Report Downloaded!");
@@ -457,34 +504,52 @@
 
         // --- Admin Functions ---
 
-        function showAddStaffModal() {
+        function showAddStaffModal(isEdit = false, userPhone = null) {
+            let userToEdit = null;
+            if (isEdit && userPhone) {
+                const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                userToEdit = users.find(u => u.phone === userPhone);
+            }
+
+            // Defaults or Existing Values
+            const nameVal = userToEdit ? userToEdit.name : '';
+            const phoneVal = userToEdit ? userToEdit.phone : '';
+            const passVal = userToEdit ? userToEdit.password : '';
+            const prices = userToEdit ? (userToEdit.prices || {}) : {};
+            
+            const dbVal = prices.dressBuy || '';
+            const dsVal = prices.dressSell || '';
+            const tbVal = prices.twoPcBuy || '';
+            const tsVal = prices.twoPcSell || '';
+
             const modalHTML = `
                 <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-staff-modal').remove()"></div>
                     <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                ${renderIcon('user-plus', {class:'w-6 h-6 text-indigo-600'})} Add New Staff
+                                ${renderIcon(isEdit ? 'user-cog' : 'user-plus', {class:'w-6 h-6 text-indigo-600'})} 
+                                ${isEdit ? 'Edit Staff Details' : 'Add New Staff'}
                             </h2>
                             <button onclick="document.getElementById('add-staff-modal').remove()" class="text-slate-400 hover:text-slate-600">
                                 ${renderIcon('x', {class:'w-6 h-6'})}
                             </button>
                         </div>
                         
-                        <form onsubmit="window.handleAddStaff(event)" class="space-y-4">
+                        <form onsubmit="window.handleSaveStaff(event, '${isEdit ? 'edit' : 'add'}', '${phoneVal}')" class="space-y-4">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="text-xs font-bold text-slate-500 uppercase">Staff Name</label>
-                                    <input id="new-staff-name" placeholder="Name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                    <input id="staff-name" value="${nameVal}" placeholder="Name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
                                 </div>
                                 <div>
                                     <label class="text-xs font-bold text-slate-500 uppercase">Phone (ID)</label>
-                                    <input id="new-staff-phone" placeholder="Phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                    <input id="staff-phone" value="${phoneVal}" placeholder="Phone" ${isEdit ? 'disabled' : ''} class="w-full p-3 rounded-xl ${isEdit ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'} border border-slate-200 outline-none focus:border-indigo-500 mt-1">
                                 </div>
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
-                                <input id="new-staff-pass" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
                             </div>
 
                             <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
@@ -494,22 +559,24 @@
                                     <div>
                                         <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES</p>
                                         <div class="space-y-2">
-                                            <input id="price-dress-buy" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-dress-sell" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-buy" value="${dbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-sell" value="${dsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                     <div>
                                         <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES (2PCS)</p>
                                         <div class="space-y-2">
-                                            <input id="price-2pc-buy" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-2pc-sell" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-buy" value="${tbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-sell" value="${tsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                 </div>
                                 <p class="text-[10px] text-slate-400">Profit will be calculated based on these margins.</p>
                             </div>
                             
-                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">Create Account</button>
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">
+                                ${isEdit ? 'Save Changes' : 'Create Account'}
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -569,11 +636,11 @@
             refreshIcons();
         }
 
-        function handleAddStaff(e) {
+        function handleSaveStaff(e, mode, originalPhone) {
             e.preventDefault();
-            const name = document.getElementById('new-staff-name').value.trim();
-            const phone = document.getElementById('new-staff-phone').value.trim();
-            const password = document.getElementById('new-staff-pass').value.trim();
+            const name = document.getElementById('staff-name').value.trim();
+            const phone = document.getElementById('staff-phone').value.trim();
+            const password = document.getElementById('staff-pass').value.trim();
             
             // New Price Fields
             const dressBuy = Number(document.getElementById('price-dress-buy').value);
@@ -587,38 +654,71 @@
             }
 
             if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell) {
-                showNotification("Please set all prices for dresses and 2pcs.");
+                showNotification("Please set all prices.");
                 return;
             }
 
             let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
-            if (users.find(u => u.phone === phone)) {
-                showNotification("User with this phone already exists.");
-                return;
+
+            if (mode === 'add') {
+                if (users.find(u => u.phone === phone)) {
+                    showNotification("User with this phone already exists.");
+                    return;
+                }
+                const newUser = { 
+                    name, phone, password, role: 'staff',
+                    prices: { dressBuy, dressSell, twoPcBuy, twoPcSell }
+                };
+                users.push(newUser);
+                showNotification(`Staff member ${name} added!`);
+            } else {
+                // Edit Mode
+                const index = users.findIndex(u => u.phone === originalPhone);
+                if (index !== -1) {
+                    users[index].name = name;
+                    users[index].password = password;
+                    users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell };
+                    showNotification(`Details for ${name} updated!`);
+                }
             }
 
-            const newUser = { 
-                name, 
-                phone, 
-                password, 
-                role: 'staff',
-                prices: {
-                    dressBuy, dressSell,
-                    twoPcBuy, twoPcSell
-                }
-            };
-            
-            users.push(newUser);
             localStorage.setItem(DB_KEY, JSON.stringify(users));
-            
-            showNotification(`Staff member ${name} added with custom pricing!`);
             
             // Close modal
             const modal = document.getElementById('add-staff-modal');
             if(modal) modal.remove();
 
-            // Force refresh of admin dashboard if on it
-            renderApp();
+            // Refresh view
+            if (currentView === VIEW_USERS) renderUserManagementScreen();
+        }
+
+        function handleAddStaff(e) {
+            // Deprecated proxy to handleSaveStaff for backwards compatibility if needed
+            handleSaveStaff(e, 'add', null);
+        }
+
+        function handleDeleteStaff(phone) {
+            if(confirm("Are you sure you want to delete this staff member? This will remove their login access. Their data history will remain until a factory reset.")) {
+                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                users = users.filter(u => u.phone !== phone);
+                localStorage.setItem(DB_KEY, JSON.stringify(users));
+                renderUserManagementScreen();
+                showNotification("Staff member deleted.");
+            }
+        }
+        
+        function handleProcurementSave() {
+            const val = document.getElementById('procurement-input').value;
+            if(!val) return;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const today = new Date().toLocaleDateString();
+            
+            logs[today] = Number(val);
+            localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+            
+            showNotification("Stock procurement saved!");
+            renderAdminOverview(); // Refresh to update variance
         }
 
         function handleFactoryReset() {
@@ -1192,6 +1292,7 @@
             let totalStock = 0;
             let totalSalesToday = 0;
             let totalProfitToday = 0;
+            let grandTotalDispatchedToday = 0;
 
             const userCards = users.map(user => {
                 // Fetch user data directly from storage
@@ -1211,6 +1312,11 @@
                     const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0);
                     // Use new format if soldDresses exists, else legacy
                     return sum + (e.soldDresses !== undefined ? newFormat : legacy);
+                }, 0);
+
+                const userDispatchedToday = todayEntries.reduce((sum, e) => {
+                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0);
+                     return sum + (e.dispatchedDresses !== undefined ? val : (Number(e.dispatched)||0));
                 }, 0);
                 
                 const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
@@ -1237,6 +1343,7 @@
                 totalStock += (currentRemDresses + currentRemTwoPcs);
                 totalSalesToday += userSalesToday;
                 totalProfitToday += userProfitToday;
+                grandTotalDispatchedToday += userDispatchedToday;
 
                 return `
                     <div onclick="manageUser('${user.phone}')" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition cursor-pointer group">
@@ -1267,6 +1374,12 @@
                 `;
             }).join('');
 
+            // --- PROCUREMENT LOGIC ---
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const procurementToday = logs[todayLocale] || 0;
+            const variance = procurementToday - grandTotalDispatchedToday;
+            // -------------------------
+
             appElement.innerHTML = `
                 ${renderHeader()}
                 <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
@@ -1280,6 +1393,39 @@
                         ${renderStatCard("Total Stock (All)", totalStock, "layers", "text-orange-600")}
                         ${renderStatCard("Total Sales (Today)", totalSalesToday, "shopping-bag", "text-blue-600")}
                         ${renderStatCard("Total Profit (Today)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
+                    </div>
+                    
+                    <!-- Daily Stock Procurement Section -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                         <div class="flex-1 w-full">
+                            <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
+                                ${renderIcon('clipboard-list', {class:'w-5 h-5 text-indigo-600'})} Daily Stock Procurement
+                            </h2>
+                            <p class="text-sm text-slate-500 mb-4">Enter total number of items (Dresses + 2pcs) acquired today to track missing stock.</p>
+                            <div class="flex gap-2">
+                                <input type="number" id="procurement-input" value="${procurementToday || ''}" placeholder="Enter Total Bought" class="flex-1 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-bold">
+                                <button onclick="handleProcurementSave()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
+                            </div>
+                         </div>
+                         
+                         <div class="w-full md:w-1/3 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-slate-500">Total Acquired:</span>
+                                <span class="font-bold text-slate-800">${procurementToday}</span>
+                            </div>
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-slate-500">Total Dispatched:</span>
+                                <span class="font-bold text-slate-800">${grandTotalDispatchedToday}</span>
+                            </div>
+                            <div class="border-t border-slate-200 my-2"></div>
+                            <div class="flex justify-between text-sm items-center">
+                                <span class="font-bold text-slate-500">Variance:</span>
+                                <span class="font-bold text-lg ${variance > 0 ? 'text-red-600' : (variance < 0 ? 'text-orange-500' : 'text-emerald-600')}">
+                                    ${variance > 0 ? `${variance} (Missing)` : (variance < 0 ? variance : 'Balanced')}
+                                </span>
+                            </div>
+                            ${variance > 0 ? `<p class="text-[10px] text-red-500 mt-2 font-bold">⚠️ High Alert: ${variance} items unaccounted for.</p>` : ''}
+                         </div>
                     </div>
 
                     <!-- Staff Grid -->
@@ -1621,7 +1767,7 @@
                                 const prices = user.prices || {};
                                 return `
                                     <div class="p-4 rounded-xl border border-slate-200">
-                                        <div class="flex justify-between items-center mb-2">
+                                        <div class="flex justify-between items-start mb-2">
                                             <div class="flex items-center gap-3">
                                                 <div class="p-2 rounded-full bg-slate-100 text-slate-600">
                                                     ${renderIcon('user', {class:'w-4 h-4'})}
@@ -1630,6 +1776,15 @@
                                                     <p class="font-bold text-slate-800">${user.name}</p>
                                                     <p class="text-xs text-slate-500">${user.phone}</p>
                                                 </div>
+                                            </div>
+                                            
+                                            <div class="flex gap-2">
+                                                <button onclick="showAddStaffModal(true, '${user.phone}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Edit Staff">
+                                                    ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                </button>
+                                                <button onclick="handleDeleteStaff('${user.phone}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete Staff">
+                                                    ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                                                </button>
                                             </div>
                                         </div>
                                         <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded flex gap-4">
@@ -1677,6 +1832,11 @@
         window.handleFactoryReset = handleFactoryReset;
         window.manageUser = manageUser;
         window.setView = setView;
+        
+        // New Handlers
+        window.handleSaveStaff = handleSaveStaff;
+        window.handleDeleteStaff = handleDeleteStaff;
+        window.handleProcurementSave = handleProcurementSave;
         
         // Recovery Logic
         window.renderRecoveryScreen = renderRecoveryScreen;
