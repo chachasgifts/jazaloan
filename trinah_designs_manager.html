@@ -3,920 +3,1718 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trinah Designs Admin (Cloud)</title>
-    <!-- Tailwind CSS -->
+    <title>Trinah Designs Admin Manager</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
+    <!-- Load Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- jsPDF -->
+    <!-- Load jsPDF for Reports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Load jsPDF AutoTable for easier tables -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
-    <!-- Firebase SDKs (Compat for easier standalone usage) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .modal-overlay { background-color: rgba(15, 23, 42, 0.7); }
-        /* Loaders */
-        .spinner {
-            width: 24px; height: 24px; border-radius: 50%;
-            border: 3px solid #e2e8f0; border-top-color: #4f46e5;
-            animation: spin 1s linear infinite;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        /* Mobile Menu */
-        #mobile-menu { transition: transform 0.3s ease-in-out; }
-        .translate-x-full { transform: translateX(100%); }
-        .translate-x-0 { transform: translateX(0); }
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.7);
+        }
+        /* PDF loader styles */
+        #pdf-loader { position: fixed; inset: 0; z-index: 60; background-color: rgba(255,255,255,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Custom scrollbar for better reports table viewing */
+        .reports-table-container::-webkit-scrollbar { height: 10px; }
+        .reports-table-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 5px; }
+        .reports-table-container::-webkit-scrollbar-track { background: #f3f4f6; }
+
+        /* Custom alert styles */
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 70;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateX(100%);
+        }
+        .custom-alert.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
     </style>
 </head>
-<body class="min-h-screen text-slate-800">
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Main application content will be rendered here -->
+    </div>
 
-    <!-- App Container -->
-    <div id="app" class="min-h-screen"></div>
+    <!-- PDF Loader -->
+    <div id="pdf-loader" class="text-center">
+        <div class="spinner"></div>
+        <p class="mt-4 text-lg text-indigo-600 font-semibold">Generating Report...</p>
+    </div>
 
-    <!-- Global Notification -->
-    <div id="notification-container" class="fixed top-0 left-1/2 -translate-x-1/2 z-[70] transition-all duration-300 transform opacity-0 -translate-y-full" style="display: none;"></div>
+    <!-- Custom Alert Container -->
+    <div id="alert-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <!-- Modals -->
-    <div id="modal-container"></div>
+    <script type="module">
+        // --- Firebase Setup and Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Use the globally provided variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    <script>
-        // --- 1. CONFIGURATION & STATE ---
+        // Global Firebase instances
+        let app = null;
+        let db = null;
+        let auth = null;
+        let userId = null;
 
-        // >>> FIREBASE SETUP <<<
-        // We use the environment's config if available, otherwise fallback to placeholders
-        // This fixes the "Script Error" caused by empty API keys
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "YOUR_API_KEY_HERE",
-            authDomain: "trinah-designs.firebaseapp.com",
-            projectId: "trinah-designs",
-            storageBucket: "trinah-designs.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
+        // Set log level for debugging (optional, but helpful for development)
+        setLogLevel('debug');
+
+        // Initialize Firebase and Authenticate
+        async function initializeAndAuthenticate() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase configuration is missing or empty.");
+                    renderErrorScreen("System Configuration Error", "Firebase configuration is not available. Please contact support.");
+                    return;
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authentication listener to handle user state
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Authenticated User ID:", userId);
+                        // Once authenticated, start the application logic
+                        initApp();
+                    } else {
+                        userId = null;
+                        console.log("User signed out or failed authentication.");
+                        renderAuthScreen();
+                    }
+                });
+
+                // Sign in using the custom token provided by the environment
+                if (initialAuthToken) {
+                    console.log("Attempting sign-in with custom token...");
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    console.log("Attempting anonymous sign-in...");
+                    await signInAnonymously(auth);
+                }
+
+            } catch (error) {
+                console.error("Firebase initialization or authentication failed:", error);
+                // Check specifically for API Key error
+                if (error.code === 'auth/invalid-api-key') {
+                    renderErrorScreen("Authentication Failed", "The provided Firebase API Key is invalid. Please ensure the environment configuration is correct.");
+                } else {
+                    renderErrorScreen("System Error", `An error occurred during startup: ${error.message}`);
+                }
+            }
+        }
+        
+        // --- Constants and Global State ---
+
+        // Local Storage Keys
+        const SESSION_KEY = 'td_admin_session';
+        const PENDING_DATA_KEY = 'td_pending_data';
+        const REPORTS_KEY = 'td_reports_data';
+        const LAST_RESET_KEY = 'td_last_reset';
+        const SYSTEM_PIN_KEY = 'td_system_pin';
+        const STAFF_KEY = 'td_staff_list';
+        const PROCUREMENT_KEY = 'td_procurement_data';
+
+        // Firestore Collection Paths
+        const getPrivateCollectionPath = (collectionName) => `/artifacts/${appId}/users/${userId}/${collectionName}`;
+        const getPublicCollectionPath = (collectionName) => `/artifacts/${appId}/public/data/${collectionName}`;
+
+        const DATA_COLLECTION = 'productionData';
+        const REPORTS_COLLECTION = 'weeklyReports';
+        const STAFF_COLLECTION = 'staffManagement';
+        const PROCUREMENT_COLLECTION = 'procurementLog';
+
+        // System Settings
+        const DEFAULT_SYSTEM_PIN = '0000'; // Default pin if none is set
+        
+        // Application State
+        let state = {
+            view: 'dashboard', // dashboard, reports, manageStaff, procurement, settings
+            currentUser: null,
+            currentWeek: getCurrentWeekId(),
+            productionData: [], // { date: 'YYYY-MM-DD', total: 0, items: [] }
+            weeklyReports: [], // { weekId: 'YYYY-WW', data: [] }
+            staff: [], // { id, name, role, isDeleted }
+            procurementLog: [], // { id, date, item, quantity, unit, cost }
+            isDataLoaded: false,
+            // Modal state
+            isModalOpen: false,
+            modalType: null, // reports, reset, addStaff
+            modalData: null,
+            // Procurement state
+            procurementDate: new Date().toISOString().substring(0, 10),
+            // User management
+            managementTarget: null, // The user ID being managed
+            managementMode: 'view', // view, edit
         };
 
-        // Initialize Primary App (for current user)
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        // --- Utility Functions ---
 
-        // Initialize Secondary App (for Admin to create Staff accounts without logging out)
-        // We wrap this in a try-catch because initializing a second app with the same config can sometimes warn
-        let secondaryApp;
-        try {
-            secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
-        } catch (e) {
-            // If it already exists, use it
-            secondaryApp = firebase.app("Secondary");
+        function showCustomAlert(message, type = 'success', duration = 3000) {
+            const container = document.getElementById('alert-container');
+            if (!container) return;
+
+            const alert = document.createElement('div');
+            alert.className = `custom-alert px-4 py-3 rounded-lg shadow-xl text-white font-medium flex items-center space-x-2`;
+            
+            let bgColor = '';
+            let icon = '';
+
+            switch(type) {
+                case 'success':
+                    bgColor = 'bg-green-600';
+                    icon = `<i data-lucide="check-circle" class="w-5 h-5"></i>`;
+                    break;
+                case 'error':
+                    bgColor = 'bg-red-600';
+                    icon = `<i data-lucide="x-circle" class="w-5 h-5"></i>`;
+                    break;
+                case 'warning':
+                    bgColor = 'bg-yellow-600';
+                    icon = `<i data-lucide="alert-triangle" class="w-5 h-5"></i>`;
+                    break;
+                default:
+                    bgColor = 'bg-blue-600';
+                    icon = `<i data-lucide="info" class="w-5 h-5"></i>`;
+            }
+
+            alert.classList.add(bgColor);
+            alert.innerHTML = `
+                ${icon}
+                <span>${message}</span>
+            `;
+
+            container.appendChild(alert);
+
+            // Trigger the animation
+            setTimeout(() => {
+                alert.classList.add('show');
+                lucide.createIcons();
+            }, 10);
+
+            // Remove the alert after duration
+            setTimeout(() => {
+                alert.classList.remove('show');
+                // Wait for transition to finish before removal
+                setTimeout(() => {
+                    container.removeChild(alert);
+                }, 500); 
+            }, duration);
         }
 
-        // --- CONSTANTS ---
-        // Use dynamic APP_ID from environment or fallback
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'trinah_designs_v2'; 
-        const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        
-        // --- GLOBAL STATE ---
-        let currentUserDoc = null; // Firestore data for logged in user
-        let currentUserAuth = null; // Firebase Auth object
-        let managedUser = null; // For Admin drilling down
-        let currentView = 'loading'; // loading, auth, dashboard, users
-        
-        // Data Cache (Updated via onSnapshot)
-        let cachedUsers = [];
-        let cachedHistory = [];
-        let cachedProcurement = {};
-        
-        let selectedDayIndex = 0;
-        let selectedReport = "Daily";
-        let selectedProcurementDate = new Date();
-        let listeners = []; // Store unsubscribe functions
+        function getCurrentWeekId(date = new Date()) {
+            const year = date.getFullYear();
+            const dateOnly = new Date(date.getTime());
+            dateOnly.setHours(0, 0, 0, 0);
+            // Thursday in current week decides the year.
+            dateOnly.setDate(dateOnly.getDate() + 3 - (dateOnly.getDay() || 7));
+            // January 4 is always in week 1.
+            const week1 = new Date(dateOnly.getFullYear(), 0, 4);
+            // Calculate full weeks to nearest Thursday.
+            const weekNumber = Math.ceil((((dateOnly - week1) / 86400000) + 1) / 7);
+            
+            return `${year}-${String(weekNumber).padStart(2, '0')}`;
+        }
 
-        const appElement = document.getElementById('app');
-        const notifEl = document.getElementById('notification-container');
-        const modalEl = document.getElementById('modal-container');
+        function formatCurrency(amount) {
+            if (typeof amount !== 'number' || isNaN(amount)) return 'N/A';
+            // Simple integer-only format for clarity
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
 
-        // --- 2. AUTHENTICATION LOGIC ---
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function calculateReportSummary(data) {
+            if (!data || data.length === 0) return { totalSales: 0, totalExpenses: 0, netProfit: 0, totalItems: 0 };
+            
+            const totalSales = data.reduce((sum, item) => sum + item.total, 0);
+            const totalItems = data.reduce((sum, item) => sum + item.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
+            
+            // For a simple report, we'll assume totalSales is the main figure for now.
+            // Expense calculation would require separate data, but we'll simulate a fixed expense ratio for calculation:
+            // This is placeholder logic, real expenses would come from procurement data or overhead
+            const estimatedCostOfGoods = totalSales * 0.4;
+            const overhead = 5000; // Placeholder fixed weekly overhead
+            const totalExpenses = estimatedCostOfGoods + overhead;
+
+            const netProfit = totalSales - totalExpenses;
+
+            return { totalSales, totalExpenses, netProfit, totalItems };
+        }
+
+        // --- Data Persistence (Firestore) ---
+
+        /**
+         * Generic function to load data from Firestore (private collection)
+         * @param {string} collectionName - The name of the collection to load
+         * @param {function} setStateCallback - Callback to update the local state
+         */
+        function setupDataListener(collectionName, setStateCallback) {
+            if (!db || !userId) return () => {}; // Return no-op cleanup function
+
+            const path = getPrivateCollectionPath(collectionName);
+            const q = query(collection(db, path));
+            
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const data = [];
+                snapshot.forEach((doc) => {
+                    data.push({ id: doc.id, ...doc.data() });
+                });
+                console.log(`[Firestore] Loaded ${data.length} documents from ${collectionName}`);
+                setStateCallback(data);
+                renderApp(); // Re-render application on data change
+            }, (error) => {
+                console.error(`[Firestore] Error loading data from ${collectionName}:`, error);
+                showCustomAlert(`Error loading data from ${collectionName}.`, 'error');
+            });
+
+            return unsubscribe;
+        }
+
+        /**
+         * Generic function to save/update a document in Firestore
+         * @param {string} collectionName - The name of the collection
+         * @param {object} data - The data object to save
+         * @param {string} docId - Optional ID for setDoc (update/overwrite), otherwise addDoc is used
+         */
+        async function saveDocument(collectionName, data, docId = null) {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                showCustomAlert("Authentication required to save data.", 'error');
+                return false;
+            }
+
+            const path = getPrivateCollectionPath(collectionName);
+            try {
+                if (docId) {
+                    await setDoc(doc(db, path, docId), data, { merge: true });
+                    console.log(`[Firestore] Document updated in ${collectionName} with ID: ${docId}`);
+                    return docId;
+                } else {
+                    const docRef = await addDoc(collection(db, path), data);
+                    console.log(`[Firestore] New document added to ${collectionName} with ID: ${docRef.id}`);
+                    return docRef.id;
+                }
+            } catch (error) {
+                console.error(`[Firestore] Error saving document to ${collectionName}:`, error);
+                showCustomAlert(`Error saving data to ${collectionName}.`, 'error');
+                return false;
+            }
+        }
+
+        /**
+         * Generic function to delete a document from Firestore
+         * @param {string} collectionName - The name of the collection
+         * @param {string} docId - The ID of the document to delete
+         */
+        async function deleteDocument(collectionName, docId) {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                showCustomAlert("Authentication required to delete data.", 'error');
+                return false;
+            }
+
+            const path = getPrivateCollectionPath(collectionName);
+            try {
+                await deleteDoc(doc(db, path, docId));
+                console.log(`[Firestore] Document deleted from ${collectionName} with ID: ${docId}`);
+                return true;
+            } catch (error) {
+                console.error(`[Firestore] Error deleting document from ${collectionName}:`, error);
+                showCustomAlert(`Error deleting data from ${collectionName}.`, 'error');
+                return false;
+            }
+        }
+
+        // --- Data Logic and Handlers ---
 
         function initApp() {
-            // Main Auth Listener
-            auth.onAuthStateChanged(async (user) => {
-                currentUserAuth = user;
-                if (user) {
-                    // Fetch User Profile
-                    const docRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users').doc(user.uid);
-                    try {
-                        const snap = await docRef.get();
-                        if (snap.exists) {
-                            currentUserDoc = snap.data();
-                            currentUserDoc.uid = user.uid; // Ensure UID is attached
-                            
-                            // Initialize Realtime Listeners
-                            setupListeners();
-                            
-                            // Route based on role
-                            if (currentUserDoc.role === 'admin') {
-                                managedUser = null;
-                            } else {
-                                managedUser = currentUserDoc;
-                                loadDataForManagedUser();
-                            }
-                            setView('dashboard');
-                        } else {
-                            // Auth exists but no Firestore doc (Rare edge case)
-                            console.error("User authenticated but no profile found.");
-                            // If we are stuck here, we might need to force logout to reset
-                            // auth.signOut(); 
-                            // OR, if it's the very first admin creating their profile post-auth:
-                            checkSystemInit();
+            // Setup listeners for real-time data
+            setupDataListener(DATA_COLLECTION, (data) => {
+                state.productionData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
+                state.isDataLoaded = true;
+            });
+
+            setupDataListener(REPORTS_COLLECTION, (data) => {
+                state.weeklyReports = data.sort((a, b) => b.weekId.localeCompare(a.weekId));
+            });
+            
+            setupDataListener(STAFF_COLLECTION, (data) => {
+                state.staff = data.filter(s => !s.isDeleted);
+            });
+
+            setupDataListener(PROCUREMENT_COLLECTION, (data) => {
+                state.procurementLog = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+            });
+
+            // Start rendering the app
+            renderApp();
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const date = form.querySelector('#input-date').value;
+            const total = parseFloat(form.querySelector('#input-total').value);
+            const itemRows = form.querySelectorAll('.item-row');
+            
+            const items = Array.from(itemRows).map(row => ({
+                item: row.querySelector('.input-item').value,
+                quantity: parseInt(row.querySelector('.input-quantity').value, 10),
+                price: parseFloat(row.querySelector('.input-price').value),
+            }));
+
+            if (!date || isNaN(total) || total <= 0 || items.some(i => !i.item || isNaN(i.quantity) || i.quantity <= 0 || isNaN(i.price) || i.price <= 0)) {
+                showCustomAlert('Please fill in all fields correctly.', 'warning');
+                return;
+            }
+
+            const existingDoc = state.productionData.find(d => d.date === date);
+            const dataToSave = { date, total, items };
+
+            if (existingDoc) {
+                // Update existing document for the date
+                saveDocument(DATA_COLLECTION, dataToSave, existingDoc.id)
+                    .then(success => {
+                        if (success) {
+                            showCustomAlert(`Production data for ${formatDate(date)} updated!`);
                         }
-                    } catch (e) {
-                        console.error("Error fetching profile", e);
-                        showNotification("Network Error: Could not fetch profile.");
-                    }
-                } else {
-                    // No User -> Check if system is initialized (Admin exists)
-                    checkSystemInit();
-                }
-            });
-        }
-
-        async function checkSystemInit() {
-            setView('loading');
-            try {
-                // Check if ANY admin exists in the public collection
-                const snap = await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users')
-                    .where('role', '==', 'admin').limit(1).get();
-                
-                if (snap.empty) {
-                    setView('setup'); // First run
-                } else {
-                    setView('auth'); // Normal Login
-                }
-            } catch (e) {
-                console.error("Init check failed", e);
-                // If offline or permission error, default to Auth screen usually
-                setView('auth');
-            }
-        }
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            const input = document.getElementById('login-input').value.trim();
-            const pass = document.getElementById('login-pass').value;
-            const btn = document.getElementById('login-btn');
-            const err = document.getElementById('login-error');
-
-            if (!input || !pass) return;
-
-            btn.innerHTML = `<div class="spinner border-white border-t-transparent mx-auto"></div>`;
-            err.classList.add('hidden');
-
-            try {
-                // Determine if Email or Phone
-                let email = input;
-                if (!input.includes('@')) {
-                    // Assume Staff Phone -> Map to system email
-                    email = `${input}@trinah.app`;
-                }
-
-                await auth.signInWithEmailAndPassword(email, pass);
-                // Listener handles redirection
-            } catch (error) {
-                console.error(error);
-                btn.innerHTML = "Login";
-                err.textContent = "Invalid credentials. Please try again.";
-                err.classList.remove('hidden');
-            }
-        }
-
-        async function handleSetup(e) {
-            e.preventDefault();
-            const name = document.getElementById('setup-name').value.trim();
-            const email = document.getElementById('setup-email').value.trim();
-            const pass = document.getElementById('setup-pass').value;
-
-            if (pass.length < 6) {
-                showNotification("Password must be at least 6 characters.");
-                return;
-            }
-
-            try {
-                const cred = await auth.createUserWithEmailAndPassword(email, pass);
-                // Create Admin Profile
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users').doc(cred.user.uid).set({
-                    name: name,
-                    email: email,
-                    role: 'admin',
-                    createdAt: new Date().toISOString()
-                });
-                showNotification("System Initialized!");
-                // Listener will auto-redirect
-            } catch (e) {
-                showNotification("Setup Failed: " + e.message);
-            }
-        }
-
-        async function handleLogout() {
-            listeners.forEach(unsub => unsub()); // Detach listeners
-            listeners = [];
-            await auth.signOut();
-            window.location.reload();
-        }
-
-        async function handleRecovery(e) {
-            e.preventDefault();
-            const email = document.getElementById('rec-email').value.trim();
-            if (!email) {
-                showNotification("Please enter your email.");
-                return;
-            }
-
-            try {
-                await auth.sendPasswordResetEmail(email);
-                document.getElementById('recovery-form').innerHTML = `
-                    <div class="bg-emerald-50 text-emerald-800 p-6 rounded-xl text-center">
-                        <div class="mx-auto w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-2">
-                            ${renderIcon('check', {class:'w-6 h-6'})}
-                        </div>
-                        <p class="font-bold mb-2">Check your Email</p>
-                        <p class="text-sm">A password reset link has been sent to <strong>${email}</strong>.</p>
-                        <button onclick="setView('auth')" class="mt-4 text-emerald-700 font-bold underline">Back to Login</button>
-                    </div>
-                `;
-            } catch (e) {
-                showNotification("Error: " + e.message);
-            }
-        }
-
-        // --- 3. FIRESTORE DATA LOGIC ---
-
-        function setupListeners() {
-            // Listen to Users Collection (For Admin Overview)
-            const usersRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users');
-            const unsubUsers = usersRef.onSnapshot(snap => {
-                cachedUsers = snap.docs.map(d => ({...d.data(), uid: d.id}));
-                if (currentView === 'dashboard' || currentView === 'users') {
-                    renderApp(); // Re-render on update
-                }
-            });
-            listeners.push(unsubUsers);
-
-            // Listen to Procurement
-            const procRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('procurement');
-            const unsubProc = procRef.onSnapshot(snap => {
-                cachedProcurement = {};
-                snap.docs.forEach(d => {
-                    cachedProcurement[d.id] = d.data().amount;
-                });
-                if (currentView === 'dashboard') renderApp();
-            });
-            listeners.push(unsubProc);
-        }
-
-        function loadDataForManagedUser() {
-            if (!managedUser) return;
-            // Listen to this user's specific history
-            // We store history in a root 'history' collection for easier querying, or a subcollection.
-            // Let's use a root collection 'history' with a 'userId' field for better query capability later.
-            
-            const histRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('history')
-                .where('userId', '==', managedUser.uid); // No orderBy here to avoid index requirements for now
-                
-            const unsubHist = histRef.onSnapshot(snap => {
-                let raw = snap.docs.map(d => ({...d.data(), docId: d.id}));
-                // Sort in memory to avoid index errors
-                raw.sort((a, b) => a.id - b.id); 
-                cachedHistory = raw;
-                
-                // Also update pressure if needed (stored in user doc, already in cachedUsers)
-                if (currentView === 'dashboard' && managedUser) {
-                    renderApp();
-                }
-            });
-            listeners.push(unsubHist);
-        }
-
-        async function handleAddEntry() {
-            if (!managedUser) return;
-            
-            const btn = document.getElementById('save-btn');
-            btn.textContent = "Saving...";
-            btn.disabled = true;
-
-            const dispatchDress = Number(document.getElementById('dispatch-dress').value) || 0;
-            const dispatch2pc = Number(document.getElementById('dispatch-2pc').value) || 0;
-            const soldDress = Number(document.getElementById('sales-dress').value) || 0;
-            const sold2pc = Number(document.getElementById('sales-2pc').value) || 0;
-
-            if (dispatchDress === 0 && dispatch2pc === 0 && soldDress === 0 && sold2pc === 0) {
-                showNotification("Please enter amounts.");
-                btn.textContent = "Add Record";
-                btn.disabled = false;
-                return;
-            }
-
-            const prices = managedUser.prices || {};
-            const profit = (soldDress * ((prices.dressSell||0) - (prices.dressBuy||0))) + 
-                           (sold2pc * ((prices.twoPcSell||0) - (prices.twoPcBuy||0)));
-
-            const now = new Date();
-            const currentDayName = DAYS[selectedDayIndex];
-            
-            // Calculate Date
-            const jsDay = now.getDay(); 
-            const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
-            const dayDiff = mappedDay - selectedDayIndex;
-            const targetDate = new Date();
-            targetDate.setDate(now.getDate() - dayDiff);
-            const fullDateString = targetDate.toLocaleDateString();
-
-            // Calculate Remaining
-            // Logic: Get last entry from cache or use user 'startingPressure'
-            let prevRemDress = 0, prevRem2pc = 0;
-            
-            if (cachedHistory.length > 0) {
-                const last = cachedHistory[cachedHistory.length - 1];
-                prevRemDress = last.remDresses || 0;
-                prevRem2pc = last.remTwoPcs || 0;
+                    });
             } else {
-                // From user profile
-                const p = managedUser.startingPressure || {};
-                prevRemDress = p.dresses || 0;
-                prevRem2pc = p.twoPcs || 0;
+                // Add new document
+                saveDocument(DATA_COLLECTION, dataToSave)
+                    .then(success => {
+                        if (success) {
+                            showCustomAlert(`Production data for ${formatDate(date)} saved!`);
+                            // Reset form after successful submission
+                            form.reset();
+                            form.querySelector('#input-date').value = new Date().toISOString().substring(0, 10);
+                            renderApp(); // Force re-render dashboard to update form items
+                        }
+                    });
             }
+        }
 
-            const newRemDress = prevRemDress + dispatchDress - soldDress;
-            const newRem2pc = prevRem2pc + dispatch2pc - sold2pc;
+        function handleAddItemRow() {
+            const container = document.getElementById('item-rows-container');
+            if (container) {
+                container.appendChild(createItemRow());
+                lucide.createIcons();
+            }
+        }
 
-            if (newRemDress < 0 || newRem2pc < 0) {
-                showNotification("Error: Negative Stock.");
-                btn.textContent = "Add Record";
-                btn.disabled = false;
+        function createItemRow(item = '', quantity = '', price = '') {
+            const div = document.createElement('div');
+            div.className = 'item-row flex space-x-2 mb-2 items-center';
+            div.innerHTML = `
+                <input type="text" value="${item}" placeholder="Item Name" class="input-item flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                <input type="number" value="${quantity}" placeholder="Qty" class="input-quantity w-16 p-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" min="1" required>
+                <input type="number" value="${price}" placeholder="Price" step="0.01" class="input-price w-20 p-2 border border-gray-300 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" min="0.01" required>
+                <button type="button" onclick="handleRemoveItemRow(this)" class="text-red-500 hover:text-red-700 p-2 rounded-full transition duration-150">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            return div;
+        }
+
+        function handleRemoveItemRow(button) {
+            const row = button.closest('.item-row');
+            if (row && row.parentNode.children.length > 1) {
+                row.remove();
+            } else if (row) {
+                showCustomAlert('You must have at least one item.', 'warning');
+            }
+        }
+
+        function handleDeleteLast() {
+            const productionDates = state.productionData.map(d => new Date(d.date)).sort((a, b) => b - a);
+            if (productionDates.length === 0) {
+                showCustomAlert('No production data to delete.', 'warning');
                 return;
             }
 
-            const record = {
-                userId: managedUser.uid,
-                id: Date.now(), // timestamp ID
-                date: currentDayName,
-                fullDate: fullDateString,
-                dispatchedDresses: dispatchDress,
-                dispatchedTwoPcs: dispatch2pc,
-                soldDresses: soldDress,
-                soldTwoPcs: sold2pc,
-                remDresses: newRemDress,
-                remTwoPcs: newRem2pc,
-                profit: profit
-            };
+            const lastDate = productionDates[0].toISOString().substring(0, 10);
+            const docToDelete = state.productionData.find(d => d.date === lastDate);
 
-            try {
-                // Add History
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('history').add(record);
-                
-                // Update User Current Stock (Pressure) in Profile for quick access
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users').doc(managedUser.uid).update({
-                   currentStock: { dresses: newRemDress, twoPcs: newRem2pc } 
-                });
-
-                showNotification("Saved to Cloud!");
-                
-                // Clear inputs
-                document.getElementById('dispatch-dress').value = "";
-                document.getElementById('dispatch-2pc').value = "";
-                document.getElementById('sales-dress').value = "";
-                document.getElementById('sales-2pc').value = "";
-            } catch (e) {
-                showNotification("Save Failed: " + e.message);
-            } finally {
-                btn.textContent = "Add Record";
-                btn.disabled = false;
+            if (docToDelete) {
+                if (confirm(`Are you sure you want to delete the production data for the last entry: ${formatDate(lastDate)}? This action cannot be undone.`)) {
+                    deleteDocument(DATA_COLLECTION, docToDelete.id)
+                        .then(success => {
+                            if (success) {
+                                showCustomAlert(`Data for ${formatDate(lastDate)} deleted.`);
+                            }
+                        });
+                }
             }
         }
 
         async function handleStartNewWeek() {
-            if (!confirm("Start New Week? This archives current history.")) return;
-            
-            // In Firestore, we don't 'archive' by moving, we just rely on dates.
-            // But to reset the 'Week' view, we might want to flag old entries or just rely on the 'Weekly' filter logic.
-            // However, the 'pressure' needs to be reset/confirmed.
-            
-            const last = cachedHistory[cachedHistory.length-1];
-            if (!last) return;
+            const currentWeekId = getCurrentWeekId();
+            const existingReport = state.weeklyReports.find(r => r.weekId === currentWeekId);
 
-            const newPressure = { dresses: last.remDresses, twoPcs: last.remTwoPcs };
-            
-            try {
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users').doc(managedUser.uid).update({
-                    startingPressure: newPressure,
-                    // We might add a 'lastWeekReset' timestamp to filter history query if we truly want to hide old data
-                    // For now, simpler: Just update starting pressure. The 'Current Week' UI needs to filter by date.
-                });
-                
-                // Ideally, we'd batch delete or mark 'archived' on the old history docs if we want to clear the list.
-                // Let's implement a 'soft' archive by updating the user's 'activeWeekStart' timestamp.
-                // But for simplicity in this single file, let's just clear the UI state and let the filter logic handle 'Current Week'.
-                
-                showNotification("New Week Started. Carryover stock updated.");
-                selectedDayIndex = 0;
-                renderApp();
-            } catch(e) { showNotification("Error: " + e.message); }
-        }
+            if (existingReport) {
+                showCustomAlert(`Report for ${currentWeekId} already exists.`, 'warning');
+                closeModal();
+                return;
+            }
 
-        // --- 4. STAFF MANAGEMENT (ADMIN) ---
-
-        async function handleSaveStaff(e, mode, uid) {
-            e.preventDefault();
-            const name = document.getElementById('staff-name').value.trim();
-            const phone = document.getElementById('staff-phone').value.trim();
-            const pass = document.getElementById('staff-pass').value.trim();
+            // Get all data documents whose date falls within the current week
+            // Note: This check relies on the data listener keeping state.productionData up-to-date
+            const weekData = state.productionData.filter(d => getCurrentWeekId(new Date(d.date)) === currentWeekId);
             
-            // Prices
-            const prices = {
-                dressBuy: Number(document.getElementById('price-dress-buy').value),
-                dressSell: Number(document.getElementById('price-dress-sell').value),
-                twoPcBuy: Number(document.getElementById('price-2pc-buy').value),
-                twoPcSell: Number(document.getElementById('price-2pc-sell').value)
+            if (weekData.length === 0) {
+                 showCustomAlert(`No production data found for the current week (${currentWeekId}).`, 'warning', 5000);
+                 closeModal();
+                 return;
+            }
+            
+            const summary = calculateReportSummary(weekData);
+
+            const reportDoc = {
+                weekId: currentWeekId,
+                startDate: weekData.length > 0 ? weekData[0].date : 'N/A', // Simple start date
+                endDate: weekData.length > 0 ? weekData[weekData.length - 1].date : 'N/A', // Simple end date
+                summary,
+                detailedData: JSON.stringify(weekData), // Store detailed data as JSON string
+                generatedAt: new Date().toISOString(),
+                generatedBy: state.currentUser.name,
             };
 
-            const btn = e.target.querySelector('button[type="submit"]');
-            btn.innerHTML = `<div class="spinner border-white border-t-transparent mx-auto"></div>`;
+            const reportId = await saveDocument(REPORTS_COLLECTION, reportDoc);
 
-            try {
-                if (mode === 'add') {
-                    // Create Auth User using Secondary App (so Admin stays logged in)
-                    const email = `${phone}@trinah.app`; // Map phone to email
-                    const userCred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
-                    const newUid = userCred.user.uid;
-                    secondaryApp.auth().signOut(); // Immediately sign out the secondary instance
+            if (reportId) {
+                showCustomAlert(`New weekly report (${currentWeekId}) generated successfully!`);
+                
+                // Clear the production data after generating the report
+                // In a real system, you might archive or soft-delete this data, 
+                // but for this simple manager, we delete them:
+                const deletePromises = weekData.map(d => deleteDocument(DATA_COLLECTION, d.id));
+                await Promise.all(deletePromises);
+                
+                // Update last reset key for settings view
+                await saveDocument('settings', { lastReportDate: new Date().toISOString() }, 'managerSettings');
+                
+                // Re-render to show empty dashboard and updated reports
+                closeModal();
+                setView('reports');
 
-                    // Create Profile in Main DB
-                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users').doc(newUid).set({
-                        name, phone, role: 'staff', prices,
-                        startingPressure: { dresses: 0, twoPcs: 0 },
-                        currentStock: { dresses: 0, twoPcs: 0 },
-                        createdAt: new Date().toISOString()
+            } else {
+                showCustomAlert('Failed to generate weekly report.', 'error');
+            }
+        }
+
+        function handleDeleteReport(reportId) {
+            if (confirm('Are you sure you want to delete this weekly report? This action cannot be undone.')) {
+                deleteDocument(REPORTS_COLLECTION, reportId)
+                    .then(success => {
+                        if (success) {
+                            showCustomAlert('Weekly report deleted successfully.');
+                        }
                     });
-                    showNotification(`Staff ${name} Created!`);
-                } else {
-                    // Update Existing Profile
-                    await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users').doc(uid).update({
-                        name, prices
-                    });
-                    
-                    // Note: Cannot update password easily without Admin SDK.
-                    // If password field is filled, we warn user.
-                    if (pass) {
-                        alert("Note: Password was not updated. Staff password resets must be done by deleting and re-creating, or by the staff using email recovery if they had a real email. Since they use phone-IDs, please Delete and Re-Create if password is lost.");
-                    }
-                    showNotification("Details Updated");
-                }
-                document.getElementById('add-staff-modal').remove();
-            } catch (err) {
-                console.error(err);
-                showNotification("Error: " + err.message);
-                if (err.code === 'auth/email-already-in-use') {
-                    showNotification("This phone number is already registered.");
-                }
-            } finally {
-                btn.innerHTML = mode === 'add' ? 'Create Account' : 'Save Changes';
             }
         }
 
-        async function handleDeleteStaff(uid) {
-            if (!confirm("Delete this staff member? They will lose access immediately.")) return;
-            // We cannot delete Auth user from client SDK easily. 
-            // Workaround: Delete their profile. Without a profile, they can't access data (UI guards).
-            try {
-                await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('users').doc(uid).delete();
-                showNotification("Staff profile removed. Access revoked.");
-            } catch (e) {
-                showNotification("Error: " + e.message);
-            }
-        }
-
-        // --- 5. UI RENDERERS ---
-
-        function renderIcon(name, attrs = {}) {
-            if (typeof lucide !== 'undefined') {
-                return `<i data-lucide="${name}" class="${attrs.class||''}"></i>`;
-            }
-            return '';
-        }
-
-        function refreshIcons() {
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        function setView(view) {
-            currentView = view;
+        function handleProcurementDateChange(event) {
+            state.procurementDate = event.target.value;
             renderApp();
         }
 
-        function renderApp() {
-            appElement.innerHTML = '';
+        function handleProcurementSave(event) {
+            event.preventDefault();
+            const form = event.target;
+            const date = form.querySelector('#procurement-date').value;
+            const item = form.querySelector('#procurement-item').value;
+            const quantity = parseFloat(form.querySelector('#procurement-quantity').value);
+            const unit = form.querySelector('#procurement-unit').value;
+            const cost = parseFloat(form.querySelector('#procurement-cost').value);
+
+            if (!date || !item || isNaN(quantity) || quantity <= 0 || !unit || isNaN(cost) || cost <= 0) {
+                showCustomAlert('Please fill in all procurement fields correctly.', 'warning');
+                return;
+            }
+
+            const dataToSave = { date, item, quantity, unit, cost, recordedAt: new Date().toISOString() };
+
+            saveDocument(PROCUREMENT_COLLECTION, dataToSave)
+                .then(success => {
+                    if (success) {
+                        showCustomAlert(`Procurement log saved: ${item} (${quantity} ${unit})`);
+                        form.reset();
+                        // Restore date to current day after reset
+                        state.procurementDate = new Date().toISOString().substring(0, 10);
+                        renderApp();
+                    }
+                });
+        }
+        
+        function handleDeleteProcurementEntry(docId) {
+             if (confirm('Are you sure you want to delete this procurement entry?')) {
+                deleteDocument(PROCUREMENT_COLLECTION, docId)
+                    .then(success => {
+                        if (success) {
+                            showCustomAlert('Procurement entry deleted.');
+                        }
+                    });
+            }
+        }
+
+
+        // --- Staff Management Handlers ---
+
+        function handleSaveStaff(event) {
+            event.preventDefault();
+            const form = event.target;
+            const id = form.querySelector('#staff-id').value;
+            const name = form.querySelector('#staff-name').value;
+            const role = form.querySelector('#staff-role').value;
+
+            if (!name || !role) {
+                showCustomAlert('Staff name and role are required.', 'warning');
+                return;
+            }
             
-            if (currentView === 'loading') {
-                appElement.innerHTML = `
-                    <div class="h-screen flex items-center justify-center bg-slate-50">
-                        <div class="flex flex-col items-center gap-4">
-                            <div class="spinner w-12 h-12 border-4 border-indigo-600 border-t-transparent"></div>
-                            <p class="text-indigo-900 font-bold animate-pulse">Connecting to Cloud...</p>
-                        </div>
-                    </div>`;
-            } 
-            else if (currentView === 'setup') {
-                renderSetupScreen();
-            }
-            else if (currentView === 'auth') {
-                renderAuthScreen();
-            }
-            else if (currentView === 'recovery') {
-                renderRecoveryScreen();
-            }
-            else if (currentView === 'dashboard') {
-                if (currentUserDoc && currentUserDoc.role === 'admin' && !managedUser) {
-                    renderAdminDashboard();
-                } else {
-                    renderStaffDashboard();
+            const dataToSave = { name, role, isActive: true, addedAt: new Date().toISOString() };
+            
+            // Check if we are updating an existing staff member
+            if (id) {
+                saveDocument(STAFF_COLLECTION, dataToSave, id)
+                    .then(success => {
+                        if (success) {
+                            showCustomAlert(`${name} updated successfully.`);
+                            closeModal();
+                        }
+                    });
+            } else {
+                // Check for duplicates before adding a new staff member (simple name check)
+                if (state.staff.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+                    showCustomAlert('A staff member with this name already exists.', 'error');
+                    return;
                 }
+
+                saveDocument(STAFF_COLLECTION, dataToSave)
+                    .then(success => {
+                        if (success) {
+                            showCustomAlert(`${name} added to staff list.`);
+                            closeModal();
+                        }
+                    });
             }
-            else if (currentView === 'users') {
-                renderUserManagement();
+        }
+
+        function handleStaffEdit(staffId) {
+            const staffMember = state.staff.find(s => s.id === staffId);
+            if (staffMember) {
+                showAddStaffModal(staffMember);
+            }
+        }
+
+        function handleDeleteStaff(staffId, staffName) {
+            if (confirm(`Are you sure you want to delete (deactivate) ${staffName}? This action can be reversed, but the staff member will be removed from the active list.`)) {
+                // Soft delete by setting isDeleted=true
+                saveDocument(STAFF_COLLECTION, { isDeleted: true, deletedAt: new Date().toISOString() }, staffId)
+                    .then(success => {
+                        if (success) {
+                            showCustomAlert(`${staffName} has been deactivated.`);
+                        }
+                    });
+            }
+        }
+        
+        // --- Authentication/User Management ---
+
+        function handleLogin(user) {
+            state.currentUser = user;
+            localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+            // Note: Firebase auth handles the main sign-in, this only handles the UI/state for the app user.
+            // renderApp(); // Called by onAuthStateChanged listener
+        }
+
+        function handleAuthSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const name = form.querySelector('#login-name').value.trim();
+
+            if (name.length < 2) {
+                showCustomAlert('Name must be at least 2 characters.', 'error');
+                return;
             }
 
-            refreshIcons();
+            // Since Firebase authentication is handled by the environment, 
+            // this simply sets the user's name for the application.
+            handleLogin({ name, uid: userId }); 
         }
 
-        function renderAuthScreen() {
-            appElement.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-50 to-slate-100">
-                    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 border border-white/50 backdrop-blur">
-                        <div class="text-center mb-8">
-                            <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4 shadow-lg shadow-indigo-200">T</div>
-                            <h1 class="text-2xl font-bold text-slate-800">Trinah Designs</h1>
-                            <p class="text-sm text-slate-500">Cloud Manager</p>
-                        </div>
-                        <form onsubmit="handleLogin(event)" class="space-y-4">
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 uppercase ml-1">Phone or Email</label>
-                                <input id="login-input" type="text" class="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition" placeholder="e.g. 0712345678">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 uppercase ml-1">Password</label>
-                                <input id="login-pass" type="password" class="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition" placeholder="••••••••">
-                            </div>
-                            <div class="flex justify-between items-center pt-2">
-                                <p id="login-error" class="text-red-500 text-xs hidden font-bold"></p>
-                                <button type="button" onclick="setView('recovery')" class="text-xs font-bold text-indigo-600 hover:underline ml-auto">Forgot Password?</button>
-                            </div>
-                            <button id="login-btn" type="submit" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-xl shadow-indigo-200">Login</button>
-                        </form>
-                    </div>
-                </div>`;
+        async function handleLogout() {
+            try {
+                // Sign out from Firebase Auth
+                if (auth) {
+                    await signOut(auth);
+                }
+                // Clear local session data
+                localStorage.removeItem(SESSION_KEY);
+                state.currentUser = null;
+                // The onAuthStateChanged listener will call renderAuthScreen()
+                showCustomAlert('Logged out successfully.', 'info');
+            } catch (error) {
+                console.error("Error during logout:", error);
+                showCustomAlert('Logout failed.', 'error');
+            }
         }
 
-        function renderSetupScreen() {
-            appElement.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center p-4 bg-slate-800">
-                    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
-                        <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                            <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600">${renderIcon('shield', {class:'w-6 h-6'})}</div>
-                            <div>
-                                <h1 class="text-xl font-bold text-slate-800">System Setup</h1>
-                                <p class="text-xs text-slate-500">Create the Main Admin Account</p>
-                            </div>
-                        </div>
-                        <form onsubmit="handleSetup(event)" class="space-y-4">
-                            <div>
-                                <label class="text-xs font-bold text-slate-500">ADMIN NAME</label>
-                                <input id="setup-name" class="w-full p-3 bg-slate-50 rounded-lg border border-slate-200" required>
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500">EMAIL (For Recovery)</label>
-                                <input id="setup-email" type="email" class="w-full p-3 bg-slate-50 rounded-lg border border-slate-200" required placeholder="you@example.com">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500">PASSWORD</label>
-                                <input id="setup-pass" type="password" class="w-full p-3 bg-slate-50 rounded-lg border border-slate-200" required placeholder="Min 6 chars">
-                            </div>
-                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 mt-4">Initialize System</button>
-                        </form>
-                    </div>
-                </div>`;
-        }
+        // --- System/Settings Handlers ---
 
-        function renderRecoveryScreen() {
-             appElement.innerHTML = `
-                <div class="min-h-screen flex items-center justify-center p-4">
-                    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-                        <button onclick="setView('auth')" class="mb-4 text-slate-400 hover:text-slate-600 flex items-center gap-1 text-sm font-bold">
-                            ${renderIcon('arrow-left', {class:'w-4 h-4'})} Back
-                        </button>
-                        <h1 class="text-2xl font-bold text-slate-800 mb-2">Reset Password</h1>
-                        <p class="text-sm text-slate-500 mb-6">Enter your email to receive a secure reset link.</p>
-                        <form id="recovery-form" onsubmit="handleRecovery(event)" class="space-y-4">
-                            <input id="rec-email" type="email" class="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="admin@example.com">
-                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Send Reset Link</button>
-                        </form>
-                    </div>
-                </div>`;
-        }
-
-        function renderHeader() {
-            const isAdmin = currentUserDoc?.role === 'admin';
-            return `
-                <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-                    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-indigo-600 rounded text-white flex items-center justify-center font-bold">T</div>
-                            <span class="font-bold text-slate-800">Trinah<span class="text-indigo-600">Cloud</span></span>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            ${isAdmin && !managedUser ? `
-                                <button onclick="setView('users')" class="text-sm font-bold text-slate-500 hover:text-indigo-600 flex items-center gap-1">
-                                    ${renderIcon('users', {class:'w-4 h-4'})} Staff
-                                </button>
-                            ` : ''}
-                            ${managedUser ? `
-                                <button onclick="managedUser=null; setView('dashboard')" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded flex items-center gap-1">
-                                    ${renderIcon('arrow-left', {class:'w-4 h-4'})} Admin View
-                                </button>
-                            ` : ''}
-                            <button onclick="handleLogout()" class="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded">Logout</button>
-                        </div>
-                    </div>
-                </header>`;
-        }
-
-        function renderAdminDashboard() {
-            // Aggregate Data from cachedUsers and cachedProcurement
-            let totalStock = 0;
-            let totalSales = 0;
-            let totalProfit = 0;
-            
-            // Note: In a real large app, we'd use aggregation queries. 
-            // For small business size, client-side calc of cachedUsers is fine and fast.
-            cachedUsers.filter(u => u.role !== 'admin').forEach(u => {
-                totalStock += (u.currentStock?.dresses || 0) + (u.currentStock?.twoPcs || 0);
-                // Sales would need history aggregation which we don't load all at once for Admin yet to save bandwidth
-                // We'll just show Stock for now.
+        function verifySystemPin(pin, callback) {
+            // In a real app, this would be retrieved securely from the database.
+            // For now, we fetch the pin from a settings document.
+            const settingsRef = doc(db, getPrivateCollectionPath('settings'), 'managerSettings');
+            getDoc(settingsRef).then(docSnap => {
+                let systemPin = DEFAULT_SYSTEM_PIN;
+                if (docSnap.exists() && docSnap.data().systemPin) {
+                    systemPin = docSnap.data().systemPin;
+                }
+                
+                if (pin === systemPin) {
+                    callback(true);
+                } else {
+                    callback(false);
+                }
+            }).catch(error => {
+                console.error("Error fetching system pin:", error);
+                // Fallback to default if there's an error
+                callback(pin === DEFAULT_SYSTEM_PIN); 
             });
-            
-            const dateKey = selectedProcurementDate.toLocaleDateString();
-            const procurementToday = cachedProcurement[dateKey] || 0;
+        }
 
-            appElement.innerHTML = `
-                ${renderHeader()}
-                <main class="max-w-5xl mx-auto p-4 space-y-6">
-                    <h1 class="text-2xl font-bold text-slate-800">Overview</h1>
+        function handleSystemPinChange(event) {
+            event.preventDefault();
+            const form = event.target;
+            const oldPin = form.querySelector('#old-pin').value;
+            const newPin = form.querySelector('#new-pin').value;
+            const confirmPin = form.querySelector('#confirm-pin').value;
+
+            if (newPin.length !== 4 || isNaN(newPin) || newPin !== confirmPin) {
+                showCustomAlert('New PIN must be 4 digits and match the confirmation.', 'warning');
+                return;
+            }
+
+            verifySystemPin(oldPin, async (isValid) => {
+                if (isValid) {
+                    await saveDocument('settings', { systemPin: newPin }, 'managerSettings');
+                    showCustomAlert('System PIN updated successfully!');
+                    form.reset();
+                    closeModal();
+                } else {
+                    showCustomAlert('Incorrect old PIN.', 'error');
+                }
+            });
+        }
+
+        async function handleFactoryReset() {
+            const pin = document.getElementById('reset-pin').value;
+            if (!pin) {
+                showCustomAlert('Please enter the System PIN.', 'warning');
+                return;
+            }
+
+            verifySystemPin(pin, async (isValid) => {
+                if (isValid) {
+                    // 1. Get references to all collections
+                    const collections = [DATA_COLLECTION, REPORTS_COLLECTION, STAFF_COLLECTION, PROCUREMENT_COLLECTION, 'settings'];
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                            <p class="text-xs font-bold text-slate-400 uppercase">Total Stock (All Staff)</p>
-                            <p class="text-2xl font-bold text-indigo-600">${totalStock}</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                            <p class="text-xs font-bold text-slate-400 uppercase">Procurement (${dateKey})</p>
-                            <p class="text-2xl font-bold text-emerald-600">${procurementToday}</p>
-                        </div>
-                    </div>
+                    showCustomAlert('Factory Reset in progress...', 'info', 5000);
+                    document.getElementById('reset-pin').value = ''; // Clear pin
 
-                    <!-- Procurement Input -->
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-                        <input type="date" value="${selectedProcurementDate.toISOString().split('T')[0]}" 
-                            onchange="selectedProcurementDate=new Date(this.value); renderApp()"
-                            class="p-2 border rounded-lg bg-slate-50">
-                        <input type="number" id="proc-in" placeholder="Qty" class="p-2 border rounded-lg w-24">
-                        <button onclick="saveProcurement()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold">Save</button>
-                    </div>
+                    for (const collectionName of collections) {
+                        const path = getPrivateCollectionPath(collectionName);
+                        const snapshot = await getDocs(collection(db, path));
+                        
+                        const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+                        await Promise.all(deletePromises);
+                        console.log(`[Factory Reset] Cleared collection: ${collectionName}`);
+                    }
 
-                    <h2 class="text-lg font-bold text-slate-800 mt-8">Staff Activity</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${cachedUsers.filter(u => u.role !== 'admin').map(user => `
-                            <div onclick="managedUser=cachedUsers.find(u=>u.uid=='${user.uid}'); loadDataForManagedUser(); setView('dashboard')" 
-                                class="bg-white p-5 rounded-2xl border border-slate-200 hover:border-indigo-400 cursor-pointer transition group">
-                                <div class="flex justify-between items-start mb-3">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold">
-                                            ${renderIcon('user', {class:'w-5 h-5'})}
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-slate-800 group-hover:text-indigo-600">${user.name}</p>
-                                            <p class="text-xs text-slate-400">${user.phone}</p>
-                                        </div>
+                    // Reset all local state (listeners will repopulate with empty arrays)
+                    state.productionData = [];
+                    state.weeklyReports = [];
+                    state.staff = [];
+                    state.procurementLog = [];
+                    
+                    // Clear user session as a final safety measure
+                    localStorage.removeItem(SESSION_KEY);
+                    state.currentUser = null;
+
+                    showCustomAlert('Factory Reset complete. All data has been erased.', 'success', 5000);
+                    closeModal();
+                    // Force sign-out to restart the app
+                    await signOut(auth); 
+                } else {
+                    showCustomAlert('Incorrect System PIN. Reset aborted.', 'error');
+                }
+            });
+        }
+
+
+        // --- UI Rendering ---
+
+        function setView(newView) {
+            state.view = newView;
+            renderApp();
+        }
+
+        function showModal(type, data = null) {
+            state.modalType = type;
+            state.modalData = data;
+            state.isModalOpen = true;
+            renderApp();
+        }
+
+        function closeModal() {
+            state.isModalOpen = false;
+            state.modalType = null;
+            state.modalData = null;
+            renderApp();
+        }
+
+        function showReportsModal() { showModal('reports'); }
+        function showResetModal() { showModal('reset'); }
+        function showAddStaffModal(staffMember = null) { showModal('addStaff', staffMember); }
+        function showChangePinModal() { showModal('changePin'); }
+        
+        // Expose global functions needed by the HTML
+        window.handleSubmit = handleSubmit;
+        window.handleAddItemRow = handleAddItemRow;
+        window.handleRemoveItemRow = handleRemoveItemRow;
+        window.handleDeleteLast = handleDeleteLast;
+        window.handleStartNewWeek = handleStartNewWeek;
+        window.handleDeleteReport = handleDeleteReport;
+        window.handleLogin = handleLogin;
+        window.handleLogout = handleLogout;
+        window.handleAuthSubmit = handleAuthSubmit;
+        window.handleSaveStaff = handleSaveStaff;
+        window.handleStaffEdit = handleStaffEdit;
+        window.handleDeleteStaff = handleDeleteStaff;
+        window.handleProcurementSave = handleProcurementSave;
+        window.handleDeleteProcurementEntry = handleDeleteProcurementEntry;
+        window.handleProcurementDateChange = handleProcurementDateChange;
+        window.showAddStaffModal = showAddStaffModal;
+        window.showReportsModal = showReportsModal;
+        window.showResetModal = showResetModal;
+        window.showChangePinModal = showChangePinModal;
+        window.handleFactoryReset = handleFactoryReset;
+        window.handleSystemPinChange = handleSystemPinChange;
+        window.setView = setView;
+        window.closeModal = closeModal;
+        window.showCustomAlert = showCustomAlert;
+
+        // --- View Components ---
+
+        function renderNavbar() {
+            const userName = state.currentUser ? state.currentUser.name : 'Manager';
+            
+            return `
+                <nav class="bg-white shadow-md">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="flex justify-between h-16">
+                            <div class="flex items-center">
+                                <span class="text-2xl font-bold text-indigo-600">Trinah Designs</span>
+                                <span class="ml-2 text-sm text-gray-500">Admin</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <!-- Navigation Links -->
+                                <button onclick="setView('dashboard')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'dashboard' ? 'bg-indigo-50 text-indigo-600' : ''}">Dashboard</button>
+                                <button onclick="setView('reports')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'reports' ? 'bg-indigo-50 text-indigo-600' : ''}">Reports</button>
+                                <button onclick="setView('procurement')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'procurement' ? 'bg-indigo-50 text-indigo-600' : ''}">Procurement</button>
+                                <button onclick="setView('manageStaff')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'manageStaff' ? 'bg-indigo-50 text-indigo-600' : ''}">Staff</button>
+                                <button onclick="setView('settings')" class="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium ${state.view === 'settings' ? 'bg-indigo-50 text-indigo-600' : ''}">Settings</button>
+
+                                <!-- User Info -->
+                                <div class="relative group ml-4">
+                                    <button class="flex items-center p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition duration-150">
+                                        <i data-lucide="user" class="w-5 h-5 mr-2"></i>
+                                        <span class="text-sm font-semibold">${userName}</span>
+                                    </button>
+                                    <!-- Dropdown Menu -->
+                                    <div class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 opacity-0 group-hover:opacity-100 group-hover:visible transition duration-200 invisible z-50">
+                                        <div class="px-4 py-2 text-sm text-gray-700">User ID: ${userId.substring(0, 8)}...</div>
+                                        <hr class="my-1">
+                                        <button onclick="handleLogout()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                            <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>Logout
+                                        </button>
                                     </div>
-                                    ${renderIcon('chevron-right', {class:'w-4 h-4 text-slate-300'})}
-                                </div>
-                                <div class="bg-orange-50 p-2 rounded-lg text-center">
-                                    <p class="text-xs font-bold text-orange-400 uppercase">Current Stock</p>
-                                    <p class="font-bold text-orange-700">${(user.currentStock?.dresses||0)} / ${(user.currentStock?.twoPcs||0)}</p>
-                                    <p class="text-[9px] text-orange-300">DRESS / 2PC</p>
                                 </div>
                             </div>
-                        `).join('')}
-                    </div>
-                </main>`;
-        }
-
-        async function saveProcurement() {
-            const val = document.getElementById('proc-in').value;
-            if (!val) return;
-            const key = selectedProcurementDate.toLocaleDateString();
-            await db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('procurement').doc(key).set({ amount: Number(val) });
-            showNotification("Procurement Saved");
-        }
-
-        function renderStaffDashboard() {
-            if (!managedUser) return;
-            
-            // Filter history for "Current View" (e.g., Weekly)
-            // For simplicity in this version, we just show latest 20 entries
-            const recent = [...cachedHistory].reverse().slice(0, 50);
-
-            appElement.innerHTML = `
-                ${renderHeader()}
-                <main class="max-w-4xl mx-auto p-4 space-y-4">
-                    <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-bold text-indigo-400 uppercase">Dashboard</p>
-                            <h1 class="text-xl font-bold text-indigo-900">${managedUser.name}</h1>
-                        </div>
-                        <div class="text-right">
-                             <p class="text-xs font-bold text-indigo-400 uppercase">Live Stock</p>
-                             <p class="text-lg font-bold text-indigo-700">
-                                ${(managedUser.currentStock?.dresses||0)} / ${(managedUser.currentStock?.twoPcs||0)}
-                             </p>
                         </div>
                     </div>
+                </nav>
+            `;
+        }
 
-                    <!-- Input Card -->
-                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100">
-                        <div class="flex justify-between items-center mb-4">
-                             <h2 class="font-bold text-slate-700">New Entry (${DAYS[selectedDayIndex]})</h2>
-                             <!-- Day Picker Small -->
-                             <div class="flex gap-1">
-                                ${DAYS.map((d,i) => {
-                                    const active = selectedDayIndex === i;
-                                    const locked = i > (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1);
-                                    return `<div onclick="if(!${locked}) {selectedDayIndex=${i}; renderApp()}" 
-                                        class="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold cursor-pointer
-                                        ${active ? 'bg-indigo-600 text-white' : (locked ? 'bg-slate-100 text-slate-300' : 'bg-slate-200 text-slate-600')}">
-                                        ${d[0]}
-                                    </div>`;
-                                }).join('')}
-                             </div>
+        function renderDashboardView() {
+            const today = new Date().toISOString().substring(0, 10);
+            const todayData = state.productionData.find(d => d.date === today);
+            const currentWeekData = state.productionData.filter(d => getCurrentWeekId(new Date(d.date)) === state.currentWeek);
+            const weeklySummary = calculateReportSummary(currentWeekData);
+
+            return `
+                <div class="p-6 max-w-7xl mx-auto">
+                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
+                        <i data-lucide="layout-dashboard" class="w-7 h-7 mr-3 text-indigo-600"></i>
+                        Production Dashboard
+                    </h1>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <!-- Weekly Summary Card -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500">
+                            <p class="text-sm font-medium text-gray-500">Current Week Sales (${state.currentWeek})</p>
+                            <p class="text-3xl font-bold text-gray-900 mt-1">${formatCurrency(weeklySummary.totalSales)}</p>
+                            <p class="text-sm text-gray-400 mt-2">Total Items: ${weeklySummary.totalItems}</p>
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                             <div class="bg-slate-50 p-3 rounded-xl">
-                                <p class="text-xs font-bold text-slate-400 mb-2">DRESSES</p>
-                                <input id="dispatch-dress" type="number" placeholder="Dispatch" class="w-full mb-2 p-2 border rounded text-sm">
-                                <input id="sales-dress" type="number" placeholder="Sold" class="w-full p-2 border rounded text-sm">
-                             </div>
-                             <div class="bg-slate-50 p-3 rounded-xl">
-                                <p class="text-xs font-bold text-slate-400 mb-2">2 PIECES</p>
-                                <input id="dispatch-2pc" type="number" placeholder="Dispatch" class="w-full mb-2 p-2 border rounded text-sm">
-                                <input id="sales-2pc" type="number" placeholder="Sold" class="w-full p-2 border rounded text-sm">
-                             </div>
+                        <!-- Daily Input Status Card -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 ${todayData ? 'border-green-500' : 'border-yellow-500'}">
+                            <p class="text-sm font-medium text-gray-500">Today's Data Status (${formatDate(today)})</p>
+                            <p class="text-3xl font-bold ${todayData ? 'text-green-600' : 'text-yellow-600'} mt-1">
+                                ${todayData ? 'Recorded' : 'Pending'}
+                            </p>
+                            <p class="text-sm text-gray-400 mt-2">${todayData ? `Sales: ${formatCurrency(todayData.total)}` : 'Submit production figures now.'}</p>
                         </div>
-                        <button id="save-btn" onclick="handleAddEntry()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition">Add Record</button>
+
+                        <!-- Quick Actions Card -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 flex flex-col justify-center space-y-3">
+                            <button onclick="showReportsModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center justify-center">
+                                <i data-lucide="archive" class="w-5 h-5 mr-2"></i>
+                                Start New Weekly Report
+                            </button>
+                             <button onclick="handleDeleteLast()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center justify-center">
+                                <i data-lucide="trash-2" class="w-5 h-5 mr-2"></i>
+                                Delete Last Entry
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- History Table -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                            <h3 class="font-bold text-slate-700">Recent History</h3>
-                            <button onclick="handleStartNewWeek()" class="text-xs font-bold text-indigo-600 hover:underline">Start New Week</button>
-                        </div>
+                    <!-- Production Data Input Form -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Record Daily Production</h2>
+                        <form onsubmit="handleSubmit(event)" id="production-form">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div>
+                                    <label for="input-date" class="block text-sm font-medium text-gray-700">Date</label>
+                                    <input type="date" id="input-date" value="${today}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                                <div>
+                                    <label for="input-total" class="block text-sm font-medium text-gray-700">Total Sales (KES)</label>
+                                    <input type="number" id="input-total" placeholder="12500" step="0.01" value="${todayData ? todayData.total : ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0.01" required>
+                                </div>
+                                <div class="flex items-end">
+                                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-md transition duration-150">
+                                        ${todayData ? 'Update Data' : 'Save Data'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h3 class="text-lg font-medium text-gray-700 mb-2">Items Produced/Sold</h3>
+                            <div id="item-rows-container">
+                                ${todayData && todayData.items.length > 0
+                                    ? todayData.items.map(i => createItemRow(i.item, i.quantity, i.price).outerHTML).join('')
+                                    : createItemRow().outerHTML
+                                }
+                            </div>
+                            
+                            <button type="button" onclick="handleAddItemRow()" class="mt-4 flex items-center text-indigo-600 hover:text-indigo-800 font-medium">
+                                <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Another Item
+                            </button>
+                            
+                        </form>
+                    </div>
+
+                    <!-- Recent Production Log -->
+                    <div class="mt-8 bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Recent Production Log</h2>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left">
-                                <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-4 py-3">Date</th>
-                                        <th class="px-4 py-3">Sold (D/2)</th>
-                                        <th class="px-4 py-3">Rem (D/2)</th>
-                                        <th class="px-4 py-3 text-right">Profit</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    ${recent.map(r => `
-                                        <tr class="hover:bg-slate-50 transition">
-                                            <td class="px-4 py-3">
-                                                <span class="font-bold text-slate-700">${r.date.substr(0,3)}</span>
-                                                <span class="text-xs text-slate-400 block">${r.fullDate}</span>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${state.productionData.slice(-5).reverse().map(d => `
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatDate(d.date)}</td>
+                                            <td class="px-6 py-4 text-sm text-gray-500">
+                                                ${d.items.map(i => `${i.item} (${i.quantity})`).join(', ')}
                                             </td>
-                                            <td class="px-4 py-3 font-bold text-emerald-600">${r.soldDresses}/${r.soldTwoPcs}</td>
-                                            <td class="px-4 py-3 font-bold text-orange-600">${r.remDresses}/${r.remTwoPcs}</td>
-                                            <td class="px-4 py-3 text-right text-slate-600">${r.profit?.toLocaleString()}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">${formatCurrency(d.total)}</td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
                         </div>
+                         ${state.productionData.length === 0 ? '<p class="text-center py-4 text-gray-500">No production data recorded yet.</p>' : ''}
                     </div>
-                </main>`;
+                </div>
+            `;
+        }
+        
+        // --- Report Generation/Viewing Logic (using jsPDF) ---
+
+        function generatePdfReport(report) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const margin = 15;
+            let y = margin;
+            const pageWidth = doc.internal.pageSize.getWidth();
+
+            // Set up Autotable plugin for tables
+            const startY = 50;
+
+            // Show loader
+            document.getElementById('pdf-loader').style.display = 'flex';
+
+            try {
+                // Header
+                doc.setFontSize(18);
+                doc.setTextColor(50, 50, 50);
+                doc.text('Trinah Designs Weekly Sales Report', pageWidth / 2, y, { align: 'center' });
+                y += 8;
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Report for Week: ${report.weekId}`, pageWidth / 2, y, { align: 'center' });
+                y += 6;
+                doc.text(`Period: ${formatDate(report.startDate)} - ${formatDate(report.endDate)}`, pageWidth / 2, y, { align: 'center' });
+                y = startY;
+
+                // Summary Table
+                const summary = report.summary;
+                const summaryData = [
+                    ['Total Sales', formatCurrency(summary.totalSales)],
+                    ['Estimated Cost of Goods', formatCurrency(summary.totalExpenses - 5000)], // Subtract placeholder overhead
+                    ['Estimated Overhead', formatCurrency(5000)],
+                    ['TOTAL EXPENSES', formatCurrency(summary.totalExpenses)],
+                    ['NET PROFIT', formatCurrency(summary.netProfit)],
+                    ['Total Items Sold', summary.totalItems.toString()],
+                ];
+
+                doc.autoTable({
+                    startY: y,
+                    head: [['Financial Summary', 'Amount']],
+                    body: summaryData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+                    columnStyles: {
+                        1: { halign: 'right' }
+                    },
+                    margin: { left: margin, right: margin },
+                    didDrawPage: function (data) {
+                        // Footer
+                        doc.setFontSize(10);
+                        doc.text(`Generated by ${report.generatedBy} on ${formatDate(report.generatedAt)}`, margin, doc.internal.pageSize.getHeight() - 10);
+                    }
+                });
+                y = doc.autoTable.previous.finalY + 10;
+
+                // Detailed Production Data Table
+                const detailedData = JSON.parse(report.detailedData);
+                const tableBody = [];
+                let runningY = y;
+
+                detailedData.forEach(day => {
+                    const totalItems = day.items.reduce((sum, i) => sum + i.quantity, 0);
+                    tableBody.push([
+                        { content: formatDate(day.date), rowSpan: day.items.length },
+                        { content: `${totalItems} items`, rowSpan: day.items.length },
+                        day.items[0].item,
+                        day.items[0].quantity.toString(),
+                        formatCurrency(day.items[0].price),
+                        formatCurrency(day.total),
+                    ]);
+                    for (let i = 1; i < day.items.length; i++) {
+                        tableBody.push([
+                            day.items[i].item,
+                            day.items[i].quantity.toString(),
+                            formatCurrency(day.items[i].price),
+                        ]);
+                    }
+                });
+
+                doc.autoTable({
+                    startY: runningY,
+                    head: [['Date', 'Daily Total', 'Item Name', 'Qty', 'Unit Price', 'Daily Sales']],
+                    body: tableBody,
+                    theme: 'striped',
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [52, 211, 163], textColor: 0 },
+                    columnStyles: {
+                        0: { fontStyle: 'bold' },
+                        1: { halign: 'center' },
+                        3: { halign: 'center' },
+                        4: { halign: 'right' },
+                        5: { halign: 'right', fontStyle: 'bold' }
+                    },
+                    margin: { left: margin, right: margin },
+                    didParseCell: function (data) {
+                        if (data.section === 'body' && data.column.dataKey === 5 && data.row.raw[data.row.index].length === 6) {
+                            // Style the daily sales column for the first row of a date block
+                             data.cell.styles.fillColor = [243, 244, 246];
+                        }
+                    }
+                });
+
+
+                // Save and display the PDF
+                const pdfDataUri = doc.output('datauristring');
+                openPdfInNewWindow(pdfDataUri, `Weekly_Report_${report.weekId}`);
+
+            } catch (e) {
+                console.error("Error during PDF generation:", e);
+                showCustomAlert("Failed to generate PDF report. Check console for details.", 'error');
+            } finally {
+                // Hide loader
+                document.getElementById('pdf-loader').style.display = 'none';
+            }
         }
 
-        function renderUserManagement() {
-            appElement.innerHTML = `
-                ${renderHeader()}
-                <main class="max-w-2xl mx-auto p-4 space-y-6">
-                    <div class="flex justify-between items-center">
-                        <h1 class="text-xl font-bold text-slate-800">Manage Staff</h1>
-                        <button onclick="showAddStaffModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow hover:bg-indigo-700 flex items-center gap-2">
-                            ${renderIcon('plus', {class:'w-4 h-4'})} Add New
+        function openPdfInNewWindow(dataUri, fileName) {
+            const newWindow = window.open();
+            newWindow.document.write(`
+                <html>
+                <head>
+                    <title>${fileName}</title>
+                    <style>
+                        body { margin: 0; padding: 0; overflow: hidden; background-color: #f0f0f0; }
+                        #pdf-viewer { width: 100vw; height: 100vh; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe id="pdf-viewer" src="${dataUri}"></iframe>
+                </body>
+                </html>
+            `);
+            newWindow.document.close();
+        }
+
+        function downloadMasterReport() {
+            // In a production environment, this would involve a server-side call.
+            // Here, we combine all weekly reports into one PDF.
+            if (state.weeklyReports.length === 0) {
+                showCustomAlert('No weekly reports available to download.', 'warning');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Show loader
+            document.getElementById('pdf-loader').style.display = 'flex';
+            
+            let y = 15;
+            const margin = 15;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            
+            try {
+                doc.setFontSize(22);
+                doc.setTextColor(29, 78, 216);
+                doc.text('Trinah Designs Master Report', pageWidth / 2, y, { align: 'center' });
+                y += 10;
+                doc.setFontSize(14);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Total Reports Included: ${state.weeklyReports.length}`, pageWidth / 2, y, { align: 'center' });
+                y += 15;
+                
+                state.weeklyReports.forEach((report, index) => {
+                    if (index > 0) {
+                        doc.addPage();
+                        y = 15;
+                    }
+
+                    // Report Title
+                    doc.setFontSize(16);
+                    doc.setTextColor(50, 50, 50);
+                    doc.text(`WEEKLY REPORT: ${report.weekId}`, margin, y);
+                    y += 6;
+                    doc.setFontSize(10);
+                    doc.text(`Period: ${formatDate(report.startDate)} - ${formatDate(report.endDate)}`, margin, y);
+                    y += 5;
+                    
+                    // Summary Table
+                    const summary = report.summary;
+                    const summaryData = [
+                        ['Total Sales', formatCurrency(summary.totalSales)],
+                        ['Total Expenses', formatCurrency(summary.totalExpenses)],
+                        ['NET PROFIT', formatCurrency(summary.netProfit)],
+                        ['Total Items Sold', summary.totalItems.toString()],
+                    ];
+
+                    doc.autoTable({
+                        startY: y,
+                        head: [['Financial Summary', 'Amount']],
+                        body: summaryData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+                        columnStyles: {
+                            1: { halign: 'right' }
+                        },
+                        margin: { left: margin, right: margin },
+                        styles: { fontSize: 10 },
+                    });
+                    
+                    y = doc.autoTable.previous.finalY + 5;
+                    
+                    // Add a small spacer/separator
+                    if (index < state.weeklyReports.length - 1) {
+                        doc.setDrawColor(200);
+                        doc.setLineWidth(0.5);
+                        doc.line(margin, y, pageWidth - margin, y);
+                        y += 5;
+                    }
+                });
+
+                doc.save(`Trinah_Designs_Master_Report_${new Date().getFullYear()}.pdf`);
+                showCustomAlert('Master Report downloaded successfully!');
+
+            } catch (e) {
+                console.error("Error during Master Report PDF generation:", e);
+                showCustomAlert("Failed to generate Master Report PDF. Check console for details.", 'error');
+            } finally {
+                // Hide loader
+                document.getElementById('pdf-loader').style.display = 'none';
+            }
+        }
+
+
+        // --- Render Views ---
+
+        function renderReportsView() {
+            return `
+                <div class="p-6 max-w-7xl mx-auto">
+                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
+                        <i data-lucide="bar-chart-3" class="w-7 h-7 mr-3 text-indigo-600"></i>
+                        Weekly Reports Archive
+                    </h1>
+                    
+                    <div class="flex justify-end space-x-3 mb-6">
+                         <button onclick="downloadMasterReport()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center">
+                            <i data-lucide="download" class="w-5 h-5 mr-2"></i>
+                            Download Master Report
+                        </button>
+                        <button onclick="showReportsModal()" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md flex items-center">
+                            <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+                            Generate Current Week Report
                         </button>
                     </div>
 
-                    <div class="space-y-3">
-                        ${cachedUsers.filter(u => u.role !== 'admin').map(user => `
-                            <div class="bg-white p-4 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
-                                <div class="flex items-center gap-3">
-                                    <div class="bg-slate-100 p-2 rounded-lg text-slate-600">
-                                        ${renderIcon('user', {class:'w-5 h-5'})}
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-slate-800">${user.name}</p>
-                                        <p class="text-xs text-slate-500">${user.phone}</p>
-                                    </div>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="showAddStaffModal(true, '${user.uid}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg">
-                                        ${renderIcon('pencil', {class:'w-4 h-4'})}
-                                    </button>
-                                    <button onclick="handleDeleteStaff('${user.uid}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                                        ${renderIcon('trash-2', {class:'w-4 h-4'})}
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')}
+                    <div class="bg-white p-6 rounded-xl shadow-lg reports-table-container overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Net Profit</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${state.weeklyReports.map(r => `
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600">${r.weekId}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(r.startDate)} - ${formatDate(r.endDate)}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">${formatCurrency(r.summary.totalSales)}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold ${r.summary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'} text-right">${formatCurrency(r.summary.netProfit)}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button onclick="generatePdfReport(${JSON.stringify(r).split('"').join("&#34;")})" class="text-blue-600 hover:text-blue-900 mr-3 p-2 rounded-md hover:bg-blue-50 transition duration-150">
+                                                <i data-lucide="file-text" class="w-5 h-5 inline-block align-text-bottom"></i> View PDF
+                                            </button>
+                                            <button onclick="handleDeleteReport('${r.id}')" class="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition duration-150">
+                                                <i data-lucide="trash-2" class="w-5 h-5 inline-block align-text-bottom"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        ${state.weeklyReports.length === 0 ? '<p class="text-center py-4 text-gray-500">No weekly reports have been generated yet.</p>' : ''}
                     </div>
-                </main>`;
+                </div>
+            `;
         }
 
-        function showAddStaffModal(isEdit = false, uid = null) {
-            let u = null;
-            if (isEdit) u = cachedUsers.find(x => x.uid === uid);
-            
-            modalEl.innerHTML = `
-                <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="modal-overlay absolute inset-0" onclick="document.getElementById('add-staff-modal').remove()"></div>
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative z-10">
-                        <h2 class="text-lg font-bold mb-4">${isEdit ? 'Edit Staff' : 'Add New Staff'}</h2>
-                        <form onsubmit="handleSaveStaff(event, '${isEdit?'edit':'add'}', '${uid}')" class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <input id="staff-name" value="${u?.name||''}" placeholder="Name" class="p-3 border rounded-lg" required>
-                                <input id="staff-phone" value="${u?.phone||''}" placeholder="Phone (Login ID)" class="p-3 border rounded-lg" ${isEdit?'disabled':''} required>
-                            </div>
-                            <input id="staff-pass" type="text" placeholder="${isEdit ? 'New Password (Leave empty to keep)' : 'Password'}" class="w-full p-3 border rounded-lg" ${!isEdit?'required':''}>
-                            
-                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                <p class="text-xs font-bold text-slate-400 mb-2">PRICING CONFIG</p>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="space-y-2">
-                                        <p class="text-[10px] font-bold text-indigo-600">DRESSES</p>
-                                        <input id="price-dress-buy" type="number" value="${u?.prices?.dressBuy||120}" class="w-full p-2 text-sm border rounded">
-                                        <input id="price-dress-sell" type="number" value="${u?.prices?.dressSell||200}" class="w-full p-2 text-sm border rounded">
-                                    </div>
-                                    <div class="space-y-2">
-                                        <p class="text-[10px] font-bold text-purple-600">2 PIECES</p>
-                                        <input id="price-2pc-buy" type="number" value="${u?.prices?.twoPcBuy||120}" class="w-full p-2 text-sm border rounded">
-                                        <input id="price-2pc-sell" type="number" value="${u?.prices?.twoPcSell||200}" class="w-full p-2 text-sm border rounded">
-                                    </div>
+        function renderManageStaffView() {
+             return `
+                <div class="p-6 max-w-7xl mx-auto">
+                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
+                        <i data-lucide="users" class="w-7 h-7 mr-3 text-indigo-600"></i>
+                        Staff Management
+                    </h1>
+                    
+                    <div class="flex justify-end mb-6">
+                        <button onclick="showAddStaffModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-150 flex items-center">
+                            <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i>
+                            Add New Staff Member
+                        </button>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${state.staff.map(s => `
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${s.name}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.role}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${s.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                                    ${s.isActive ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                                                <button onclick="handleStaffEdit('${s.id}')" class="text-blue-600 hover:text-blue-900 p-2 rounded-md hover:bg-blue-50 transition duration-150">
+                                                    <i data-lucide="pencil" class="w-5 h-5 inline-block align-text-bottom"></i> Edit
+                                                </button>
+                                                <button onclick="handleDeleteStaff('${s.id}', '${s.name}')" class="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition duration-150">
+                                                    <i data-lucide="user-x" class="w-5 h-5 inline-block align-text-bottom"></i> Deactivate
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        ${state.staff.length === 0 ? '<p class="text-center py-4 text-gray-500">No staff members have been added yet.</p>' : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProcurementView() {
+            const today = state.procurementDate;
+
+            // Calculate total procurement cost
+            const totalCost = state.procurementLog.reduce((sum, entry) => sum + entry.cost, 0);
+
+            return `
+                <div class="p-6 max-w-7xl mx-auto">
+                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
+                        <i data-lucide="shopping-bag" class="w-7 h-7 mr-3 text-indigo-600"></i>
+                        Procurement & Expense Log
+                    </h1>
+                    
+                    <!-- Total Cost Card -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-amber-500 mb-8">
+                        <p class="text-sm font-medium text-gray-500">Total Recorded Procurement Cost (All Time)</p>
+                        <p class="text-3xl font-bold text-amber-700 mt-1">${formatCurrency(totalCost)}</p>
+                        <p class="text-sm text-gray-400 mt-2">Reflects sum of all entries below.</p>
+                    </div>
+
+                    <!-- Procurement Input Form -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Record New Purchase</h2>
+                        <form onsubmit="handleProcurementSave(event)">
+                            <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
+                                <div class="md:col-span-1">
+                                    <label for="procurement-date" class="block text-sm font-medium text-gray-700">Date</label>
+                                    <input type="date" id="procurement-date" value="${today}" onchange="handleProcurementDateChange(event)" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label for="procurement-item" class="block text-sm font-medium text-gray-700">Item Name/Description</label>
+                                    <input type="text" id="procurement-item" placeholder="Fabric, Thread, Machine Repair..." class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                                <div>
+                                    <label for="procurement-quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
+                                    <input type="number" id="procurement-quantity" placeholder="10" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0.01" required>
+                                </div>
+                                <div>
+                                    <label for="procurement-unit" class="block text-sm font-medium text-gray-700">Unit</label>
+                                    <input type="text" id="procurement-unit" placeholder="m/roll/hr" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                                <div>
+                                    <label for="procurement-cost" class="block text-sm font-medium text-gray-700">Total Cost (KES)</label>
+                                    <input type="number" id="procurement-cost" placeholder="5000" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0.01" required>
                                 </div>
                             </div>
-                            
-                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">
-                                ${isEdit ? 'Save Changes' : 'Create Account'}
-                            </button>
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition duration-150 flex items-center">
+                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i> Record Purchase
+                                </button>
+                            </div>
                         </form>
                     </div>
-                </div>`;
-            refreshIcons();
+
+                    <!-- Procurement Log Table -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Recent Purchases Log</h2>
+                        <div class="overflow-x-auto reports-table-container">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item/Description</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${state.procurementLog.map(p => `
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatDate(p.date)}</td>
+                                            <td class="px-6 py-4 text-sm text-gray-500">${p.item}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">${p.quantity} ${p.unit}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-red-600 text-right">${formatCurrency(p.cost)}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                                <button onclick="handleDeleteProcurementEntry('${p.id}')" class="text-red-600 hover:text-red-900 p-2 rounded-md hover:bg-red-50 transition duration-150">
+                                                    <i data-lucide="trash-2" class="w-5 h-5 inline-block align-text-bottom"></i> Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        ${state.procurementLog.length === 0 ? '<p class="text-center py-4 text-gray-500">No procurement entries recorded yet.</p>' : ''}
+                    </div>
+                </div>
+            `;
         }
 
-        function showNotification(msg) {
-            notifEl.innerHTML = `<div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-bold">${msg}</div>`;
-            notifEl.style.display = 'block';
-            requestAnimationFrame(() => {
-                notifEl.classList.remove('opacity-0', '-translate-y-full');
-                notifEl.classList.add('opacity-100', 'translate-y-5');
-            });
-            setTimeout(() => {
-                notifEl.classList.remove('opacity-100', 'translate-y-5');
-                notifEl.classList.add('opacity-0', '-translate-y-full');
-                setTimeout(() => notifEl.style.display = 'none', 300);
-            }, 3000);
+        function renderSettingsView() {
+            // Placeholder for last report date, to be fetched from 'settings' collection
+            const lastReport = state.weeklyReports.length > 0 ? state.weeklyReports[0] : null;
+
+            return `
+                <div class="p-6 max-w-7xl mx-auto">
+                    <h1 class="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
+                        <i data-lucide="settings" class="w-7 h-7 mr-3 text-indigo-600"></i>
+                        System Settings
+                    </h1>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- System Status -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">System Status</h2>
+                            <ul class="space-y-3 text-gray-700">
+                                <li class="flex justify-between items-center">
+                                    <span class="font-medium">Current Week:</span>
+                                    <span class="font-semibold text-indigo-600">${state.currentWeek}</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="font-medium">Last Report Generated:</span>
+                                    <span class="text-sm ${lastReport ? 'text-green-600 font-semibold' : 'text-yellow-600'}">${lastReport ? `${lastReport.weekId} on ${formatDate(lastReport.generatedAt)}` : 'N/A'}</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="font-medium">Production Entries:</span>
+                                    <span class="font-semibold">${state.productionData.length} entries</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="font-medium">Active Staff:</span>
+                                    <span class="font-semibold">${state.staff.length} members</span>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span class="font-medium">Manager ID (for support):</span>
+                                    <span class="text-xs font-mono text-gray-500">${userId}</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Management Actions -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Management Actions</h2>
+                            <div class="space-y-4">
+                                <button onclick="showChangePinModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-150 flex items-center justify-center">
+                                    <i data-lucide="key" class="w-5 h-5 mr-2"></i>
+                                    Change System PIN
+                                </button>
+                                <button onclick="showResetModal()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-150 flex items-center justify-center">
+                                    <i data-lucide="alert-octagon" class="w-5 h-5 mr-2"></i>
+                                    Perform Factory Reset (DANGER)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
-        // --- INIT ---
-        window.onload = initApp;
 
+        // --- Modals ---
+
+        function renderModal() {
+            if (!state.isModalOpen) return '';
+
+            let title = '';
+            let content = '';
+
+            switch (state.modalType) {
+                case 'reports':
+                    title = 'Generate Weekly Report';
+                    const currentWeekData = state.productionData.filter(d => getCurrentWeekId(new Date(d.date)) === state.currentWeek);
+                    const summary = calculateReportSummary(currentWeekData);
+
+                    content = `
+                        <p class="mb-4 text-gray-600">You are about to generate the weekly report for <strong>Week ${state.currentWeek}</strong>.</p>
+                        <div class="bg-indigo-50 p-4 rounded-lg mb-6 border border-indigo-200">
+                            <p class="font-semibold text-indigo-800">Summary of data to be included:</p>
+                            <ul class="list-disc list-inside mt-2 text-indigo-700 space-y-1">
+                                <li><strong>${currentWeekData.length}</strong> days of production entries.</li>
+                                <li>Estimated Gross Sales: <strong>${formatCurrency(summary.totalSales)}</strong></li>
+                                <li>Estimated Net Profit: <strong class="${summary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}">${formatCurrency(summary.netProfit)}</strong></li>
+                            </ul>
+                        </div>
+                        <p class="text-red-600 font-medium">WARNING: All ${currentWeekData.length} production entries for this week will be PERMANENTLY DELETED (archived in the report) after generation.</p>
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
+                            <button onclick="handleStartNewWeek()" class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition duration-150 flex items-center">
+                                <i data-lucide="file-text" class="w-5 h-5 mr-2"></i> Confirm & Generate Report
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'reset':
+                    title = 'Factory Reset Confirmation';
+                    content = `
+                        <p class="mb-4 text-red-600 font-bold">DANGER: This action will permanently erase ALL production data, all weekly reports, staff list, and procurement logs. This is irreversible.</p>
+                        <p class="mb-4 text-gray-600">To proceed, please enter the 4-digit System PIN.</p>
+                        <input type="password" id="reset-pin" placeholder="Enter System PIN" maxlength="4" class="w-full p-3 border border-red-300 rounded-lg text-center text-xl tracking-widest focus:ring-red-500 focus:border-red-500" required>
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
+                            <button onclick="handleFactoryReset()" class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150 flex items-center">
+                                <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i> Confirm Reset
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'changePin':
+                    title = 'Change System PIN';
+                    content = `
+                        <form onsubmit="handleSystemPinChange(event)">
+                            <p class="mb-4 text-gray-600">The System PIN is required for critical actions like Factory Reset.</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="old-pin" class="block text-sm font-medium text-gray-700">Current System PIN</label>
+                                    <input type="password" id="old-pin" placeholder="Current PIN" maxlength="4" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl tracking-widest focus:ring-blue-500 focus:border-blue-500" required>
+                                </div>
+                                <div>
+                                    <label for="new-pin" class="block text-sm font-medium text-gray-700">New 4-digit PIN</label>
+                                    <input type="password" id="new-pin" placeholder="New PIN" maxlength="4" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl tracking-widest focus:ring-blue-500 focus:border-blue-500" required>
+                                </div>
+                                <div>
+                                    <label for="confirm-pin" class="block text-sm font-medium text-gray-700">Confirm New PIN</label>
+                                    <input type="password" id="confirm-pin" placeholder="Confirm PIN" maxlength="4" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl tracking-widest focus:ring-blue-500 focus:border-blue-500" required>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end space-x-3">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
+                                <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-150 flex items-center">
+                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i> Save New PIN
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                    break;
+                case 'addStaff':
+                    const staff = state.modalData || {};
+                    const isEdit = !!staff.id;
+                    title = isEdit ? `Edit Staff: ${staff.name}` : 'Add New Staff Member';
+                    
+                    content = `
+                        <form onsubmit="handleSaveStaff(event)">
+                            <input type="hidden" id="staff-id" value="${staff.id || ''}">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="staff-name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                                    <input type="text" id="staff-name" value="${staff.name || ''}" placeholder="Jane Doe" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                                <div>
+                                    <label for="staff-role" class="block text-sm font-medium text-gray-700">Role/Designation</label>
+                                    <input type="text" id="staff-role" value="${staff.role || ''}" placeholder="Seamstress / Accountant" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end space-x-3">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Cancel</button>
+                                <button type="submit" class="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-150 flex items-center">
+                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i> ${isEdit ? 'Update Staff' : 'Add Staff'}
+                                </button>
+                            </div>
+                        </form>
+                    `;
+                    break;
+                default:
+                    return ''; // Should not happen
+            }
+
+            return `
+                <div class="modal-overlay fixed inset-0 flex items-center justify-center z-50 transition-opacity duration-300">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4 transform transition-all duration-300">
+                        <div class="flex justify-between items-center border-b pb-3 mb-4">
+                            <h3 class="text-2xl font-bold text-gray-800">${title}</h3>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition duration-150">
+                                <i data-lucide="x" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                        <div>
+                            ${content}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // --- Auth and Error Screens ---
+        
+        function renderErrorScreen(title, message) {
+            const appDiv = document.getElementById('app');
+            appDiv.innerHTML = `
+                <div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+                    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+                        <i data-lucide="frown" class="w-16 h-16 text-red-500 mx-auto mb-4"></i>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">${title}</h1>
+                        <p class="text-gray-600 mb-6">${message}</p>
+                        <button onclick="window.location.reload()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                            Try Restarting App
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderAuthScreen() {
+            const appDiv = document.getElementById('app');
+            appDiv.innerHTML = `
+                <div class="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+                    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+                        <div class="text-center mb-6">
+                            <h1 class="text-3xl font-bold text-indigo-600">Trinah Designs Admin</h1>
+                            <p class="text-gray-500 mt-2">Manager Login</p>
+                        </div>
+                        <p class="text-sm text-center text-gray-500 mb-4">
+                            Your account is automatically managed. Please enter your name to start your session.
+                        </p>
+                        <form onsubmit="handleAuthSubmit(event)" class="space-y-4" id="login-form">
+                            <div>
+                                <label for="login-name" class="block text-sm font-medium text-gray-700">Manager Name</label>
+                                <input type="text" id="login-name" placeholder="Your Name" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-150">
+                                Start Session
+                            </button>
+                        </form>
+                         <p class="text-center text-xs text-gray-400 mt-4">User ID: ${userId ? userId.substring(0, 8) + '...' : 'Authenticating...'}</p>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+
+        // --- Main Render Function ---
+
+        function renderApp() {
+            const appDiv = document.getElementById('app');
+
+            if (!state.currentUser) {
+                // Should be handled by onAuthStateChanged listener calling renderAuthScreen()
+                // But this is a fallback
+                // renderAuthScreen(); 
+                return;
+            }
+
+            let content = '';
+            switch (state.view) {
+                case 'reports':
+                    content = renderReportsView();
+                    break;
+                case 'manageStaff':
+                    content = renderManageStaffView();
+                    break;
+                case 'procurement':
+                    content = renderProcurementView();
+                    break;
+                case 'settings':
+                    content = renderSettingsView();
+                    break;
+                case 'dashboard':
+                default:
+                    content = renderDashboardView();
+            }
+
+            appDiv.innerHTML = `
+                ${renderNavbar()}
+                <main class="py-8">
+                    ${content}
+                </main>
+                ${renderModal()}
+            `;
+            
+            // Re-create icons for the new content
+            lucide.createIcons();
+        }
+        
+        // --- Application Start ---
+        
+        window.onload = function() {
+            // Start the initialization and authentication process
+            initializeAndAuthenticate();
+        };
+
+        // Expose functions for buttons that might be rendered early
+        window.initializeAndAuthenticate = initializeAndAuthenticate; 
     </script>
 </body>
 </html>
