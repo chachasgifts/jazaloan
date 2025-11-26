@@ -272,7 +272,7 @@
             const loader = document.getElementById('pdf-loader');
             if (loader) loader.style.display = 'flex';
             
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 800)); // Slightly longer for loader visibility
 
             try {
                 const { jsPDF } = window.jspdf;
@@ -282,11 +282,14 @@
                 
                 // Determine target date (default to today)
                 let targetDateLocale = new Date().toLocaleDateString();
-                
+                let reportDateTitle = new Date().toDateString();
+
                 // If custom date provided (YYYY-MM-DD), convert to locale date string
                 if (customDateStr && type === 'Daily') {
                     const [y, m, d] = customDateStr.split('-').map(Number);
-                    targetDateLocale = new Date(y, m - 1, d).toLocaleDateString();
+                    const dateObj = new Date(y, m - 1, d);
+                    targetDateLocale = dateObj.toLocaleDateString();
+                    reportDateTitle = dateObj.toDateString();
                 }
 
                 let reportRows = [];
@@ -322,35 +325,40 @@
                     const dispatchedLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.dispatchedDresses ? 0 : (Number(curr.dispatched)||0)), 0);
                     const userTotalDispatched = dispatchedDresses + dispatchedTwoPcs + dispatchedLegacy;
 
-                    grandTotalDispatched += userTotalDispatched;
-
                     const totalSoldDresses = soldDresses + soldLegacy; // Treat legacy sold as dresses
                     const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
                     
+                    const totalSold = totalSoldDresses + soldTwoPcs;
+
+                    // --- FILTERING LOGIC ---
+                    // If Daily Report, omit staff with ZERO dispatch AND ZERO sales
+                    if (type === 'Daily') {
+                        if (userTotalDispatched === 0 && totalSold === 0) {
+                            return; // Skip this user
+                        }
+                    }
+                    // -----------------------
+
+                    // Only add to grand totals if they are in the report
+                    grandTotalDispatched += userTotalDispatched;
+                    grandTotalSoldDresses += totalSoldDresses;
+                    grandTotalSoldTwoPcs += soldTwoPcs;
+                    grandTotalProfit += totalProfit;
+
+                    // Get current remaining for display (snapshot as of now, technically)
                     let currentRemDresses = 0;
                     let currentRemTwoPcs = 0;
-
                     if (allEntries.length > 0) {
                         const last = allEntries[allEntries.length - 1];
                         currentRemDresses = last.remDresses || last.remaining || 0;
                         currentRemTwoPcs = last.remTwoPcs || 0;
                     } else {
-                        try {
+                         try {
                             const p = JSON.parse(userPressureStr);
-                             if (typeof p === 'number') {
-                                currentRemDresses = p;
-                            } else {
-                                currentRemDresses = p?.dresses || 0;
-                                currentRemTwoPcs = p?.twoPcs || 0;
-                            }
-                        } catch(e) {
-                            currentRemDresses = 0;
-                        }
+                            if (typeof p === 'number') currentRemDresses = p;
+                            else { currentRemDresses = p?.dresses || 0; currentRemTwoPcs = p?.twoPcs || 0; }
+                        } catch(e) {}
                     }
-
-                    grandTotalSoldDresses += totalSoldDresses;
-                    grandTotalSoldTwoPcs += soldTwoPcs;
-                    grandTotalProfit += totalProfit;
 
                     reportRows.push([
                         user.name,
@@ -361,33 +369,62 @@
                     ]);
                 });
 
-                const PRIMARY = "#1E3A8A";
+                // --- PROFESSIONAL STYLING ---
                 
-                doc.setFillColor(PRIMARY);
-                doc.rect(0, 0, 210, 30, 'F');
+                // 1. Header Banner
+                doc.setFillColor(30, 58, 138); // Deep Blue
+                doc.rect(0, 0, 210, 45, 'F'); 
+
+                // 2. Company Title
                 doc.setTextColor(255, 255, 255);
-                doc.setFontSize(16);
-                doc.text("Trinah Designs", 14, 20);
-                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(22);
+                doc.text("TRINAH DESIGNS", 105, 20, { align: "center" });
                 
-                const dateLabel = type === 'Daily' ? `(${targetDateLocale})` : '';
-                doc.text(`Master ${type} Report ${dateLabel}`, 150, 20);
+                // 3. Report Title
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                const titleText = type === 'Daily' ? "DAILY SALES & STOCK REPORT" : `MASTER ${type.toUpperCase()} REPORT`;
+                doc.text(titleText, 105, 30, { align: "center" });
 
-                doc.setTextColor(0,0,0);
+                // 4. Date Subtitle
                 doc.setFontSize(10);
-                doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 40);
+                doc.setTextColor(203, 213, 225); // Light Slate
+                doc.text(`Period: ${reportDateTitle}`, 105, 38, { align: "center" });
 
+                // 5. Table
                 doc.autoTable({
-                    startY: 50,
-                    head: [['Staff Name', 'Sold Dresses', 'Sold 2pcs', 'Stock (Drs/2pc)', 'Profit']],
+                    startY: 55,
+                    head: [['Staff Member', 'Sold Dresses', 'Sold 2pcs', 'Current Stock (D/2)', 'Profit (KES)']],
                     body: reportRows,
                     foot: [['TOTALS', String(grandTotalSoldDresses), String(grandTotalSoldTwoPcs), '-', formatCurrency(grandTotalProfit)]],
-                    theme: 'grid',
-                    headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold' },
-                    footStyles: { fillColor: [241, 245, 249], textColor: 0, fontStyle: 'bold' },
+                    theme: 'striped', // Cleaner professional theme
+                    headStyles: { 
+                        fillColor: [30, 58, 138], 
+                        textColor: 255, 
+                        fontStyle: 'bold', 
+                        halign: 'center',
+                        cellPadding: 3
+                    },
+                    bodyStyles: { 
+                        textColor: 50, 
+                        halign: 'center',
+                        cellPadding: 3 
+                    },
+                    columnStyles: { 
+                        0: { halign: 'left', fontStyle: 'bold' }, // Staff Name Left Aligned
+                        4: { fontStyle: 'bold', halign: 'right' } // Profit Right Aligned
+                    },
+                    footStyles: { 
+                        fillColor: [241, 245, 249], 
+                        textColor: [15, 23, 42], 
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    margin: { top: 55 }
                 });
 
-                // --- Stock Reconciliation Section (Added) ---
+                // --- Stock Reconciliation Section (Professional Box) ---
                 if (type === 'Daily') {
                     const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
                     const procurementToday = logs[targetDateLocale] || 0;
@@ -395,45 +432,77 @@
                     
                     const finalY = doc.lastAutoTable.finalY + 15;
                     
-                    doc.setFillColor(variance > 0 ? 254 : 241, variance > 0 ? 226 : 245, variance > 0 ? 226 : 249); // Red tint if variance, else slate
-                    doc.rect(14, finalY, 182, 40, 'F');
-                    doc.setDrawColor(200, 200, 200);
-                    doc.rect(14, finalY, 182, 40, 'S');
+                    // Box Background
+                    doc.setDrawColor(226, 232, 240); // Slate 200
+                    doc.setFillColor(248, 250, 252); // Slate 50
+                    doc.rect(14, finalY, 182, 50, 'FD'); // Fill and Draw
 
-                    doc.setTextColor(30, 58, 138);
-                    doc.setFontSize(12);
-                    doc.text("Stock Reconciliation Analysis", 20, finalY + 10);
-                    
+                    // Header for Box
+                    doc.setFillColor(30, 58, 138);
+                    doc.rect(14, finalY, 182, 10, 'F');
+                    doc.setTextColor(255, 255, 255);
                     doc.setFontSize(10);
-                    doc.setTextColor(0, 0, 0);
-                    doc.text(`Total Stock Acquired (${targetDateLocale}): ${procurementToday}`, 20, finalY + 20);
-                    doc.text(`Total Stock Dispatched (All Staff): ${grandTotalDispatched}`, 20, finalY + 26);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("STOCK RECONCILIATION ANALYSIS", 20, finalY + 7);
+
+                    // Content
+                    doc.setTextColor(51, 65, 85); // Slate 700
+                    doc.setFont("helvetica", "normal");
+                    doc.text("Stock Acquired (Procurement):", 20, finalY + 20);
+                    doc.text(String(procurementToday), 180, finalY + 20, { align: "right" });
+
+                    doc.text("Stock Dispatched (Total):", 20, finalY + 27);
+                    doc.text(String(grandTotalDispatched), 180, finalY + 27, { align: "right" });
                     
-                    doc.setFont(undefined, 'bold');
+                    // Variance Line
+                    doc.setDrawColor(226, 232, 240);
+                    doc.line(20, finalY + 32, 190, finalY + 32);
+
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Net Variance:", 20, finalY + 40);
+                    
+                    let varianceText = "";
+                    let varianceColor = [22, 163, 74]; // Green
+
                     if (variance > 0) {
-                        doc.setTextColor(220, 38, 38); // Red
-                        doc.text(`Undispatched / Missing: ${variance} items`, 20, finalY + 32);
-                        doc.text(`RECOMMENDATION: High Alert. ${variance} items are unaccounted for.`, 20, finalY + 38);
-                        doc.text(`Please verify if these are in main storage or lost.`, 20, finalY + 43);
+                        varianceColor = [220, 38, 38]; // Red
+                        varianceText = `${variance} MISSING / UNDISPATCHED`;
                     } else if (variance < 0) {
-                         doc.setTextColor(217, 119, 6); // Orange
-                         doc.text(`Variance: ${variance} (Dispatched > Acquired)`, 20, finalY + 32);
-                         doc.text(`Note: Staff received stock from previous inventory.`, 20, finalY + 38);
+                         varianceColor = [217, 119, 6]; // Orange
+                         varianceText = `${Math.abs(variance)} EXTRA DISPATCHED (Old Stock)`;
                     } else {
-                        doc.setTextColor(22, 163, 74); // Green
-                        doc.text(`Status: Balanced (All acquired stock dispatched)`, 20, finalY + 32);
+                        varianceText = "BALANCED";
                     }
+
+                    doc.setTextColor(varianceColor[0], varianceColor[1], varianceColor[2]);
+                    doc.text(varianceText, 180, finalY + 40, { align: "right" });
+                    
+                    // Disclaimer if Missing
+                    if (variance > 0) {
+                        doc.setFontSize(8);
+                        doc.setTextColor(100, 116, 139);
+                        doc.text("Attention: Please verify physical inventory against dispatched items immediately.", 105, finalY + 47, { align: "center" });
+                    }
+                }
+
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for(let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text(`Generated by Trinah Designs Admin System - ${new Date().toLocaleString()}`, 105, 290, { align: "center" });
                 }
 
                 // Sanitize filename
                 const fileDate = type === 'Daily' ? `_${targetDateLocale.replace(/\//g, '-')}` : '';
-                doc.save(`Trinah_Master_${type}_Report${fileDate}.pdf`);
+                doc.save(`Trinah_${type}_Report${fileDate}.pdf`);
                 
-                showNotification("Master Report Downloaded!");
+                showNotification("Report Downloaded Successfully");
 
             } catch (e) {
                 console.error(e);
-                showNotification("Error generating master report.");
+                showNotification("Error generating report.");
             } finally {
                 if (loader) loader.style.display = 'none';
             }
