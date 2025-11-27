@@ -211,7 +211,7 @@
 
         function isEntryLocked(entry) {
             if (!entry) return false;
-            // UPDATE: Lock if more than 72 hours have passed since entry creation
+            // Lock if more than 72 hours have passed since entry creation
             const entryTime = entry.id; // entry.id is Date.now() at creation
             const timeSinceCreation = Date.now() - entryTime;
             const hours72 = 72 * 60 * 60 * 1000;
@@ -265,6 +265,30 @@
                     default: return true;
                 }
             });
+        }
+
+        // --- Expense Management Functions ---
+        function addExpenseRow() {
+            const container = document.getElementById('expenses-container');
+            const rowId = 'exp-row-' + Date.now();
+            const div = document.createElement('div');
+            div.id = rowId;
+            div.className = 'grid grid-cols-5 gap-2 items-center';
+            div.innerHTML = `
+                <div class="col-span-3">
+                    <input type="text" name="expense_name[]" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="Expense Name">
+                </div>
+                <div class="col-span-1">
+                    <input type="number" name="expense_amt[]" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="Amt">
+                </div>
+                <div class="col-span-1 text-center">
+                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                        ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+            refreshIcons();
         }
 
         // --- Master Report Logic ---
@@ -360,12 +384,18 @@
                             else { currentRemDresses = p?.dresses || 0; currentRemTwoPcs = p?.twoPcs || 0; }
                         } catch(e) {}
                     }
+                    
+                    let stockDisplay = `${currentRemDresses} / ${currentRemTwoPcs}`;
+                    if (user.enableReconciliation) {
+                        // For Reconciled users, we treat dresses as the main pool now
+                        stockDisplay = `${currentRemDresses}`;
+                    }
 
                     reportRows.push([
                         user.name,
                         String(totalSoldDresses),
                         String(soldTwoPcs),
-                        `${currentRemDresses} / ${currentRemTwoPcs}`,
+                        stockDisplay,
                         formatCurrency(totalProfit)
                     ]);
                 });
@@ -396,7 +426,7 @@
                 // 5. Table
                 doc.autoTable({
                     startY: 55,
-                    head: [['Staff Member', 'Sold Dresses', 'Sold 2pcs', 'Current Stock (D/2)', 'Profit (KES)']],
+                    head: [['Staff Member', 'Sold Dresses', 'Sold 2pcs', 'Current Stock', 'Profit (KES)']],
                     body: reportRows,
                     foot: [['TOTALS', String(grandTotalSoldDresses), String(grandTotalSoldTwoPcs), '-', formatCurrency(grandTotalProfit)]],
                     theme: 'striped', // Cleaner professional theme
@@ -1058,7 +1088,7 @@
         function handleSubmit() {
             if (!managedUser) return; // Safety check
 
-            // Standard inputs
+            // Standard inputs (used by both modes, but logic differs)
             const dispatchDressIn = document.getElementById('dispatch-dress');
             const dispatch2pcIn = document.getElementById('dispatch-2pc');
             const salesDressIn = document.getElementById('sales-dress');
@@ -1070,20 +1100,48 @@
             const tBPIn = document.getElementById('rec-2pc-buy');
             const tSPIn = document.getElementById('rec-2pc-sell');
             const sentIn = document.getElementById('rec-sent');
-            const expNameIn = document.getElementById('rec-exp-name');
-            const expAmtIn = document.getElementById('rec-exp-amt');
+            const singleDispatchIn = document.getElementById('dispatch-single'); // New single dispatch field
 
-            const dDress = Number(dispatchDressIn ? dispatchDressIn.value : 0) || 0;
-            const d2pc = Number(dispatch2pcIn ? dispatch2pcIn.value : 0) || 0;
+            const isReconciled = managedUser.enableReconciliation;
+
+            // Get Dispatch Quantities
+            let dDress = 0;
+            let d2pc = 0;
+            let singleDispatch = 0;
+
+            if (isReconciled) {
+                singleDispatch = Number(singleDispatchIn ? singleDispatchIn.value : 0) || 0;
+                // For reconciled, we treat 'dresses' storage as the main pool
+                dDress = singleDispatch; 
+                d2pc = 0; // Not used in reconciled mode logic
+            } else {
+                dDress = Number(dispatchDressIn ? dispatchDressIn.value : 0) || 0;
+                d2pc = Number(dispatch2pcIn ? dispatch2pcIn.value : 0) || 0;
+            }
+
             const sDress = Number(salesDressIn ? salesDressIn.value : 0) || 0;
             const s2pc = Number(sales2pcIn ? sales2pcIn.value : 0) || 0;
 
-            // Updated Validation: Allow 0 sales/dispatch if expenses/sent are present
+            // Gather Expenses (New Multi-Row Logic)
             let expenseAmt = 0;
             let amtSent = 0;
-            if (managedUser.enableReconciliation) {
-                expenseAmt = Number(expAmtIn ? expAmtIn.value : 0) || 0;
+            let expensesList = [];
+
+            if (isReconciled) {
                 amtSent = Number(sentIn ? sentIn.value : 0) || 0;
+                
+                // Collect dynamic expenses
+                const expNames = document.getElementsByName('expense_name[]');
+                const expAmts = document.getElementsByName('expense_amt[]');
+                
+                for(let i=0; i<expNames.length; i++) {
+                    const nm = expNames[i].value.trim();
+                    const amt = Number(expAmts[i].value) || 0;
+                    if(nm || amt > 0) {
+                        expensesList.push({ name: nm || 'Expense', amount: amt });
+                        expenseAmt += amt;
+                    }
+                }
             }
 
             if (dDress === 0 && d2pc === 0 && sDress === 0 && s2pc === 0 && expenseAmt === 0 && amtSent === 0) {
@@ -1099,7 +1157,7 @@
             let twoPcSell = defaultPrices.twoPcSell || DEFAULT_SELL_PRICE;
 
             // Override if Reconciliation is enabled
-            if (managedUser.enableReconciliation) {
+            if (isReconciled) {
                 if (dBPIn && dBPIn.value) dressBuy = Number(dBPIn.value);
                 if (dSPIn && dSPIn.value) dressSell = Number(dSPIn.value);
                 if (tBPIn && tBPIn.value) twoPcBuy = Number(tBPIn.value);
@@ -1122,7 +1180,7 @@
             const currentDayName = DAYS[selectedDayIndex];
             const fullDateString = targetDate.toLocaleDateString();
 
-            // Calculate Pressure
+            // Calculate Pressure / Inventory
             let prevRemDress = 0;
             let prevRem2pc = 0;
 
@@ -1137,8 +1195,26 @@
                 prevRem2pc = startingPressure.twoPcs;
             }
 
-            const newRemDress = prevRemDress + dDress - sDress;
-            const newRem2pc = prevRem2pc + d2pc - s2pc;
+            let newRemDress = 0;
+            let newRem2pc = 0;
+
+            if (isReconciled) {
+                // Reconciled Logic: Single Pool (stored in newRemDress)
+                // NewStock = OldStock + SingleDispatch - (PremiumSold + CleanUpSold)
+                // Note: We ignore prevRem2pc for stock calculation if in reconciled mode, assuming total stock is in 'dresses' field
+                // Safe check: if previously not reconciled, we might need to sum them? 
+                // Let's assume for reconciled users we only look at the first field or sum them effectively.
+                const totalPrevStock = prevRemDress + (isReconciled ? prevRem2pc : 0); 
+                // We zero out 2pc prev stock so we don't double count if we just switched modes, but let's stick to simple logic:
+                // Just use prevRemDress as the accumulator.
+                
+                newRemDress = prevRemDress + singleDispatch - (sDress + s2pc);
+                newRem2pc = 0; // Unused
+            } else {
+                // Standard Logic: Separated
+                newRemDress = prevRemDress + dDress - sDress;
+                newRem2pc = prevRem2pc + d2pc - s2pc;
+            }
 
             if (newRemDress < 0 || newRem2pc < 0) {
                 showNotification("Error: Sales cannot exceed inventory.");
@@ -1151,18 +1227,19 @@
             const totalProfit = profitDress + profit2pc;
             
             let balanceBF = 0;
-            let expenseName = "";
-
-            // Calculate Reconciliation
-            if (managedUser.enableReconciliation) {
-                expenseName = expNameIn ? expNameIn.value : "";
+            
+            // Calculate Reconciliation Balance
+            if (isReconciled) {
                 const totalSalesValue = (sDress * dressSell) + (s2pc * twoPcSell);
                 // Formula: Balance BF = Sales Value - (Sent + Expenses)
                 balanceBF = totalSalesValue - (amtSent + expenseAmt);
             }
+            
+            // Backward compatibility for expense string
+            const expenseNameStr = expensesList.map(e => `${e.name} (${e.amount})`).join(', ');
 
             const record = {
-                id: Date.now(), // This acts as creation timestamp
+                id: Date.now(),
                 date: currentDayName,
                 fullDate: fullDateString,
                 dispatchedDresses: dDress,
@@ -1179,8 +1256,9 @@
                 // New Fields
                 balanceBF: balanceBF,
                 amountSent: amtSent,
-                expenseName: expenseName,
+                expenseName: expenseNameStr,
                 expenseAmount: expenseAmt,
+                expensesList: expensesList, // Store detailed list
                 // Store prices used for this specific transaction
                 transPrices: {
                     dBP: dressBuy, dSP: dressSell, tBP: twoPcBuy, tSP: twoPcSell
@@ -1193,11 +1271,14 @@
             // Clear inputs
             if (dispatchDressIn) dispatchDressIn.value = "";
             if (dispatch2pcIn) dispatch2pcIn.value = "";
+            if (singleDispatchIn) singleDispatchIn.value = "";
             if (salesDressIn) salesDressIn.value = "";
             if (sales2pcIn) sales2pcIn.value = "";
             if (sentIn) sentIn.value = "";
-            if (expNameIn) expNameIn.value = "";
-            if (expAmtIn) expAmtIn.value = "";
+            
+            // Clear expenses
+            const expContainer = document.getElementById('expenses-container');
+            if(expContainer) expContainer.innerHTML = ''; 
 
             saveData(managedUser.phone);
 
@@ -1328,15 +1409,22 @@
                     const rowData = [
                         friendlyDate, 
                         `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
-                        `${item.remDresses || 0} / ${item.remTwoPcs || 0}`
+                        `${item.remDresses || 0} ${showBalance ? '' : '/ ' + (item.remTwoPcs || 0)}` // Only show remDresses if reconciled
                     ];
                     
                     if (showBalance) {
-                        // Use Balance BF column and show Expenses if any
+                        // Use Balance BF column and show Detailed Expenses
                         let balanceText = item.balanceBF !== undefined ? item.balanceBF.toLocaleString() : '0';
-                        if (item.expenseAmount > 0) {
-                             balanceText += `\n(Exp: ${item.expenseAmount})`;
+                        
+                        // Add detailed expense list if available
+                        if (item.expensesList && item.expensesList.length > 0) {
+                            const details = item.expensesList.map(e => `${e.name}: ${e.amount}`).join(', ');
+                            balanceText += `\n[Exp: ${details}]`;
+                        } else if (item.expenseAmount > 0) {
+                            // Fallback
+                            balanceText += `\n(Exp Total: ${item.expenseAmount})`;
                         }
+                        
                         rowData.push(balanceText);
                     } else {
                         // Use Profit column
@@ -1353,12 +1441,12 @@
                 doc.setFontSize(10);
                 doc.text(`Format: ${item1Label} / ${item2Label}`, 14, 26);
 
-                const finalColumnHeader = showBalance ? 'Bal BF (Exp)' : 'Profit (KES)';
+                const finalColumnHeader = showBalance ? 'Bal BF (Expenses)' : 'Profit (KES)';
                 const finalTotal = showBalance ? totalBalance.toLocaleString() : totalProfit.toLocaleString();
 
                 doc.autoTable({
                     startY: 40,
-                    head: [['Date', `Sold (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, `Stock (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, finalColumnHeader]],
+                    head: [['Date', `Sold (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, `Stock ${showBalance ? '(Total)' : '(D/2)'}`, finalColumnHeader]],
                     body: rows,
                     theme: 'grid',
                     foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', finalTotal]]
@@ -1583,9 +1671,9 @@
                         <div class="grid grid-cols-2 gap-2 text-center">
                             <div class="bg-orange-50 p-2 rounded-lg">
                                 <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
-                                <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs}</p>
+                                <p class="font-bold text-orange-700">${currentRemDresses} ${user.enableReconciliation ? '' : '/ ' + currentRemTwoPcs}</p>
                                 <p class="text-[8px] text-orange-300">
-                                    ${user.enableReconciliation ? 'PREMIUM / CLEAN-UP' : 'DRESS / 2PC'}
+                                    ${user.enableReconciliation ? 'TOTAL' : 'DRESS / 2PC'}
                                 </p>
                             </div>
                             <div class="bg-emerald-50 p-2 rounded-lg">
@@ -1752,9 +1840,13 @@
                     </div>
 
                     <!-- Stats Grid -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        ${renderStatCard(`Stock (${labelItem1})`, curDresses, "shirt", "text-indigo-600")}
-                        ${renderStatCard(`Stock (${labelItem2})`, cur2pcs, "layers", "text-purple-600")}
+                    <div class="grid grid-cols-2 ${isReconciled ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4">
+                        ${isReconciled ? 
+                            renderStatCard(`Current Stock`, curDresses, "layers", "text-indigo-600") :
+                            renderStatCard(`Stock (${labelItem1})`, curDresses, "shirt", "text-indigo-600") + 
+                            renderStatCard(`Stock (${labelItem2})`, cur2pcs, "layers", "text-purple-600")
+                        }
+                        
                         ${renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")}
                         ${renderStatCard("Today Sold", todaysSales, "trending-up", "text-amber-600")}
                     </div>
@@ -1790,20 +1882,13 @@
                                     ${isReconciled ? `
                                         <!-- RECONCILED VIEW (Split Layout) -->
                                         
-                                        <!-- 1. DISPATCH SECTION (TOP) -->
+                                        <!-- 1. DISPATCH SECTION (TOP) - SINGLE DISPATCH -->
                                         <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
                                             <p class="text-[10px] font-bold text-indigo-800 mb-2 uppercase flex items-center gap-1">
                                                 ${renderIcon('package-plus', {class:'w-3 h-3'})} Dispatch (Stock In)
                                             </p>
-                                            <div class="grid grid-cols-2 gap-2">
-                                                <div>
-                                                    <label class="text-[10px] font-bold text-slate-500">${labelItem1Plural}</label>
-                                                    <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Qty">
-                                                </div>
-                                                <div>
-                                                    <label class="text-[10px] font-bold text-slate-500">${labelItem2Plural}</label>
-                                                    <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Qty">
-                                                </div>
+                                            <div>
+                                                <input type="number" id="dispatch-single" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Total Items Dispatched">
                                             </div>
                                         </div>
 
@@ -1850,20 +1935,21 @@
                                             <p class="text-[10px] font-bold text-slate-500 mb-2 uppercase flex items-center gap-1">
                                                 ${renderIcon('wallet', {class:'w-3 h-3'})} Reconciliation
                                             </p>
-                                            <div class="space-y-2">
+                                            <div class="space-y-3">
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-400">Amount Sent (M-Pesa/Cash)</label>
                                                     <input type="number" id="rec-sent" class="w-full p-2 text-sm rounded-lg border border-slate-300 font-bold" placeholder="0">
                                                 </div>
-                                                <div class="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <label class="text-[10px] font-bold text-slate-400">Expense Name</label>
-                                                        <input type="text" id="rec-exp-name" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="e.g. Lunch">
+                                                
+                                                <!-- Dynamic Expenses -->
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-400 mb-1 block">Expenses List</label>
+                                                    <div id="expenses-container" class="space-y-2 mb-2">
+                                                        <!-- Rows Added Here -->
                                                     </div>
-                                                    <div>
-                                                        <label class="text-[10px] font-bold text-slate-400">Expense Amt</label>
-                                                        <input type="number" id="rec-exp-amt" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="0">
-                                                    </div>
+                                                    <button onclick="addExpenseRow()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded-lg font-bold w-full">
+                                                        + Add Expense
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1945,7 +2031,7 @@
                                                     ${isReconciled ? 'PREMIUM / CLEAN-UP' : 'DRESS / 2PC'}
                                                 </span></th>
                                                 <th class="px-4 py-3">Stock <span class="text-[9px] block text-slate-400">
-                                                    ${isReconciled ? 'PREMIUM / CLEAN-UP' : 'DRESS / 2PC'}
+                                                    ${isReconciled ? 'TOTAL' : 'DRESS / 2PC'}
                                                 </span></th>
                                                 <th class="px-4 py-3 rounded-r-lg">
                                                     ${isReconciled ? 'Balance BF' : 'Profit'}
@@ -1960,7 +2046,7 @@
                                                         ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0}
                                                     </td>
                                                     <td class="px-4 py-3 text-orange-600 font-bold">
-                                                        ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0}
+                                                        ${d.remDresses !== undefined ? d.remDresses : d.remaining} ${isReconciled ? '' : '/ ' + (d.remTwoPcs || 0)}
                                                     </td>
                                                     <td class="px-4 py-3 text-slate-600">
                                                         ${isReconciled ? 
@@ -2174,6 +2260,7 @@
         window.handleProcurementSave = handleProcurementSave;
         window.handleProcurementDateChange = handleProcurementDateChange;
         window.showBalanceModal = showBalanceModal;
+        window.addExpenseRow = addExpenseRow; // Exposed
         
         // Recovery Logic
         window.renderRecoveryScreen = renderRecoveryScreen;
