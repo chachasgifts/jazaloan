@@ -1343,36 +1343,41 @@
                 showNotification("Locked: 72 hours passed since entry.");
                 return;
             }
+            
+            // === CORRECT REVERSION LOGIC ===
+            // Calculate what the stock was BEFORE this entry
+            // Logic: Previous Remaining = Current Remaining - Dispatch + Sold
+            
+            // Check if user is Reconciled (handles stock differently? No, the logic is universal if fields are populated correctly)
+            // But we must be careful about nulls
+            
+            const curRemDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
+            const curRemTwoPcs = lastEntry.remTwoPcs || 0;
+            
+            const dispatchedD = lastEntry.dispatchedDresses || 0;
+            const dispatchedT = lastEntry.dispatchedTwoPcs || 0;
+            
+            const soldD = lastEntry.soldDresses !== undefined ? lastEntry.soldDresses : (lastEntry.sold || 0);
+            const soldT = lastEntry.soldTwoPcs || 0;
+            
+            // Reconstruct previous state
+            const prevRemDresses = curRemDresses - dispatchedD + soldD;
+            const prevRemTwoPcs = curRemTwoPcs - dispatchedT + soldT;
+            
+            // Set as new starting pressure (This fixes the empty history bug)
+            startingPressure = {
+                dresses: prevRemDresses,
+                twoPcs: prevRemTwoPcs
+            };
 
+            // Remove the entry
             history.pop();
             
-            // Recalculate starting pressure from the NEW last entry
-            const newLastEntry = getFullHistory()[getFullHistory().length - 1];
-            
-            if (newLastEntry) {
-                startingPressure = {
-                    dresses: newLastEntry.remDresses || newLastEntry.remaining || 0,
-                    twoPcs: newLastEntry.remTwoPcs || 0
-                };
-            } else if (archive.length > 0) {
-                const lastArch = archive[archive.length-1];
-                startingPressure = {
-                     dresses: lastArch.remDresses || lastArch.remaining || 0,
-                     twoPcs: lastArch.remTwoPcs || 0
-                };
-            } else {
-                 // Fallback to what was stored originally if history is empty and no archive
-                 const savedPressure = localStorage.getItem(`trinah_starting_pressure_${managedUser.phone}`);
-                 try {
-                     startingPressure = JSON.parse(savedPressure) || { dresses: 0, twoPcs: 0};
-                 } catch (e) { startingPressure = { dresses: 0, twoPcs: 0} }
-            }
-
             const dayIndex = DAYS.indexOf(lastEntry.date);
             if (dayIndex !== -1) selectedDayIndex = dayIndex;
 
             saveData(managedUser.phone);
-            showNotification(`Entry deleted.`);
+            showNotification(`Entry deleted. Stock reverted.`);
             renderIndividualDashboard();
         }
 
@@ -1398,59 +1403,87 @@
                 // Balance Total (Sum of all daily balances)
                 const totalBalance = data.reduce((sum, r) => sum + (Number(r.balanceBF) || 0), 0);
 
-                // Define headers based on Reconciliation mode
-                const item1Label = showBalance ? 'Premium' : 'Dresses';
-                const item2Label = showBalance ? 'Clean-Up' : '2pcs';
-                
-                const rows = data.map(item => {
-                    // Format Date: Day, Date
-                    const friendlyDate = `${item.date}, ${item.fullDate}`;
-                    
-                    const rowData = [
-                        friendlyDate, 
-                        `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
-                        `${item.remDresses || 0} ${showBalance ? '' : '/ ' + (item.remTwoPcs || 0)}` // Only show remDresses if reconciled
-                    ];
-                    
-                    if (showBalance) {
-                        // Use Balance BF column and show Detailed Expenses
-                        let balanceText = item.balanceBF !== undefined ? item.balanceBF.toLocaleString() : '0';
-                        
-                        // Add detailed expense list if available
-                        if (item.expensesList && item.expensesList.length > 0) {
-                            const details = item.expensesList.map(e => `${e.name}: ${e.amount}`).join(', ');
-                            balanceText += `\n[Exp: ${details}]`;
-                        } else if (item.expenseAmount > 0) {
-                            // Fallback
-                            balanceText += `\n(Exp Total: ${item.expenseAmount})`;
-                        }
-                        
-                        rowData.push(balanceText);
-                    } else {
-                        // Use Profit column
-                        rowData.push(item.profit.toLocaleString());
-                    }
-                    return rowData;
-                });
-
                 doc.setFillColor(30, 58, 138); // Primary Blue
                 doc.rect(0, 0, 210, 30, 'F');
                 doc.setTextColor(255,255,255);
                 doc.setFontSize(14);
                 doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
-                doc.setFontSize(10);
-                doc.text(`Format: ${item1Label} / ${item2Label}`, 14, 26);
+                
+                if (showBalance) {
+                     // === PROFESSIONAL RECONCILIATION LAYOUT ===
+                    doc.setFontSize(10);
+                    doc.text("Reconciliation Statement", 14, 26);
+                    
+                    const rows = data.map(item => {
+                         const friendlyDate = `${item.date.substring(0,3)}, ${item.fullDate}`;
+                         
+                         // Calculate Gross Sales (what came in before deductions)
+                         // Gross = Balance + Sent + Expenses
+                         const expensesVal = Number(item.expenseAmount) || 0;
+                         const sentVal = Number(item.amountSent) || 0;
+                         const balanceVal = Number(item.balanceBF) || 0;
+                         const grossSales = balanceVal + sentVal + expensesVal;
+                         
+                         // Stock Display
+                         const stockDisplay = `${item.remDresses || 0}`;
 
-                const finalColumnHeader = showBalance ? 'Bal BF (Expenses)' : 'Profit (KES)';
-                const finalTotal = showBalance ? totalBalance.toLocaleString() : totalProfit.toLocaleString();
+                         // Build Expenses String
+                         let deductionDetails = "";
+                         if (sentVal > 0) deductionDetails += `Sent: ${sentVal.toLocaleString()}\n`;
+                         if (item.expensesList && item.expensesList.length > 0) {
+                             item.expensesList.forEach(e => deductionDetails += `${e.name}: ${e.amount}\n`);
+                         } else if (expensesVal > 0) {
+                             deductionDetails += `Exp: ${expensesVal.toLocaleString()}`;
+                         }
+                         
+                         return [
+                             friendlyDate,
+                             `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`,
+                             stockDisplay,
+                             grossSales.toLocaleString(),
+                             deductionDetails.trim(),
+                             balanceVal.toLocaleString()
+                         ];
+                    });
 
-                doc.autoTable({
-                    startY: 40,
-                    head: [['Date', `Sold (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, `Stock ${showBalance ? '(Total)' : '(D/2)'}`, finalColumnHeader]],
-                    body: rows,
-                    theme: 'grid',
-                    foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', finalTotal]]
-                });
+                    doc.autoTable({
+                        startY: 40,
+                        head: [['Date', 'Sold (P/C)', 'Stock', 'Gross Sales', 'Deductions (Sent/Exp)', 'Net Balance']],
+                        body: rows,
+                        theme: 'grid',
+                        headStyles: { fillColor: [30, 58, 138], halign: 'center' },
+                        columnStyles: {
+                            3: { halign: 'right', fontStyle: 'bold' },
+                            5: { halign: 'right', fontStyle: 'bold', textColor: [22, 163, 74] } // Green Balance
+                        },
+                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', '-', '-', totalBalance.toLocaleString()]]
+                    });
+
+                } else {
+                    // === STANDARD LAYOUT ===
+                    const item1Label = 'Dresses';
+                    const item2Label = '2pcs';
+                    doc.setFontSize(10);
+                    doc.text(`Format: ${item1Label} / ${item2Label}`, 14, 26);
+                    
+                    const rows = data.map(item => {
+                        const friendlyDate = `${item.date}, ${item.fullDate}`;
+                        return [
+                            friendlyDate, 
+                            `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
+                            `${item.remDresses || 0} / ${item.remTwoPcs || 0}`,
+                            item.profit.toLocaleString()
+                        ];
+                    });
+
+                    doc.autoTable({
+                        startY: 40,
+                        head: [['Date', `Sold (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, `Stock (D/2)`, 'Profit (KES)']],
+                        body: rows,
+                        theme: 'grid',
+                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', totalProfit.toLocaleString()]]
+                    });
+                }
 
                 doc.save(`${managedUser.name}_${reportName}_Report.pdf`);
                 showNotification("PDF Downloaded!");
