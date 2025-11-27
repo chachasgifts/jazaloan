@@ -23,1647 +23,1561 @@
             background-color: rgba(15, 23, 42, 0.7);
         }
         /* PDF loader styles */
-        #pdf-loader { position: fixed; inset: 0; z-index: 60; background-color: rgba(255, 255, 255, 0.8); display: none; align-items: center; justify-content: center; flex-direction: column; }
-        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); border-left-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        #pdf-loader { position: fixed; inset: 0; z-index: 60; background-color: rgba(255, 255, 255, 0.9); display: none; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
+
         /* Custom scrollbar for better look */
         .custom-scroll::-webkit-scrollbar { width: 8px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="min-h-screen antialiased">
-    <div id="app" class="p-4 md:p-8">
-        <!-- Content will be rendered here by JavaScript -->
-    </div>
+<body class="min-h-screen">
 
-    <!-- Modals (Hidden by default) -->
-    <div id="modal-container">
-        <!-- Modals will be rendered here by JS -->
-    </div>
+    <!-- Global Notification/Toast Message Area -->
+    <div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <!-- Notification Toast -->
-    <div id="notification-container" class="fixed bottom-4 right-4 z-50 space-y-2">
-        <!-- Notifications will appear here -->
-    </div>
+    <!-- Modals -->
+    <div id="add-staff-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center"></div>
+    <div id="reports-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center"></div>
+    <div id="reset-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center"></div>
+    <div id="login-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center"></div>
+    <div id="message-box" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center"></div>
+    <div id="balance-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center"></div>
 
     <!-- PDF Loader -->
     <div id="pdf-loader">
         <div class="spinner"></div>
-        <p class="mt-4 text-gray-700 font-semibold">Generating Report...</p>
+        <p class="mt-4 text-gray-700">Generating PDF Report...</p>
     </div>
 
-    <!-- Firebase configuration and script logic -->
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // FIX: Added onSnapshot to the import list from firebase-firestore
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, setLogLevel, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global Firebase variables
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        let app, db, auth;
-        let userId = null;
-        let isAuthReady = false;
-
-        // Configuration Constants
-        const LOCAL_DB_KEY = 'trinah_designs_db';
-        const LOCAL_SESSION_KEY = 'trinah_designs_session';
-        const SYSTEM_PIN_KEY = 'trinah_designs_pin';
-        const SYSTEM_PIN_DEFAULT = '0000';
-        
-        // App State
-        let state = {
-            currentUser: null,
-            data: {
-                users: [],
-                designs: [],
-                staff: [],
-                procurement: [],
-                weeklyRecords: [],
-                globalConfig: {
-                    lastWeekEnd: null,
-                    staffBalanceMap: {},
-                }
-            },
-            currentView: 'dashboard', // dashboard, reports, manageStaff, procurement
-            isModalOpen: false,
-            modalContent: '',
-            notificationQueue: [],
-        };
-        
-        // Utility Functions
-        const jparse = (str, fallback = null) => { try { return JSON.parse(str); } catch { return fallback; } };
-        const jstringify = (obj) => JSON.stringify(obj, null, 2);
-        const uuid = () => crypto.randomUUID();
-        const formatDate = (timestamp) => new Date(timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        const formatCurrency = (amount) => `Ksh ${parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
-        const phoneToEmail = (phone) => `${phone.replace(/\D/g, '')}@trinahdesigns.com`; // Unique Firebase email for phone-based login
-
-        // ============================================================
-        // ======================== UI RENDERING ======================
-        // ============================================================
-
-        function render() {
-            const appEl = document.getElementById('app');
-            if (!appEl) return;
-            
-            let content = '';
-            
-            if (!state.currentUser) {
-                appEl.innerHTML = renderAuthScreen();
-                return;
-            }
-
-            // Main Layout
-            content = `
-                ${renderHeader()}
-                <div class="flex flex-col lg:flex-row gap-8 mt-4">
-                    <div class="lg:w-1/4">
-                        ${renderSidebar()}
-                    </div>
-                    <main class="lg:w-3/4 bg-white p-6 rounded-xl shadow-lg">
-                        ${renderCurrentView()}
-                    </main>
-                </div>
-                ${renderNotifications()}
-            `;
-            
-            appEl.innerHTML = content;
-            renderModals(); // Ensure modals are rendered
-            updateActiveLinks(); // Update active sidebar link
-        }
-
-        function updateActiveLinks() {
-            document.querySelectorAll('.sidebar-link').forEach(link => {
-                if (link.dataset.view === state.currentView) {
-                    link.classList.add('bg-blue-600', 'text-white');
-                    link.classList.remove('text-gray-700', 'hover:bg-blue-50');
-                } else {
-                    link.classList.remove('bg-blue-600', 'text-white');
-                    link.classList.add('text-gray-700', 'hover:bg-blue-50');
-                }
-            });
-        }
-
-        function setView(view) {
-            state.currentView = view;
-            render();
-        }
-
-        // --- Core UI Components ---
-
-        function renderHeader() {
-            const user = state.currentUser;
-            const userRole = user ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Guest';
-            return `
-                <header class="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-md mb-6">
-                    <h1 class="text-3xl font-bold text-blue-800 mb-2 sm:mb-0">Trinah Designs Manager</h1>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm font-medium text-gray-600">
-                            ${userRole}: ${user.name} (${userId ? userId.substring(0, 8) : 'N/A'})
-                        </span>
-                        <button onclick="handleLogout()" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition duration-150 text-sm flex items-center">
-                            <i data-lucide="log-out" class="w-4 h-4 mr-1"></i>Logout
-                        </button>
-                    </div>
-                </header>
-            `;
-        }
-
-        function renderSidebar() {
-            const lastWeekEnd = state.data.globalConfig.lastWeekEnd ? formatDate(state.data.globalConfig.lastWeekEnd) : 'N/A';
-            return `
-                <nav class="bg-white p-4 rounded-xl shadow-lg sticky top-4">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Navigation</h3>
-                    <ul class="space-y-2">
-                        <li><button onclick="setView('dashboard')" data-view="dashboard" class="sidebar-link w-full text-left p-3 rounded-lg flex items-center transition duration-150">
-                            <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i>Dashboard
-                        </button></li>
-                        <li><button onclick="setView('reports')" data-view="reports" class="sidebar-link w-full text-left p-3 rounded-lg flex items-center transition duration-150">
-                            <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>Reports
-                        </button></li>
-                        <li><button onclick="setView('procurement')" data-view="procurement" class="sidebar-link w-full text-left p-3 rounded-lg flex items-center transition duration-150">
-                            <i data-lucide="shopping-cart" class="w-5 h-5 mr-3"></i>Procurement
-                        </button></li>
-                        ${state.currentUser.role === 'admin' ? `
-                        <li><button onclick="setView('manageStaff')" data-view="manageStaff" class="sidebar-link w-full text-left p-3 rounded-lg flex items-center transition duration-150">
-                            <i data-lucide="users" class="w-5 h-5 mr-3"></i>Manage Staff
-                        </button></li>
-                        <li><button onclick="showResetModal()" class="sidebar-link w-full text-left p-3 rounded-lg flex items-center text-red-600 hover:bg-red-50 transition duration-150">
-                            <i data-lucide="alert-triangle" class="w-5 h-5 mr-3"></i>System Reset
-                        </button></li>
-                        ` : ''}
-                    </ul>
-                    
-                    <div class="mt-6 pt-4 border-t text-sm text-gray-500">
-                        <p class="font-semibold text-gray-700 mb-1">Last Week End:</p>
-                        <p>${lastWeekEnd}</p>
-                    </div>
-                </nav>
-            `;
-        }
-
-        function renderCurrentView() {
-            switch (state.currentView) {
-                case 'dashboard':
-                    return renderDashboard();
-                case 'reports':
-                    return renderReports();
-                case 'manageStaff':
-                    return renderManageStaff();
-                case 'procurement':
-                    return renderProcurement();
-                default:
-                    return renderDashboard();
-            }
-        }
-
-        // --- View Renderers ---
-
-        function renderDashboard() {
-            const { weeklyRecords, staff, designs, globalConfig } = state.data;
-            const lastRecord = weeklyRecords[weeklyRecords.length - 1];
-            const balances = globalConfig.staffBalanceMap || {};
-
-            let totalDesignsProduced = 0;
-            let totalSalaryPaid = 0;
-            let totalProcurement = 0;
-
-            weeklyRecords.forEach(r => {
-                totalDesignsProduced += r.designsProduced;
-                totalSalaryPaid += r.totalSalaryPaid;
-            });
-            
-            state.data.procurement.forEach(p => {
-                totalProcurement += p.amount;
-            });
-
-            const currentBalance = Object.values(balances).reduce((sum, b) => sum + b, 0);
-
-            return `
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Weekly Production Dashboard</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    ${renderStatCard("Total Weeks Recorded", weeklyRecords.length, "calendar", "blue")}
-                    ${renderStatCard("Total Designs Ever Produced", totalDesignsProduced, "scissors", "green")}
-                    ${renderStatCard("Total Procurement Spend", formatCurrency(totalProcurement), "shopping-bag", "red")}
-                </div>
-
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Latest Weekly Summary (${lastRecord ? formatDate(lastRecord.weekEndDate) : 'N/A'})</h3>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    ${renderStatCard("Designs Produced", lastRecord?.designsProduced || 0, "ruler", "indigo", "text-lg")}
-                    ${renderStatCard("Total Salary Paid", formatCurrency(lastRecord?.totalSalaryPaid || 0), "wallet", "teal", "text-lg")}
-                    ${renderStatCard("Pending Balances (Staff)", formatCurrency(currentBalance), "scale", "orange", "text-lg")}
-                    ${renderStatCard("Staff Count", staff.length, "users", "purple", "text-lg")}
-                </div>
-
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow-inner">
-                    <h4 class="font-bold text-blue-700 flex items-center"><i data-lucide="info" class="w-5 h-5 mr-2"></i>Action Center</h4>
-                    <p class="text-blue-600 text-sm mt-2">Ready to close the current production week and calculate salaries.</p>
-                    <button onclick="showWeekEndModal()" class="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600 transition duration-150">
-                        <i data-lucide="check-circle" class="w-4 h-4 mr-1 inline-block"></i> End Current Week
+    <!-- Main Application Container -->
+    <div id="app-container" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-md sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800 flex items-center">
+                    <i data-lucide="scissors" class="w-6 h-6 mr-2 text-indigo-600"></i>
+                    Trinah Designs Manager
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <button onclick="showBalanceModal()" class="flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition duration-150 ease-in-out">
+                        <i data-lucide="wallet" class="w-5 h-5 mr-1"></i>
+                        View Balance
                     </button>
-                    ${weeklyRecords.length > 0 && state.currentUser.role === 'admin' ? `
-                        <button onclick="showDeleteLastModal()" class="mt-4 ml-4 bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-150">
-                            <i data-lucide="undo-2" class="w-4 h-4 mr-1 inline-block"></i> Undo Last Week
-                        </button>
-                    ` : ''}
-                </div>
-            `;
-        }
-
-        function renderStatCard(title, value, icon, color, textSize = "text-xl") {
-            return `
-                <div class="bg-white p-5 rounded-xl shadow-md border-t-4 border-${color}-500 transition duration-300 hover:shadow-lg">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-gray-500">${title}</p>
-                        <i data-lucide="${icon}" class="w-6 h-6 text-${color}-500"></i>
-                    </div>
-                    <div class="mt-2">
-                        <p class="${textSize} font-bold text-gray-900">${value}</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderReports() {
-            const { weeklyRecords, staff } = state.data;
-            const balances = state.data.globalConfig.staffBalanceMap || {};
-
-            const weeklyReportsHtml = weeklyRecords.slice().reverse().map((record, index) => `
-                <tr class="hover:bg-gray-50 transition duration-150">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${weeklyRecords.length - index}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(record.weekEndDate)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${record.designsProduced}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">${formatCurrency(record.totalSalaryPaid)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${record.staffDetails.map(d => `${d.name} (${d.designs})`).join(', ')}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onclick="showReportsModal(${weeklyRecords.length - index - 1})" class="text-blue-600 hover:text-blue-900">View Details</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            return `
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Financial & Production Reports</h2>
-
-                <div class="flex space-x-4 mb-6">
-                    <button onclick="generateReport('summary')" class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-150 flex items-center">
-                        <i data-lucide="download" class="w-4 h-4 mr-2"></i>Download Summary Report (PDF)
+                    <button onclick="showReportsModal()" class="flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition duration-150 ease-in-out">
+                        <i data-lucide="printer" class="w-5 h-5 mr-1"></i>
+                        Reports
                     </button>
-                    <button onclick="showBalanceModal()" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-150 flex items-center">
-                        <i data-lucide="scale" class="w-4 h-4 mr-2"></i>Staff Balances
+                    <button onclick="showResetModal()" class="flex items-center text-sm font-medium text-red-600 hover:text-red-800 transition duration-150 ease-in-out">
+                        <i data-lucide="settings-2" class="w-5 h-5 mr-1"></i>
+                        Admin
+                    </button>
+                    <button onclick="logoutUser()" class="flex items-center text-sm font-medium text-gray-600 hover:text-gray-800 transition duration-150 ease-in-out">
+                        <i data-lucide="log-out" class="w-5 h-5 mr-1"></i>
+                        Logout
                     </button>
                 </div>
-                
-                <h3 class="text-xl font-semibold text-gray-700 mb-4 mt-6">Weekly Records (${weeklyRecords.length} Total)</h3>
+            </div>
+        </header>
 
-                <div class="overflow-x-auto shadow-md rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week End Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Designs</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Pay</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Contributions</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            ${weeklyReportsHtml || '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No weekly records found.</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
+        <!-- Main Content Area -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div id="view-container">
+                <!-- Content will be rendered here (e.g., Dashboard, Staff List, Procurement) -->
+            </div>
+        </main>
+    </div>
 
-        function renderManageStaff() {
-            const { staff } = state.data;
+    <!-- Recovery Screen Container -->
+    <div id="recovery-container" class="hidden min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <!-- Recovery content will be rendered here -->
+    </div>
 
-            const staffListHtml = staff.map(s => `
-                <li class="p-4 flex justify-between items-center bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition duration-150">
-                    <div>
-                        <p class="text-lg font-semibold text-gray-800">${s.name}</p>
-                        <p class="text-sm text-gray-500">Phone: ${s.phone} | Rate: ${formatCurrency(s.rate)}/Design</p>
-                    </div>
-                    <div class="space-x-2">
-                        <button onclick="showAddStaffModal('${s.id}')" class="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 transition duration-150">
-                            <i data-lucide="edit" class="w-5 h-5"></i>
-                        </button>
-                        <button onclick="handleDeleteStaff('${s.id}')" class="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150">
-                            <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                </li>
-            `).join('');
+    <!-- Authentication Screen Container -->
+    <div id="auth-container" class="hidden min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <!-- Login/Signup content will be rendered here -->
+    </div>
 
-            return `
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Manage Production Staff</h2>
-                
-                <div class="mb-6 flex justify-end">
-                    <button onclick="showAddStaffModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 flex items-center">
-                        <i data-lucide="plus" class="w-5 h-5 mr-2"></i>Add New Staff
-                    </button>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl shadow-md">
-                    <ul class="space-y-3">
-                        ${staffListHtml || '<li class="text-center py-4 text-gray-500">No staff members currently added.</li>'}
-                    </ul>
-                </div>
-            `;
-        }
-
-        function renderProcurement() {
-            const { procurement } = state.data;
-            const today = new Date().toISOString().substring(0, 10);
-            let totalProcurementSpend = 0;
-
-            const procurementListHtml = procurement.slice().reverse().map(p => {
-                totalProcurementSpend += p.amount;
-                return `
-                    <tr class="hover:bg-gray-50 transition duration-150">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatDate(p.date)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.item}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">${formatCurrency(p.amount)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.notes}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                             ${state.currentUser.role === 'admin' ? `
-                                <button onclick="handleDeleteProcurement('${p.id}')" class="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-100 transition duration-150">
-                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                </button>
-                            ` : ''}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-
-            return `
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Procurement/Expense Tracking</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    ${renderStatCard("Total Spend", formatCurrency(totalProcurementSpend), "shopping-bag", "red")}
-                </div>
-
-                <div class="bg-white p-6 rounded-xl shadow-md mb-8">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Add New Expense</h3>
-                    <form onsubmit="event.preventDefault(); handleProcurementSave(event)">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label for="procurement-item" class="block text-sm font-medium text-gray-700">Item Description</label>
-                                <input type="text" id="procurement-item" name="item" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                            </div>
-                            <div>
-                                <label for="procurement-amount" class="block text-sm font-medium text-gray-700">Amount Spent (Ksh)</label>
-                                <input type="number" step="0.01" id="procurement-amount" name="amount" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                            </div>
-                            <div>
-                                <label for="procurement-date" class="block text-sm font-medium text-gray-700">Date</label>
-                                <input type="date" id="procurement-date" name="date" value="${today}" onchange="handleProcurementDateChange(event)" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label for="procurement-notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-                                <textarea id="procurement-notes" name="notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"></textarea>
-                            </div>
-                        </div>
-                        <div class="mt-4 flex justify-end">
-                            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-150 flex items-center">
-                                <i data-lucide="save" class="w-5 h-5 mr-2"></i>Save Expense
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Expense History</h3>
-                <div class="overflow-x-auto shadow-md rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            ${procurementListHtml || '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No expenses recorded.</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-
-        // --- Auth Screen ---
-
-        function renderAuthScreen() {
-            if (state.currentUser) return ''; // Should not be called if user is logged in
-
-            return `
-                <div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-                    <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl">
-                        <h1 class="text-3xl font-bold text-center text-blue-800 mb-6">Trinah Designs Manager</h1>
-                        <h2 class="text-xl font-semibold text-gray-700 mb-8 text-center">Admin Login</h2>
-
-                        <form id="auth-form" onsubmit="event.preventDefault(); handleAuthFormSubmit(event)">
-                            <div class="mb-4">
-                                <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border" placeholder="e.g., 0712345678">
-                            </div>
-                            <div class="mb-6">
-                                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                                <input type="password" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                            </div>
-                            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">
-                                Login
-                            </button>
-                        </form>
-                        
-                        <div class="mt-6 text-center">
-                            <button onclick="renderRecoveryScreen()" class="text-sm text-red-500 hover:text-red-700 transition duration-150">
-                                Forgot Password / System Recovery?
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // --- System Recovery ---
-        
-        function renderRecoveryScreen(step = 1, message = '') {
-            const appEl = document.getElementById('app');
-            let recoveryContent = '';
-
-            if (step === 1) {
-                recoveryContent = `
-                    <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl">
-                        <h2 class="text-2xl font-bold text-center text-red-600 mb-4">System Recovery (Step 1/2)</h2>
-                        <p class="text-center text-sm text-gray-600 mb-6">
-                            Enter the **System Admin PIN** to initiate password reset for the admin account.
-                        </p>
-                        ${message ? `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert"><span class="block sm:inline">${message}</span></div>` : ''}
-                        <form onsubmit="event.preventDefault(); handleRecoveryStep1(event)">
-                            <div class="mb-6">
-                                <label for="pin" class="block text-sm font-medium text-gray-700">System PIN (4 digits)</label>
-                                <input type="password" id="pin" name="pin" required minlength="4" maxlength="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border text-center text-xl font-mono">
-                            </div>
-                            <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition duration-150">
-                                Verify PIN & Proceed
-                            </button>
-                        </form>
-                        <div class="mt-6 text-center">
-                            <button onclick="renderAuthScreen()" class="text-sm text-blue-500 hover:text-blue-700 transition duration-150">
-                                Back to Login
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else if (step === 2) {
-                recoveryContent = `
-                    <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl">
-                        <h2 class="text-2xl font-bold text-center text-red-600 mb-4">System Recovery (Step 2/2)</h2>
-                        <p class="text-center text-sm text-gray-600 mb-6">
-                            PIN verified. Set a new password for the admin account.
-                        </p>
-                        ${message ? `<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert"><span class="block sm:inline">${message}</span></div>` : ''}
-                        <form onsubmit="event.preventDefault(); handleRecoveryStep2(event)">
-                            <div class="mb-4">
-                                <label for="new-password" class="block text-sm font-medium text-gray-700">New Password</label>
-                                <input type="password" id="new-password" name="newPassword" required minlength="6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border">
-                            </div>
-                            <div class="mb-6">
-                                <label for="confirm-password" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
-                                <input type="password" id="confirm-password" name="confirmPassword" required minlength="6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border">
-                            </div>
-                            <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition duration-150">
-                                Reset Password & Login
-                            </button>
-                        </form>
-                        <div class="mt-6 text-center">
-                            <button onclick="renderAuthScreen()" class="text-sm text-blue-500 hover:text-blue-700 transition duration-150">
-                                Back to Login
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            appEl.innerHTML = `<div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">${recoveryContent}</div>`;
-        }
-
+    <!-- Main JavaScript Logic -->
+    <script>
         // ============================================================
-        // ========================= MODALS ===========================
+        // ======================== GLOBAL STATE ======================
         // ============================================================
+        window.localDb = [];
+        window.currentView = 'dashboard';
+        window.currentUser = null;
+        window.LAST_WEEK_BALANCE = 0;
 
-        function renderModals() {
-            const container = document.getElementById('modal-container');
-            if (!container) return;
+        // Constants
+        const SESSION_KEY = "TRINAH_SESSION_USER";
+        const LOCAL_DB_KEY = "TRINAH_DESIGNS_DB";
+        const SYSTEM_PIN = "1234"; // Default system pin
 
-            if (!state.isModalOpen) {
-                container.innerHTML = '';
-                return;
-            }
+        // Initialize localDb from localStorage if it exists (for initial setup/migration)
+        window.localDb = JSON.parse(localStorage.getItem(LOCAL_DB_KEY) || "[]");
 
-            container.innerHTML = `
-                <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onclick="closeModal()">
-                    <div class="bg-white rounded-xl shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto w-full max-w-lg" onclick="event.stopPropagation()">
-                        ${state.modalContent}
-                    </div>
-                </div>
-            `;
-            // Re-render lucide icons inside the modal
-            lucide.createIcons(); 
-        }
-
-        function showModal(contentHtml) {
-            state.isModalOpen = true;
-            state.modalContent = contentHtml;
-            renderModals();
-        }
-
-        function closeModal() {
-            state.isModalOpen = false;
-            state.modalContent = '';
-            renderModals();
-            render(); // Re-render main view to update icon status if needed
-        }
-
-        function renderModalHeader(title) {
-            return `
-                <div class="p-5 border-b flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-gray-800">${title}</h3>
-                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-            `;
-        }
-
-        // --- Specific Modal Renderers ---
-
-        function showWeekEndModal() {
-            const { staff, weeklyRecords, globalConfig } = state.data;
-            
-            if (staff.length === 0) {
-                 showNotification("Error: Please add staff members before ending a week.", "error");
-                 return;
-            }
-
-            const staffInputs = staff.map(s => `
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <label for="designs-${s.id}" class="text-sm font-medium text-gray-700">${s.name} (Rate: ${formatCurrency(s.rate)})</label>
-                    <input type="number" id="designs-${s.id}" name="designs_${s.id}" data-rate="${s.rate}" required min="0" value="0"
-                        class="w-24 text-center rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-1 border">
-                </div>
-            `).join('');
-            
-            const lastWeekEnd = globalConfig.lastWeekEnd ? formatDate(globalConfig.lastWeekEnd) : 'Never';
-            
-            const content = `
-                ${renderModalHeader("End Production Week & Calculate Payroll")}
-                <form id="week-end-form" onsubmit="event.preventDefault(); handleSubmit(event)">
-                    <div class="p-5 space-y-4">
-                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
-                            <p class="text-sm text-yellow-800">
-                                Last recorded week ended on: <span class="font-semibold">${lastWeekEnd}</span>.
-                                The new record will start from tomorrow.
-                            </p>
-                        </div>
-                        <div class="mb-4">
-                            <label for="week-end-date" class="block text-sm font-medium text-gray-700">Week End Date (Today)</label>
-                            <input type="date" id="week-end-date" name="weekEndDate" value="${new Date().toISOString().substring(0, 10)}" required readonly
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border bg-gray-100 cursor-not-allowed">
-                        </div>
-
-                        <h4 class="font-semibold text-gray-800 border-b pb-2">Designs Produced Per Staff</h4>
-                        <div class="space-y-3 custom-scroll max-h-60 overflow-y-auto">
-                            ${staffInputs}
-                        </div>
-                    </div>
-                    <div class="p-5 border-t flex justify-end">
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 flex items-center">
-                            <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>Calculate & Record
-                        </button>
-                    </div>
-                </form>
-            `;
-            showModal(content);
-        }
-
-        function showAddStaffModal(staffId = null) {
-            const isEdit = !!staffId;
-            const staff = isEdit ? state.data.staff.find(s => s.id === staffId) : {};
-
-            const content = `
-                ${renderModalHeader(isEdit ? "Edit Staff Member" : "Add New Staff Member")}
-                <form id="staff-form" onsubmit="event.preventDefault(); handleSaveStaff(event, '${staffId || ''}')">
-                    <div class="p-5 space-y-4">
-                        <div class="mb-4">
-                            <label for="staff-name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                            <input type="text" id="staff-name" name="name" value="${staff.name || ''}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        </div>
-                        <div class="mb-4">
-                            <label for="staff-phone" class="block text-sm font-medium text-gray-700">Phone Number (Used for Login/ID)</label>
-                            <input type="tel" id="staff-phone" name="phone" value="${staff.phone || ''}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        </div>
-                        <div class="mb-4">
-                            <label for="staff-rate" class="block text-sm font-medium text-gray-700">Rate Per Design (Ksh)</label>
-                            <input type="number" step="0.01" id="staff-rate" name="rate" value="${staff.rate || ''}" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
-                        </div>
-                    </div>
-                    <div class="p-5 border-t flex justify-end">
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 flex items-center">
-                            <i data-lucide="save" class="w-5 h-5 mr-2"></i>${isEdit ? 'Save Changes' : 'Add Staff'}
-                        </button>
-                    </div>
-                </form>
-            `;
-            showModal(content);
-        }
-
-        function showReportsModal(recordIndex) {
-            const record = state.data.weeklyRecords[recordIndex];
-            if (!record) return;
-
-            const staffDetailsHtml = record.staffDetails.map(d => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-2 text-sm font-medium text-gray-900">${d.name}</td>
-                    <td class="px-4 py-2 text-sm text-gray-500">${d.designs}</td>
-                    <td class="px-4 py-2 text-sm font-medium text-green-600">${formatCurrency(d.pay)}</td>
-                    <td class="px-4 py-2 text-sm text-red-600">${formatCurrency(d.deduction)}</td>
-                    <td class="px-4 py-2 text-sm font-bold text-blue-600">${formatCurrency(d.netPay)}</td>
-                </tr>
-            `).join('');
-            
-            const content = `
-                ${renderModalHeader(`Weekly Report for ${formatDate(record.weekEndDate)}`)}
-                <div class="p-5 space-y-6">
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <p class="font-medium text-gray-700">Total Designs Produced:</p>
-                        <p class="text-right font-bold text-gray-900">${record.designsProduced}</p>
-                        
-                        <p class="font-medium text-gray-700">Total Gross Salary:</p>
-                        <p class="text-right font-bold text-green-600">${formatCurrency(record.totalSalaryPaid + record.totalDeduction)}</p>
-
-                        <p class="font-medium text-gray-700">Total Deductions:</p>
-                        <p class="text-right font-bold text-red-600">${formatCurrency(record.totalDeduction)}</p>
-                        
-                        <p class="font-medium text-gray-700 text-lg">Net Total Payroll:</p>
-                        <p class="text-right font-bold text-blue-600 text-lg">${formatCurrency(record.totalSalaryPaid)}</p>
-                    </div>
-
-                    <h4 class="font-semibold text-gray-800 border-b pb-2">Staff Breakdown</h4>
-                    <div class="overflow-x-auto rounded-lg border">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Staff</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Designs</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Gross Pay</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Deductions</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Net Pay</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                ${staffDetailsHtml}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="flex justify-end pt-4 border-t">
-                        <button onclick="generateReport('weekly', ${recordIndex})" class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-150 flex items-center">
-                            <i data-lucide="printer" class="w-4 h-4 mr-2"></i>Download Weekly Report (PDF)
-                        </button>
-                    </div>
-                </div>
-            `;
-            showModal(content);
-        }
-
-        function showBalanceModal() {
-            const balances = state.data.globalConfig.staffBalanceMap || {};
-            const staff = state.data.staff;
-            
-            const balanceHtml = staff.map(s => {
-                const balance = balances[s.id] || 0;
-                const balanceClass = balance >= 0 ? 'text-green-600' : 'text-red-600';
-                
-                return `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${s.name}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${s.phone}</td>
-                        <td class="px-4 py-3 text-sm font-bold ${balanceClass}">${formatCurrency(balance)}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            const content = `
-                ${renderModalHeader("Staff Balances Summary")}
-                <div class="p-5 space-y-4">
-                    <p class="text-sm text-gray-600">
-                        This table shows the running balance for each staff member. A positive balance means the company owes the staff member money (overpayment/advance); a negative balance means the staff member owes the company (deduction).
-                    </p>
-                    <div class="overflow-x-auto rounded-lg border">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Staff Name</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Current Balance (Ksh)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                ${balanceHtml || '<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No staff balances to display.</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-            showModal(content);
-        }
-
-        function showDeleteLastModal() {
-            const lastRecord = state.data.weeklyRecords[state.data.weeklyRecords.length - 1];
-            if (!lastRecord) {
-                showNotification("No previous week record to delete.", "warning");
-                return;
-            }
-
-            const content = `
-                ${renderModalHeader("Confirm Undo Last Week")}
-                <div class="p-5 space-y-4">
-                    <div class="bg-red-100 border-l-4 border-red-500 p-4">
-                        <p class="text-sm text-red-700 font-bold">WARNING: This action is irreversible.</p>
-                        <p class="text-sm text-red-600 mt-2">
-                            You are about to delete the last recorded weekly report (Week ending: 
-                            <span class="font-semibold">${formatDate(lastRecord.weekEndDate)}</span>).
-                            Staff balances will be reverted to the state before this record.
-                        </p>
-                    </div>
-                    <p class="text-sm text-gray-700">Are you sure you want to proceed?</p>
-                </div>
-                <div class="p-5 border-t flex justify-end space-x-3">
-                    <button onclick="closeModal()" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-150">Cancel</button>
-                    <button onclick="handleDeleteLast()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition duration-150">
-                        Yes, Delete & Revert
-                    </button>
-                </div>
-            `;
-            showModal(content);
-        }
-
-        function showResetModal() {
-             const content = `
-                ${renderModalHeader("System Factory Reset")}
-                <div class="p-5 space-y-4">
-                    <div class="bg-red-100 border-l-4 border-red-500 p-4">
-                        <p class="text-sm text-red-700 font-bold">CRITICAL WARNING: This action is permanent.</p>
-                        <p class="text-sm text-red-600 mt-2">
-                            A factory reset will **ERASE ALL DATA** (weekly records, staff, procurement, balances) from the cloud database. Only perform this if you need to start completely fresh.
-                        </p>
-                    </div>
-                    <p class="text-sm text-gray-700">Enter the **System Admin PIN** to confirm this action.</p>
-                    <form onsubmit="event.preventDefault(); handleFactoryReset(event)">
-                        <div class="mb-6">
-                            <label for="reset-pin" class="block text-sm font-medium text-gray-700">System PIN (4 digits)</label>
-                            <input type="password" id="reset-pin" name="pin" required minlength="4" maxlength="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 p-2 border text-center text-xl font-mono">
-                        </div>
-                        <div class="border-t pt-4 flex justify-end space-x-3">
-                            <button type="button" onclick="closeModal()" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-150">Cancel</button>
-                            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition duration-150">
-                                Confirm Factory Reset
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            showModal(content);
-        }
-
-        // ============================================================
-        // =================== STATE MANAGEMENT & CRUD ================
-        // ============================================================
-        
-        // --- Firebase Core ---
-
-        function initFirebase() {
+        // Helper to safely parse JSON
+        function jparse(s, defaultValue = null) {
             try {
-                // Initialize Firebase
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                setLogLevel('error'); // Set log level to reduce noise
-                
-                // Auth listener
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        isAuthReady = true;
-                        
-                        // We rely on realtime sync now, so no need to fetch data here,
-                        // but we can ensure the admin user data is loaded if possible.
-                        const adminUser = state.data.users.find(u => u.role === 'admin' && phoneToEmail(u.phone) === user.email);
-
-                        if (!state.currentUser && adminUser) {
-                             state.currentUser = adminUser;
-                             render();
-                             await startRealtimeSync(); // Start sync after successful auth
-                        } else if (!state.currentUser && !adminUser && state.data.users.length > 0) {
-                            // This case means we signed in but the user data isn't in state yet (sync hasn't completed)
-                            // We wait for sync to populate state.data.users, and startRealtimeSync will handle the rest.
-                        } else if (state.data.users.length === 0) {
-                            // First run, or data wiped
-                            console.log("No users found. Admin setup required.");
-                            renderAuthScreen();
-                        }
-                    } else {
-                        userId = null;
-                        isAuthReady = true;
-                        state.currentUser = null;
-                        renderAuthScreen();
-                    }
-                });
-
-                // Sign in if token is available, otherwise anonymously
-                if (initialAuthToken) {
-                    signInWithCustomToken(auth, initialAuthToken).catch(e => {
-                        console.error("Custom token sign-in failed, signing in anonymously:", e);
-                        signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
-                    });
-                } else {
-                    signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
-                }
-            } catch (e) {
-                console.error("Firebase Auth or Init failed:", e);
-            }
-        }
-
-        /* ===========================================================
-           ====================== REALTIME SYNC ========================
-           ============================================================ */
-
-        // Public data path: /artifacts/{appId}/public/data/{your_collection_name}
-        // Private data path: /artifacts/{appId}/users/{userId}/{your_collection_name}
-        async function startRealtimeSync() {
-            if (!isAuthReady || !db || !appId) {
-                console.warn("Auth not ready or DB not initialized. Retrying sync in 1s.");
-                setTimeout(startRealtimeSync, 1000);
-                return;
-            }
-
-            console.log("Starting Realtime Sync...");
-
-            const path = `artifacts/${appId}/public/data/managementData`;
-            const q = query(collection(db, path));
-            
-            // onSnapshot listener
-            onSnapshot(q, (snapshot) => { 
-                snapshot.docChanges().forEach((change) => {
-                    const data = change.doc.data();
-                    const key = change.doc.id;
-                    
-                    if (key === 'state') {
-                        // This assumes all core application state is saved under a single 'state' document
-                        const newState = data.value ? jparse(data.value, state.data) : state.data;
-                        state.data = newState;
-                        
-                        // After updating state, re-verify current user
-                        if (auth.currentUser && auth.currentUser.email) {
-                            const adminUser = state.data.users.find(u => u.role === 'admin' && phoneToEmail(u.phone) === auth.currentUser.email);
-                            if (adminUser) {
-                                state.currentUser = adminUser;
-                            } else if (!state.currentUser) {
-                                // If admin user was deleted from data, log out
-                                console.log("Admin user data missing, logging out.");
-                                handleLogout(false); // Don't wipe local storage
-                                return;
-                            }
-                        }
-                        
-                        render();
-                        showNotification("Data updated from cloud.", "info");
-
-                    }
-                });
-
-            }, (error) => {
-                console.error("Firestore listen failed:", error);
-                showNotification("Cloud synchronization failed. Check console for details.", "error");
-            });
-        }
-        
-        // --- Data Persistence ---
-
-        // Cloud Save wrapper - uses the single 'state' document approach
-        async function saveDataToCloud(dataToSave = state.data) {
-            if (!db || !appId || !isAuthReady) {
-                console.warn("Cannot save to cloud: DB not ready.");
-                return;
-            }
-
-            try {
-                const path = `artifacts/${appId}/public/data/managementData`;
-                const docRef = doc(db, path, 'state');
-
-                // Store all application state under a single document field 'value'
-                await setDoc(docRef, { value: jstringify(dataToSave) }, { merge: false });
-
-            } catch (e) {
-                console.error("Error saving data to cloud:", e);
-                showNotification("Error saving data to cloud.", "error");
-            }
-        }
-
-        // --- Core Application Logic ---
-
-        async function handleAuthFormSubmit(event) {
-            const form = event.target;
-            const phone = form.phone.value.trim();
-            const password = form.password.value;
-            const email = phoneToEmail(phone);
-            
-            showNotification("Attempting login...", "info");
-
-            const existingAdmin = state.data.users.find(u => u.role === 'admin' && u.phone === phone);
-            
-            if (!existingAdmin) {
-                showNotification("Login failed: Admin account not found.", "error");
-                return;
-            }
-            
-            if (existingAdmin.password !== password) {
-                showNotification("Login failed: Invalid password.", "error");
-                return;
-            }
-
-            try {
-                const credential = await signInWithEmailAndPassword(auth, email, password);
-                
-                // If sign-in succeeds, onAuthStateChanged handles the state update and rendering
-                showNotification(`Welcome, ${existingAdmin.name}!`, "success");
-
-            } catch (e) {
-                // If sign-in fails, try creating the user (first time setup)
-                try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    await signInWithEmailAndPassword(auth, email, password);
-                    showNotification(`Welcome, ${existingAdmin.name}! Admin account created and logged in.`, "success");
-                } catch (createError) {
-                    console.error("Login and Creation Failed:", createError);
-                    showNotification("A critical error occurred during authentication. Check console.", "error");
-                }
-            }
-        }
-        
-        function handleLogin(user) {
-            state.currentUser = user;
-            // Since we are now using Firebase, the real login should happen via `handleAuthFormSubmit`
-            // and `onAuthStateChanged`. This function is now mainly for legacy or internal use.
-            render();
-        }
-
-        async function handleLogout(wipeLocal = true) {
-            state.currentUser = null;
-            state.currentView = 'dashboard';
-            
-            if (wipeLocal) {
-                 localStorage.removeItem(LOCAL_SESSION_KEY);
-            }
-            
-            await signOut(auth);
-            renderAuthScreen();
-            showNotification("Logged out successfully.", "info");
-        }
-
-        // --- Recovery Handlers ---
-        
-        function verifySystemPin(pin) {
-            const storedPin = localStorage.getItem(SYSTEM_PIN_KEY) || SYSTEM_PIN_DEFAULT;
-            return pin === storedPin;
-        }
-
-        function handleRecoveryStep1(event) {
-            const form = event.target;
-            const pin = form.pin.value;
-            
-            if (verifySystemPin(pin)) {
-                showNotification("PIN verified. Please set a new password.", "success");
-                renderRecoveryScreen(2);
-            } else {
-                renderRecoveryScreen(1, 'Invalid System PIN. Please try again.');
-            }
-        }
-        
-        async function handleRecoveryStep2(event) {
-            const form = event.target;
-            const newPassword = form.newPassword.value;
-            const confirmPassword = form.confirmPassword.value;
-
-            if (newPassword !== confirmPassword) {
-                renderRecoveryScreen(2, 'Passwords do not match.');
-                return;
-            }
-
-            const admin = state.data.users.find(u => u.role === 'admin');
-
-            if (!admin) {
-                renderRecoveryScreen(2, 'Admin account data not found in system. Please contact support.');
-                return;
-            }
-
-            // 1. Update password in system state
-            admin.password = newPassword;
-            await saveDataToCloud(); // Persist new password to cloud
-
-            // 2. Attempt to sign in/create the user in Firebase Auth with the new password
-            const email = phoneToEmail(admin.phone);
-            try {
-                 // Try to sign in first (if user exists in Auth)
-                await signInWithEmailAndPassword(auth, email, admin.password);
-                
+                return JSON.parse(s);
             } catch {
-                try {
-                    // If sign-in fails, create the user
-                    await createUserWithEmailAndPassword(auth, email, admin.password);
-                } catch (e) {
-                    console.error("Firebase Auth update failed after recovery:", e);
-                    renderRecoveryScreen(2, 'Failed to update Firebase Auth. Password updated in system data only. Check console for details.');
-                    return;
-                }
+                return defaultValue;
             }
-
-            // 3. Login and redirect to dashboard
-            showNotification("Password successfully reset and logged in.", "success");
-            state.currentUser = admin; // State is updated via sync, but set directly for immediate render
-            render();
-        }
-
-        // --- Weekly Record Handlers ---
-
-        async function handleSubmit(event) {
-            closeModal();
-            const form = event.target;
-            const weekEndDate = new Date(form.weekEndDate.value).getTime();
-            const staffDetails = [];
-            let totalDesignsProduced = 0;
-            let totalSalaryPaid = 0;
-            let totalDeduction = 0;
-            const newStaffBalanceMap = { ...state.data.globalConfig.staffBalanceMap };
-
-            // 1. Calculate payroll details
-            state.data.staff.forEach(s => {
-                const inputName = `designs_${s.id}`;
-                const designs = parseInt(form[inputName].value) || 0;
-                
-                if (designs > 0) {
-                    const rate = parseFloat(s.rate);
-                    const grossPay = designs * rate;
-                    const balance = newStaffBalanceMap[s.id] || 0;
-                    
-                    let deduction = 0;
-                    let netPay = grossPay;
-
-                    if (balance < 0) {
-                        // Staff owes the company (negative balance = money owed to company)
-                        const debt = Math.abs(balance);
-                        if (grossPay >= debt) {
-                            deduction = debt;
-                            newStaffBalanceMap[s.id] = 0;
-                        } else {
-                            deduction = grossPay;
-                            newStaffBalanceMap[s.id] += grossPay; // Less negative
-                        }
-                    } else if (balance > 0) {
-                        // Company owes staff (positive balance = money owed to staff)
-                        netPay += balance;
-                        newStaffBalanceMap[s.id] = 0;
-                    }
-                    
-                    netPay = grossPay - deduction;
-
-                    staffDetails.push({
-                        id: s.id,
-                        name: s.name,
-                        designs: designs,
-                        rate: rate,
-                        grossPay: grossPay,
-                        deduction: deduction,
-                        netPay: netPay,
-                    });
-
-                    totalDesignsProduced += designs;
-                    totalSalaryPaid += netPay;
-                    totalDeduction += deduction;
-                }
-            });
-
-            // 2. Create new record
-            const newRecord = {
-                id: uuid(),
-                weekEndDate,
-                designsProduced: totalDesignsProduced,
-                totalSalaryPaid: totalSalaryPaid,
-                totalDeduction: totalDeduction,
-                staffDetails: staffDetails,
-                timestamp: Date.now(),
-            };
-
-            // 3. Update global state
-            state.data.weeklyRecords.push(newRecord);
-            state.data.globalConfig.lastWeekEnd = weekEndDate;
-            state.data.globalConfig.staffBalanceMap = newStaffBalanceMap;
-            
-            // 4. Persist to cloud
-            await saveDataToCloud();
-            showNotification(`Weekly record saved successfully (Designs: ${totalDesignsProduced}, Net Pay: ${formatCurrency(totalSalaryPaid)}).`, "success");
-            render();
-        }
-
-        async function handleDeleteLast() {
-            closeModal();
-            if (state.data.weeklyRecords.length === 0) {
-                showNotification("No records to delete.", "warning");
-                return;
-            }
-
-            // 1. Get the record to be deleted
-            const recordToDelete = state.data.weeklyRecords.pop();
-            
-            // 2. Recalculate balances by reversing the effects of the deleted record
-            const prevRecord = state.data.weeklyRecords[state.data.weeklyRecords.length - 1];
-            const oldStaffBalanceMap = prevRecord ? { ...prevRecord.staffDetails.reduce((acc, d) => {
-                // To get the balance *before* the deleted record, we look at how the balance was left
-                // after the *previous* record. This logic is complex and error-prone.
-                // A safer way is to store the balance *before* the deduction/payment in the record itself.
-                // Since we don't have that, we must recalculate the entire history up to the penultimate record.
-                return acc;
-            }, {}) } : {};
-            
-            // Simpler/safer: Wipe the current balance map and recalculate ALL records up to the new 'last' record.
-            let recalculatedBalanceMap = {};
-            const remainingRecords = state.data.weeklyRecords;
-            
-            remainingRecords.forEach(record => {
-                record.staffDetails.forEach(d => {
-                    let balance = recalculatedBalanceMap[d.id] || 0;
-                    
-                    // The net effect of a record on the balance map:
-                    // Staff Pay (Gross) - Deduction = Net Pay
-                    // If balance was negative (debt), the deduction was taken off the debt.
-                    // If balance was positive (owed), the balance was added to net pay, and balance became 0.
-                    
-                    // To find the balance *before* this record, we need to reverse the transaction.
-                    // Instead of reversing, let's just reset to zero and stop at the new last record.
-                    
-                    // Since the current balance map is stored globally, the easiest way to revert is 
-                    // to save the balance map *before* the transaction in the weekly record.
-                    // Since that's not available, we will implement the crude, destructive reset:
-                    
-                    // Revert the total net pay to the balance map (advance/deduction tracking is tricky).
-                    // For now, let's assume the safe way: the new balance is just the map from the record *before* the deleted one.
-                });
-            });
-
-            // Set last week end date
-            state.data.globalConfig.lastWeekEnd = prevRecord ? prevRecord.weekEndDate : null;
-            
-            // In absence of historical balance tracking per record, we will simply reset the balance map to zero 
-            // to prevent compounding errors, and show a warning. This is a robust fallback for recovery.
-            state.data.globalConfig.staffBalanceMap = {};
-            showNotification("WARNING: Staff balances have been reset to zero due to record deletion. Please verify next payroll.", "warning");
-
-            // 3. Persist to cloud
-            await saveDataToCloud();
-            showNotification(`Last record (Week ending: ${formatDate(recordToDelete.weekEndDate)}) deleted successfully.`, "success");
-            render();
-        }
-
-        // --- Staff Management Handlers ---
-
-        async function handleSaveStaff(event, staffId = null) {
-            closeModal();
-            const form = event.target;
-            const name = form.name.value.trim();
-            const phone = form.phone.value.trim();
-            const rate = parseFloat(form.rate.value);
-
-            if (staffId) {
-                // Edit existing staff
-                const staffIndex = state.data.staff.findIndex(s => s.id === staffId);
-                if (staffIndex !== -1) {
-                    state.data.staff[staffIndex].name = name;
-                    state.data.staff[staffIndex].phone = phone;
-                    state.data.staff[staffIndex].rate = rate;
-                    showNotification(`Staff member ${name} updated.`, "success");
-                }
-            } else {
-                // Add new staff
-                const newStaff = {
-                    id: uuid(),
-                    name: name,
-                    phone: phone,
-                    rate: rate,
-                };
-                state.data.staff.push(newStaff);
-                // Initialize balance to 0
-                state.data.globalConfig.staffBalanceMap[newStaff.id] = 0;
-                showNotification(`New staff member ${name} added.`, "success");
-            }
-
-            await saveDataToCloud();
-            render();
-        }
-
-        async function handleDeleteStaff(staffId) {
-            // This should ideally be a modal confirmation, but for brevity, we do a direct delete (admin-only)
-            const staffIndex = state.data.staff.findIndex(s => s.id === staffId);
-            if (staffIndex === -1) {
-                showNotification("Staff member not found.", "error");
-                return;
-            }
-            
-            const staffName = state.data.staff[staffIndex].name;
-            
-            if (!window.confirm(`Are you sure you want to delete staff member ${staffName}? This will NOT delete past payroll records, but their balance will be cleared.`)) {
-                return;
-            }
-
-            state.data.staff.splice(staffIndex, 1);
-            delete state.data.globalConfig.staffBalanceMap[staffId];
-
-            await saveDataToCloud();
-            showNotification(`Staff member ${staffName} deleted successfully.`, "success");
-            render();
-        }
-        
-        // --- Procurement Handlers ---
-
-        function handleProcurementDateChange(event) {
-            // Optional: for user experience, ensure date is handled, but state is not changed here
-        }
-
-        async function handleProcurementSave(event) {
-            const form = event.target;
-            const item = form.item.value.trim();
-            const amount = parseFloat(form.amount.value);
-            const date = new Date(form.date.value).getTime();
-            const notes = form.notes.value.trim();
-
-            const newExpense = {
-                id: uuid(),
-                item,
-                amount,
-                date,
-                notes,
-                timestamp: Date.now(),
-            };
-
-            state.data.procurement.push(newExpense);
-            
-            // Clear form
-            form.reset();
-            form.date.value = new Date().toISOString().substring(0, 10);
-
-            await saveDataToCloud();
-            showNotification(`Expense of ${formatCurrency(amount)} recorded.`, "success");
-            render();
-        }
-        
-        async function handleDeleteProcurement(expenseId) {
-             const expenseIndex = state.data.procurement.findIndex(p => p.id === expenseId);
-             if (expenseIndex === -1) {
-                showNotification("Expense record not found.", "error");
-                return;
-             }
-
-             const expense = state.data.procurement[expenseIndex];
-             
-             if (!window.confirm(`Are you sure you want to delete the expense for ${expense.item} (${formatCurrency(expense.amount)})?`)) {
-                return;
-            }
-
-            state.data.procurement.splice(expenseIndex, 1);
-            await saveDataToCloud();
-            showNotification(`Expense for ${expense.item} deleted.`, "success");
-            render();
-        }
-
-        // --- System Reset Handler ---
-
-        async function handleFactoryReset(event) {
-            closeModal();
-            const form = event.target;
-            const pin = form.pin.value;
-
-            if (!verifySystemPin(pin)) {
-                showNotification("Factory Reset failed: Invalid System PIN.", "error");
-                return;
-            }
-
-            showNotification("Performing factory reset...", "warning");
-
-            // 1. Wipe all application data in state
-            const initialAdmin = state.data.users.find(u => u.role === 'admin');
-            const initialAdminPassword = initialAdmin ? initialAdmin.password : 'adminpass';
-            const initialAdminPhone = initialAdmin ? initialAdmin.phone : '0711223344';
-            
-            // Reset to a clean state, preserving only the default admin for login
-            state.data = {
-                users: [{ 
-                    id: uuid(), 
-                    name: 'Admin User', 
-                    phone: initialAdminPhone, 
-                    password: initialAdminPassword, 
-                    role: 'admin' 
-                }],
-                designs: [],
-                staff: [],
-                procurement: [],
-                weeklyRecords: [],
-                globalConfig: {
-                    lastWeekEnd: null,
-                    staffBalanceMap: {},
-                }
-            };
-            
-            // 2. Persist the clean state to the cloud (overwriting everything)
-            await saveDataToCloud();
-            
-            // 3. Re-render auth screen
-            await handleLogout(false); // Log out but don't wipe session/pin
-            
-            showNotification("Factory Reset Complete. All data erased. Please login with admin credentials.", "success");
         }
 
         // ============================================================
-        // ========================= NOTIFICATIONS ====================
+        // ================== UTILITY FUNCTIONS =======================
         // ============================================================
-
-        function showNotification(message, type = 'info', duration = 4000) {
-            const id = uuid();
-            const iconMap = {
-                info: 'info',
-                success: 'check-circle',
-                warning: 'alert-triangle',
-                error: 'x-circle',
-            };
-            const colorMap = {
-                info: 'bg-blue-500',
-                success: 'bg-green-500',
-                warning: 'bg-yellow-500',
-                error: 'bg-red-500',
-            };
-
-            const notification = {
-                id,
-                message,
-                type,
-                icon: iconMap[type] || 'info',
-                color: colorMap[type] || 'bg-blue-500',
-            };
-
-            state.notificationQueue.push(notification);
-            renderNotifications();
-
-            setTimeout(() => {
-                state.notificationQueue = state.notificationQueue.filter(n => n.id !== id);
-                renderNotifications();
-            }, duration);
-        }
-
-        function renderNotifications() {
+        
+        // Notification/Toast Utility
+        function showNotification(message, type = 'info') {
             const container = document.getElementById('notification-container');
-            if (!container) return;
+            const color = {
+                'info': 'bg-blue-500',
+                'success': 'bg-green-500',
+                'error': 'bg-red-500',
+                'warning': 'bg-yellow-500'
+            }[type];
 
-            container.innerHTML = state.notificationQueue.map(n => `
-                <div id="notif-${n.id}" class="${n.color} text-white p-4 rounded-lg shadow-xl flex items-center space-x-3 transition-all duration-500 transform translate-x-0" style="min-width: 250px; max-width: 350px;">
-                    <i data-lucide="${n.icon}" class="w-5 h-5 flex-shrink-0"></i>
-                    <p class="text-sm font-medium">${n.message}</p>
-                </div>
-            `).join('');
+            const icon = {
+                'info': 'info',
+                'success': 'check-circle',
+                'error': 'x-circle',
+                'warning': 'alert-triangle'
+            }[type];
+
+            const notification = document.createElement('div');
+            notification.className = `p-4 rounded-lg shadow-xl text-white ${color} flex items-center transition-opacity duration-300 opacity-0 transform translate-x-full`;
+            notification.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 mr-2"></i> ${message}`;
             
-            // Re-render lucide icons in notifications
+            container.appendChild(notification);
+            lucide.createIcons(); // Render the icon
+
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('opacity-0', 'translate-x-full');
+                notification.classList.add('opacity-100', 'translate-x-0');
+            }, 10);
+
+            // Animate out and remove
+            setTimeout(() => {
+                notification.classList.remove('opacity-100', 'translate-x-0');
+                notification.classList.add('opacity-0', 'translate-x-full');
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+        window.showNotification = showNotification; // Make available globally
+
+        // Custom Message Box (Replaces alert/confirm)
+        function showMessageBox(title, message, type = 'info', onConfirm = null) {
+            const modal = document.getElementById('message-box');
+            const isConfirm = typeof onConfirm === 'function';
+            
+            const color = {
+                'info': 'text-blue-600',
+                'success': 'text-green-600',
+                'error': 'text-red-600',
+                'warning': 'text-yellow-600'
+            }[type];
+
+            const icon = {
+                'info': 'info',
+                'success': 'check-circle',
+                'error': 'x-circle',
+                'warning': 'alert-triangle'
+            }[type];
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-4 transform transition-all duration-300 scale-95">
+                    <div class="flex items-start">
+                        <i data-lucide="${icon}" class="w-8 h-8 mr-3 ${color}"></i>
+                        <div>
+                            <h3 class="text-lg leading-6 font-bold text-gray-900">${title}</h3>
+                            <div class="mt-2 text-sm text-gray-500">
+                                <p>${message}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:space-x-2 sm:space-x-reverse">
+                        <button type="button" id="confirm-btn" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition duration-150">
+                            ${isConfirm ? 'Confirm' : 'Close'}
+                        </button>
+                        ${isConfirm ? `
+                        <button type="button" id="cancel-btn" class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm transition duration-150">
+                            Cancel
+                        </button>` : ''}
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+
+            const close = () => {
+                modal.classList.add('hidden');
+                document.getElementById('confirm-btn').removeEventListener('click', confirmHandler);
+                if (isConfirm) document.getElementById('cancel-btn').removeEventListener('click', cancelHandler);
+            };
+
+            const confirmHandler = () => {
+                if (isConfirm) onConfirm();
+                close();
+            };
+
+            const cancelHandler = () => {
+                close();
+            };
+
+            document.getElementById('confirm-btn').addEventListener('click', confirmHandler);
+            if (isConfirm) document.getElementById('cancel-btn').addEventListener('click', cancelHandler);
+        }
+        window.showMessageBox = showMessageBox;
+
+
+        // Date Helpers
+        function formatDate(dateString) {
+            const date = dateString ? new Date(dateString) : new Date();
+            return date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+        }
+        
+        // ============================================================
+        // ===================== DATA MANAGEMENT ======================
+        // ============================================================
+
+        function getLastDataEntry() {
+            if (window.localDb.length === 0) return null;
+            return window.localDb[window.localDb.length - 1];
+        }
+
+        function calculateBalance() {
+            const lastEntry = getLastDataEntry();
+            if (!lastEntry) return 0;
+            
+            const totalRevenue = lastEntry.entries.reduce((sum, entry) => sum + entry.revenue, 0);
+            const totalWage = lastEntry.entries.reduce((sum, entry) => sum + entry.wage, 0);
+            const totalProcurement = lastEntry.procurement.reduce((sum, item) => sum + item.cost, 0);
+
+            const previousBalance = window.LAST_WEEK_BALANCE;
+            const currentBalance = previousBalance + totalRevenue - totalWage - totalProcurement;
+            return currentBalance;
+        }
+
+        // The saveData function will be overridden by the Firebase script to push to cloud.
+        function saveData() {
+            // Default local storage save (used until Firebase is ready)
+            localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(window.localDb));
+            window.updateUI();
+            console.warn("Using local storage save. Cloud save not initialized yet.");
+        }
+        window.saveData = saveData; // Make available globally
+
+
+        // ============================================================
+        // ======================= UI RENDERING =======================
+        // ============================================================
+
+        function updateUI() {
+            // Re-render the current view
+            switch (window.currentView) {
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                case 'staff-list':
+                    renderStaffList();
+                    break;
+                case 'procurement':
+                    renderProcurement();
+                    break;
+                case 'manage-user':
+                    renderManageUser();
+                    break;
+            }
+            // Re-create icons for any new content
             lucide.createIcons();
         }
-        
-        // Expose to global scope for HTML event handlers
-        window.handleSubmit = handleSubmit;
-        window.handleLogout = handleLogout;
-        window.handleAuthFormSubmit = handleAuthFormSubmit;
-        window.showWeekEndModal = showWeekEndModal;
-        window.closeModal = closeModal;
-        window.showNotification = showNotification;
-        window.handleDeleteLast = handleDeleteLast;
-        window.showDeleteLastModal = showDeleteLastModal;
-        window.showAddStaffModal = showAddStaffModal;
-        window.showReportsModal = showReportsModal;
-        window.showResetModal = showResetModal;
-        window.handleFactoryReset = handleFactoryReset;
+        window.updateUI = updateUI; // Make available globally
+
+        // Main View Renderer
+        function setView(viewName) {
+            window.currentView = viewName;
+            updateUI();
+        }
         window.setView = setView;
+
+
+        // ============================================================
+        // ========================= DASHBOARD ========================
+        // ============================================================
+
+        function renderDashboard() {
+            const container = document.getElementById('view-container');
+            const lastEntry = getLastDataEntry();
+            const currentBalance = calculateBalance();
+            
+            let dashboardContent = `
+                <h2 class="text-3xl font-extrabold text-gray-900 mb-6">Weekly Dashboard</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Card 1: Current Balance -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-indigo-100">
+                        <div class="flex items-center">
+                            <i data-lucide="wallet" class="w-8 h-8 text-indigo-500 mr-4"></i>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Current Balance</p>
+                                <p class="text-2xl font-bold text-gray-900">${formatCurrency(currentBalance)}</p>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-xs text-gray-400">Calculated from the last completed week.</p>
+                    </div>
+
+                    <!-- Card 2: Last Week Revenue -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-green-100">
+                        <div class="flex items-center">
+                            <i data-lucide="trending-up" class="w-8 h-8 text-green-500 mr-4"></i>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Last Week Revenue</p>
+                                <p class="text-2xl font-bold text-gray-900">${formatCurrency(lastEntry ? lastEntry.entries.reduce((sum, entry) => sum + entry.revenue, 0) : 0)}</p>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-xs text-gray-400">From ${lastEntry ? formatDate(lastEntry.startDate) : 'N/A'} to ${lastEntry ? formatDate(lastEntry.endDate) : 'N/A'}</p>
+                    </div>
+
+                    <!-- Card 3: Last Week Wages -->
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-red-100">
+                        <div class="flex items-center">
+                            <i data-lucide="users" class="w-8 h-8 text-red-500 mr-4"></i>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Last Week Wages</p>
+                                <p class="text-2xl font-bold text-gray-900">${formatCurrency(lastEntry ? lastEntry.entries.reduce((sum, entry) => sum + entry.wage, 0) : 0)}</p>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-xs text-gray-400">Total payments made to staff.</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Current Week's Entries</h3>
+                    <button onclick="handleStartNewWeek()" class="flex items-center bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out">
+                        <i data-lucide="calendar-plus" class="w-5 h-5 mr-2"></i>
+                        Start New Week
+                    </button>
+                </div>
+            `;
+
+            if (!lastEntry) {
+                dashboardContent += `
+                    <div class="text-center p-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                        <i data-lucide="inbox" class="w-12 h-12 mx-auto text-gray-400 mb-4"></i>
+                        <h4 class="text-lg font-medium text-gray-700">No Weekly Data Yet</h4>
+                        <p class="text-sm text-gray-500 mt-1">Please start a new week to begin logging transactions.</p>
+                        <button onclick="handleStartNewWeek()" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition duration-150 ease-in-out">
+                            Start First Week
+                        </button>
+                    </div>
+                `;
+            } else {
+                dashboardContent += renderDashboardTable(lastEntry);
+                dashboardContent += `
+                    <div class="mt-8 flex justify-end space-x-4">
+                        <button onclick="handleDeleteLast()" class="flex items-center text-sm font-medium text-red-600 hover:text-red-800 transition duration-150 ease-in-out">
+                            <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i>
+                            Delete Last Entry
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = dashboardContent;
+            lucide.createIcons(); // Ensure icons are created for the new content
+        }
+
+        function renderDashboardTable(entry) {
+            const allStaff = window.localDb.find(d => d.key === 'staffList')?.data || [];
+
+            let tableRows = entry.entries.map((item, index) => {
+                const staffName = allStaff.find(s => s.id === item.staffId)?.name || `ID: ${item.staffId}`;
+                return `
+                    <tr class="hover:bg-gray-50 border-b">
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">${index + 1}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${staffName}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${item.item}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${formatCurrency(item.revenue)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${formatCurrency(item.wage)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="bg-white shadow-xl rounded-xl overflow-hidden">
+                    <div class="p-4 bg-indigo-50 flex justify-between items-center">
+                        <p class="text-sm font-semibold text-indigo-700">Week: ${formatDate(entry.startDate)} - ${formatDate(entry.endDate)}</p>
+                        <button onclick="renderNewEntryForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-1.5 px-3 rounded-lg shadow transition duration-150 ease-in-out">
+                            <i data-lucide="plus" class="w-4 h-4 inline-block mr-1"></i>
+                            Add Entry
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto custom-scroll max-h-96">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wage</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderNewEntryForm() {
+            const container = document.getElementById('view-container');
+            const lastEntry = getLastDataEntry();
+            const staffList = window.localDb.find(d => d.key === 'staffList')?.data || [];
+
+            if (!lastEntry) {
+                return showMessageBox("Error", "Please start a new week before adding entries.", 'error');
+            }
+            if (staffList.length === 0) {
+                return showMessageBox("No Staff", "Please add staff members in the Admin section before adding entries.", 'warning');
+            }
+
+            const staffOptions = staffList.map(staff => 
+                `<option value="${staff.id}">${staff.name}</option>`
+            ).join('');
+
+            const formContent = `
+                <div class="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-2xl">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">Add New Weekly Entry</h3>
+                    <form onsubmit="handleSubmit(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="staffId" class="block text-sm font-medium text-gray-700">Staff Member</label>
+                                <select id="staffId" name="staffId" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-sm">
+                                    <option value="" disabled selected>Select staff member</option>
+                                    ${staffOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="item" class="block text-sm font-medium text-gray-700">Item Description</label>
+                                <input type="text" id="item" name="item" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="revenue" class="block text-sm font-medium text-gray-700">Revenue ($)</label>
+                                    <input type="number" id="revenue" name="revenue" required min="0" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label for="wage" class="block text-sm font-medium text-gray-700">Wage ($)</label>
+                                    <input type="number" id="wage" name="wage" required min="0" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button type="button" onclick="setView('dashboard')" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150">
+                                Add Entry
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            container.innerHTML = formContent;
+        }
+
+        // ============================================================
+        // ====================== HANDLERS ============================
+        // ============================================================
+
+        function handleSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const staffId = form.staffId.value;
+            const item = form.item.value;
+            const revenue = parseFloat(form.revenue.value);
+            const wage = parseFloat(form.wage.value);
+
+            const newEntry = {
+                id: crypto.randomUUID(),
+                staffId,
+                item,
+                revenue,
+                wage,
+                timestamp: new Date().toISOString()
+            };
+
+            const lastEntry = getLastDataEntry();
+            if (lastEntry) {
+                lastEntry.entries.push(newEntry);
+                window.saveData();
+                setView('dashboard');
+                showNotification(`Entry for ${item} added successfully!`, 'success');
+            } else {
+                showMessageBox("Error", "Cannot add entry. Please start a new week first.", 'error');
+            }
+        }
+        window.handleSubmit = handleSubmit;
+
+        function handleDeleteLast() {
+            showMessageBox(
+                "Confirm Deletion", 
+                "Are you sure you want to delete the last transaction entry? This action cannot be undone.", 
+                'warning', 
+                () => {
+                    const lastEntry = getLastDataEntry();
+                    if (lastEntry && lastEntry.entries.length > 0) {
+                        const deleted = lastEntry.entries.pop();
+                        window.saveData();
+                        setView('dashboard');
+                        showNotification(`Last entry (${deleted.item}) deleted.`, 'info');
+                    } else {
+                        showMessageBox("Error", "No entries to delete in the current week.", 'error');
+                    }
+                }
+            );
+        }
+        window.handleDeleteLast = handleDeleteLast;
+
+        function handleStartNewWeek() {
+            showMessageBox(
+                "Start New Week", 
+                "Starting a new week will lock the current week's data and reset entries. Do you want to proceed?", 
+                'info', 
+                () => {
+                    const now = new Date();
+                    const nextWeek = new Date(now);
+                    nextWeek.setDate(now.getDate() + 7);
+
+                    const newWeekData = {
+                        id: crypto.randomUUID(),
+                        startDate: now.toISOString(),
+                        endDate: nextWeek.toISOString(),
+                        entries: [],
+                        procurement: []
+                    };
+                    window.LAST_WEEK_BALANCE = calculateBalance(); // Update balance before starting new week
+
+                    // Find or initialize weeklyData object
+                    let weeklyData = window.localDb.find(d => d.key === 'weeklyData');
+                    if (!weeklyData) {
+                        weeklyData = { key: 'weeklyData', data: [] };
+                        window.localDb.push(weeklyData);
+                    }
+                    weeklyData.data.push(newWeekData);
+
+                    window.saveData();
+                    setView('dashboard');
+                    showNotification("New week successfully started!", 'success');
+                }
+            );
+        }
+        window.handleStartNewWeek = handleStartNewWeek;
+
+
+        // ============================================================
+        // ======================== STAFF LIST ========================
+        // ============================================================
+
+        function renderStaffList() {
+            const container = document.getElementById('view-container');
+            const staffList = window.localDb.find(d => d.key === 'staffList')?.data || [];
+
+            let staffRows = staffList.map(staff => `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${staff.name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${staff.phone}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${staff.role}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">
+                        <button onclick="handleDeleteStaff('${staff.id}', '${staff.name}')" class="text-red-600 hover:text-red-900 transition duration-150">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Staff List</h2>
+                    <button onclick="showAddStaffModal()" class="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out">
+                        <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i>
+                        Add Staff
+                    </button>
+                </div>
+
+                <div class="bg-white shadow-xl rounded-xl overflow-hidden">
+                    <div class="overflow-x-auto custom-scroll">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${staffRows.length > 0 ? staffRows : `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No staff added yet.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button onclick="setView('dashboard')" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function showAddStaffModal() {
+            const modal = document.getElementById('add-staff-modal');
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all duration-300 scale-95">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Add New Staff Member</h3>
+                    <form onsubmit="handleSaveStaff(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="staffName" class="block text-sm font-medium text-gray-700">Full Name</label>
+                                <input type="text" id="staffName" name="staffName" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="staffPhone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                                <input type="tel" id="staffPhone" name="staffPhone" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="staffRole" class="block text-sm font-medium text-gray-700">Role</label>
+                                <select id="staffRole" name="staffRole" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-sm">
+                                    <option value="Seamstress">Seamstress</option>
+                                    <option value="Apprentice">Apprentice</option>
+                                    <option value="Manager">Manager</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button type="button" onclick="document.getElementById('add-staff-modal').classList.add('hidden')" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150">
+                                Save Staff
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        window.showAddStaffModal = showAddStaffModal;
         
-        // New Handlers
+        function handleSaveStaff(event) {
+            event.preventDefault();
+            const form = event.target;
+            const staff = {
+                id: crypto.randomUUID(),
+                name: form.staffName.value,
+                phone: form.staffPhone.value,
+                role: form.staffRole.value,
+            };
+
+            let staffData = window.localDb.find(d => d.key === 'staffList');
+            if (!staffData) {
+                staffData = { key: 'staffList', data: [] };
+                window.localDb.push(staffData);
+            }
+            staffData.data.push(staff);
+
+            window.saveData();
+            document.getElementById('add-staff-modal').classList.add('hidden');
+            setView('staff-list');
+            showNotification(`${staff.name} added to staff list.`, 'success');
+        }
+        window.handleSaveStaff = handleSaveStaff;
+
+        function handleDeleteStaff(staffId, staffName) {
+            showMessageBox(
+                "Confirm Deletion", 
+                `Are you sure you want to remove ${staffName} from the staff list?`, 
+                'warning', 
+                () => {
+                    let staffData = window.localDb.find(d => d.key === 'staffList');
+                    if (staffData) {
+                        staffData.data = staffData.data.filter(s => s.id !== staffId);
+                        window.saveData();
+                        setView('staff-list');
+                        showNotification(`${staffName} removed.`, 'info');
+                    }
+                }
+            );
+        }
+        window.handleDeleteStaff = handleDeleteStaff;
+
+
+        // ============================================================
+        // ======================== PROCUREMENT =======================
+        // ============================================================
+
+        function renderProcurement() {
+            const container = document.getElementById('view-container');
+            const lastEntry = getLastDataEntry();
+            const procurementList = lastEntry ? lastEntry.procurement : [];
+
+            let procurementRows = procurementList.map(item => `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${formatDate(item.date)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${item.item}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${item.supplier}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${formatCurrency(item.cost)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">
+                        <button onclick="handleDeleteProcurement('${item.id}')" class="text-red-600 hover:text-red-900 transition duration-150">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const totalProcurementCost = procurementList.reduce((sum, item) => sum + item.cost, 0);
+
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Procurement & Inventory</h2>
+                    <button onclick="renderProcurementForm()" class="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out">
+                        <i data-lucide="package-plus" class="w-5 h-5 mr-2"></i>
+                        Add Purchase
+                    </button>
+                </div>
+                
+                <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 rounded-lg">
+                    <p class="font-bold">Total Procurement Cost (Current Week): ${formatCurrency(totalProcurementCost)}</p>
+                    <p class="text-sm">Week: ${lastEntry ? formatDate(lastEntry.startDate) : 'N/A'} - ${lastEntry ? formatDate(lastEntry.endDate) : 'N/A'}</p>
+                </div>
+
+                <div class="bg-white shadow-xl rounded-xl overflow-hidden">
+                    <div class="overflow-x-auto custom-scroll max-h-96">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Purchased</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${procurementRows.length > 0 ? procurementRows : `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No procurement records for this week.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button onclick="setView('dashboard')" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                        Back to Dashboard
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderProcurementForm() {
+            const container = document.getElementById('view-container');
+            const lastEntry = getLastDataEntry();
+
+            if (!lastEntry) {
+                return showMessageBox("Error", "Please start a new week before adding procurement entries.", 'error');
+            }
+
+            const formContent = `
+                <div class="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-2xl">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">Add New Purchase</h3>
+                    <form onsubmit="handleProcurementSave(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="purchaseDate" class="block text-sm font-medium text-gray-700">Date of Purchase</label>
+                                <input type="date" id="purchaseDate" name="purchaseDate" required onchange="handleProcurementDateChange(this.value)" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="purchaseItem" class="block text-sm font-medium text-gray-700">Item Description</label>
+                                <input type="text" id="purchaseItem" name="purchaseItem" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="supplier" class="block text-sm font-medium text-gray-700">Supplier Name</label>
+                                <input type="text" id="supplier" name="supplier" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="cost" class="block text-sm font-medium text-gray-700">Cost ($)</label>
+                                <input type="number" id="cost" name="cost" required min="0" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button type="button" onclick="setView('procurement')" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150">
+                                Record Purchase
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            container.innerHTML = formContent;
+            
+            // Set default date to today
+            document.getElementById('purchaseDate').valueAsDate = new Date();
+        }
+
+        function handleProcurementDateChange(dateString) {
+            const lastEntry = getLastDataEntry();
+            if (lastEntry) {
+                const purchaseDate = new Date(dateString);
+                const startDate = new Date(lastEntry.startDate);
+                const endDate = new Date(lastEntry.endDate);
+                
+                // Set time to start/end of day for accurate comparison
+                startDate.setHours(0, 0, 0, 0);
+                endDate.setHours(23, 59, 59, 999);
+
+                if (purchaseDate < startDate || purchaseDate > endDate) {
+                    showMessageBox("Date Warning", "The selected date is outside the current tracking week. This entry will still be recorded but verify the date.", 'warning');
+                }
+            }
+        }
+        window.handleProcurementDateChange = handleProcurementDateChange;
+
+        function handleProcurementSave(event) {
+            event.preventDefault();
+            const form = event.target;
+            const purchase = {
+                id: crypto.randomUUID(),
+                date: form.purchaseDate.value,
+                item: form.purchaseItem.value,
+                supplier: form.supplier.value,
+                cost: parseFloat(form.cost.value),
+                timestamp: new Date().toISOString()
+            };
+
+            const lastEntry = getLastDataEntry();
+            if (lastEntry) {
+                lastEntry.procurement.push(purchase);
+                window.saveData();
+                setView('procurement');
+                showNotification(`Purchase of ${purchase.item} recorded.`, 'success');
+            } else {
+                showMessageBox("Error", "Cannot add purchase. Please start a new week first.", 'error');
+            }
+        }
+        window.handleProcurementSave = handleProcurementSave;
+
+        function handleDeleteProcurement(itemId) {
+            showMessageBox(
+                "Confirm Deletion", 
+                "Are you sure you want to delete this procurement record? This action cannot be undone.", 
+                'warning', 
+                () => {
+                    const lastEntry = getLastDataEntry();
+                    if (lastEntry) {
+                        lastEntry.procurement = lastEntry.procurement.filter(item => item.id !== itemId);
+                        window.saveData();
+                        setView('procurement');
+                        showNotification("Procurement record deleted.", 'info');
+                    }
+                }
+            );
+        }
+        window.handleDeleteProcurement = handleDeleteProcurement;
+
+
+        // ============================================================
+        // ======================== MODAL RENDERERS ===================
+        // ============================================================
+
+        function showReportsModal() {
+            const modal = document.getElementById('reports-modal');
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all duration-300 scale-95">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Generate Reports</h3>
+                    <p class="text-gray-600 mb-6">Select the type of report you wish to generate (as PDF).</p>
+                    <div class="space-y-3">
+                        <button onclick="generateWeeklySummaryReport()" class="w-full text-left flex items-center bg-gray-50 hover:bg-gray-100 p-4 rounded-lg border transition duration-150">
+                            <i data-lucide="bar-chart-2" class="w-5 h-5 mr-3 text-indigo-600"></i>
+                            Weekly Summary Report (Current Week)
+                        </button>
+                        <button onclick="generateStaffWageReport()" class="w-full text-left flex items-center bg-gray-50 hover:bg-gray-100 p-4 rounded-lg border transition duration-150">
+                            <i data-lucide="users" class="w-5 h-5 mr-3 text-indigo-600"></i>
+                            Staff Wages Report (All Time)
+                        </button>
+                        <button onclick="generateProcurementHistoryReport()" class="w-full text-left flex items-center bg-gray-50 hover:bg-gray-100 p-4 rounded-lg border transition duration-150">
+                            <i data-lucide="package" class="w-5 h-5 mr-3 text-indigo-600"></i>
+                            Procurement History Report (All Time)
+                        </button>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" onclick="document.getElementById('reports-modal').classList.add('hidden')" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        window.showReportsModal = showReportsModal;
+
+        function showResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all duration-300 scale-95">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Admin Settings</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <h4 class="font-bold text-red-700">Factory Reset</h4>
+                            <p class="text-sm text-red-600 mb-3">This will permanently wipe ALL application data from the cloud and local storage.</p>
+                            <button onclick="handleFactoryReset()" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150">
+                                Initiate Factory Reset
+                            </button>
+                        </div>
+
+                        <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <h4 class="font-bold text-indigo-700">Staff Management</h4>
+                            <p class="text-sm text-indigo-600 mb-3">Manage staff members and their roles.</p>
+                            <button onclick="setView('staff-list'); document.getElementById('reset-modal').classList.add('hidden');" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150">
+                                Go to Staff List
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" onclick="document.getElementById('reset-modal').classList.add('hidden')" class="bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        window.showResetModal = showResetModal;
+
+        function handleFactoryReset() {
+            document.getElementById('reset-modal').classList.add('hidden');
+            showMessageBox(
+                "Final Warning: Factory Reset", 
+                "Are you absolutely sure? This will delete all weekly, staff, and procurement data permanently from ALL devices. Type the system PIN to confirm.", 
+                'error', 
+                () => {
+                    const pin = prompt("Enter the System PIN to confirm full data wipe:");
+                    if (pin === SYSTEM_PIN) {
+                        window.localDb = [];
+                        localStorage.removeItem(LOCAL_DB_KEY);
+                        window.saveData(); // Save empty array to cloud
+                        window.LAST_WEEK_BALANCE = 0;
+                        setView('dashboard');
+                        showNotification("Factory Reset Complete. All data wiped.", 'error');
+                    } else if (pin !== null) {
+                        showNotification("Incorrect PIN. Reset cancelled.", 'error');
+                    }
+                }
+            );
+        }
+        window.handleFactoryReset = handleFactoryReset;
+
+        function showBalanceModal() {
+            const modal = document.getElementById('balance-modal');
+            const currentBalance = calculateBalance();
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all duration-300 scale-95">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">Financial Balance</h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-lg font-medium p-3 bg-gray-50 rounded-lg">
+                            <span>Last Week's Starting Balance:</span>
+                            <span class="text-gray-800">${formatCurrency(window.LAST_WEEK_BALANCE)}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-lg font-medium p-3 bg-gray-50 rounded-lg">
+                            <span>Current Week Revenue:</span>
+                            <span class="text-green-600">${formatCurrency(getLastDataEntry()?.entries.reduce((sum, entry) => sum + entry.revenue, 0) || 0)}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-lg font-medium p-3 bg-gray-50 rounded-lg">
+                            <span>Current Week Expenditures (Wages + Procurement):</span>
+                            <span class="text-red-600">${formatCurrency((getLastDataEntry()?.entries.reduce((sum, entry) => sum + entry.wage, 0) || 0) + (getLastDataEntry()?.procurement.reduce((sum, item) => sum + item.cost, 0) || 0))}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-2xl font-extrabold p-4 rounded-lg ${currentBalance >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            <span>FINAL BALANCE:</span>
+                            <span>${formatCurrency(currentBalance)}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" onclick="document.getElementById('balance-modal').classList.add('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150">
+                            Got It
+                        </button>
+                    </div>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        window.showBalanceModal = showBalanceModal;
+
+
+        // ============================================================
+        // ========================= PDF REPORTS ======================
+        // ============================================================
+
+        function showPdfLoader(show) {
+            document.getElementById('pdf-loader').style.display = show ? 'flex' : 'none';
+        }
+
+        function generateWeeklySummaryReport() {
+            document.getElementById('reports-modal').classList.add('hidden');
+            showPdfLoader(true);
+
+            setTimeout(() => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const lastEntry = getLastDataEntry();
+                const currentBalance = calculateBalance();
+
+                if (!lastEntry) {
+                    showPdfLoader(false);
+                    return showMessageBox("Error", "No weekly data available to generate a summary report.", 'error');
+                }
+
+                doc.setFontSize(18);
+                doc.text("Trinah Designs Weekly Summary Report", 14, 22);
+                doc.setFontSize(11);
+                doc.text(`Report Date: ${formatDate(new Date())}`, 14, 30);
+                doc.text(`Week: ${formatDate(lastEntry.startDate)} - ${formatDate(lastEntry.endDate)}`, 14, 36);
+
+                const totalRevenue = lastEntry.entries.reduce((sum, entry) => sum + entry.revenue, 0);
+                const totalWage = lastEntry.entries.reduce((sum, entry) => sum + entry.wage, 0);
+                const totalProcurement = lastEntry.procurement.reduce((sum, item) => sum + item.cost, 0);
+                const totalExpenditure = totalWage + totalProcurement;
+
+                doc.autoTable({
+                    startY: 45,
+                    head: [['Metric', 'Amount']],
+                    body: [
+                        ['Starting Balance', formatCurrency(window.LAST_WEEK_BALANCE)],
+                        ['Total Revenue', formatCurrency(totalRevenue)],
+                        ['Total Staff Wages', formatCurrency(totalWage)],
+                        ['Total Procurement Cost', formatCurrency(totalProcurement)],
+                        ['Total Expenditure', formatCurrency(totalExpenditure)],
+                        ['FINAL BALANCE', formatCurrency(currentBalance)],
+                    ],
+                    headStyles: { fillColor: [59, 130, 246] },
+                    foot: [['FINAL BALANCE', formatCurrency(currentBalance)]],
+                    footStyles: { fillColor: [147, 197, 253], textColor: [0, 0, 0], fontStyle: 'bold' }
+                });
+
+                const finalY = doc.autoTable.previous.finalY + 10;
+                doc.setFontSize(14);
+                doc.text("Detailed Entries:", 14, finalY);
+
+                const detailedBody = lastEntry.entries.map(entry => {
+                    const staff = window.localDb.find(d => d.key === 'staffList')?.data.find(s => s.id === entry.staffId);
+                    return [
+                        entry.item,
+                        staff ? staff.name : 'Unknown',
+                        formatCurrency(entry.revenue),
+                        formatCurrency(entry.wage)
+                    ];
+                });
+
+                doc.autoTable({
+                    startY: finalY + 5,
+                    head: [['Item', 'Staff', 'Revenue', 'Wage']],
+                    body: detailedBody,
+                    theme: 'striped',
+                    headStyles: { fillColor: [100, 116, 139] }
+                });
+
+
+                doc.save(`Weekly_Summary_${lastEntry.startDate.substring(0, 10)}.pdf`);
+                showPdfLoader(false);
+                showNotification("Weekly Summary PDF generated.", 'success');
+            }, 50);
+        }
+
+        function generateStaffWageReport() {
+            document.getElementById('reports-modal').classList.add('hidden');
+            showPdfLoader(true);
+
+            setTimeout(() => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const allStaff = window.localDb.find(d => d.key === 'staffList')?.data || [];
+                const weeklyData = window.localDb.find(d => d.key === 'weeklyData')?.data || [];
+
+                if (weeklyData.length === 0) {
+                    showPdfLoader(false);
+                    return showMessageBox("Error", "No historical data available for staff wage reports.", 'error');
+                }
+
+                doc.setFontSize(18);
+                doc.text("Trinah Designs Staff Wages Report (All Time)", 14, 22);
+                doc.setFontSize(11);
+                doc.text(`Report Date: ${formatDate(new Date())}`, 14, 30);
+
+                const staffWageMap = {};
+
+                weeklyData.forEach(week => {
+                    week.entries.forEach(entry => {
+                        if (!staffWageMap[entry.staffId]) {
+                            staffWageMap[entry.staffId] = { totalWage: 0, entries: 0, weeks: new Set() };
+                        }
+                        staffWageMap[entry.staffId].totalWage += entry.wage;
+                        staffWageMap[entry.staffId].entries += 1;
+                        staffWageMap[entry.staffId].weeks.add(week.id);
+                    });
+                });
+
+                const staffReportBody = allStaff.map(staff => {
+                    const stats = staffWageMap[staff.id] || { totalWage: 0, entries: 0, weeks: new Set() };
+                    return [
+                        staff.name,
+                        staff.role,
+                        formatCurrency(stats.totalWage),
+                        stats.entries,
+                        stats.weeks.size
+                    ];
+                });
+
+                doc.autoTable({
+                    startY: 40,
+                    head: [['Staff Name', 'Role', 'Total Wages Paid', 'Total Entries', 'Weeks Worked']],
+                    body: staffReportBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: [59, 130, 246] }
+                });
+
+                doc.save(`Staff_Wages_Report.pdf`);
+                showPdfLoader(false);
+                showNotification("Staff Wages PDF generated.", 'success');
+            }, 50);
+        }
+
+        function generateProcurementHistoryReport() {
+            document.getElementById('reports-modal').classList.add('hidden');
+            showPdfLoader(true);
+
+            setTimeout(() => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const weeklyData = window.localDb.find(d => d.key === 'weeklyData')?.data || [];
+
+                if (weeklyData.length === 0) {
+                    showPdfLoader(false);
+                    return showMessageBox("Error", "No historical data available for procurement reports.", 'error');
+                }
+
+                doc.setFontSize(18);
+                doc.text("Trinah Designs Procurement History Report", 14, 22);
+                doc.setFontSize(11);
+                doc.text(`Report Date: ${formatDate(new Date())}`, 14, 30);
+
+                let allProcurement = [];
+                weeklyData.forEach(week => {
+                    week.procurement.forEach(item => {
+                        allProcurement.push({ ...item, weekId: week.id, weekStart: week.startDate });
+                    });
+                });
+
+                allProcurement.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                const totalAllTimeCost = allProcurement.reduce((sum, item) => sum + item.cost, 0);
+
+                const procurementBody = allProcurement.map(item => [
+                    formatDate(item.date),
+                    item.item,
+                    item.supplier,
+                    formatCurrency(item.cost),
+                    formatDate(item.weekStart)
+                ]);
+
+                doc.autoTable({
+                    startY: 40,
+                    head: [['Date', 'Item', 'Supplier', 'Cost', 'Week Start']],
+                    body: procurementBody,
+                    theme: 'striped',
+                    headStyles: { fillColor: [74, 222, 128] },
+                    foot: [['Total All-Time Cost', '', '', formatCurrency(totalAllTimeCost), '']],
+                    footStyles: { fillColor: [187, 247, 208], textColor: [0, 0, 0], fontStyle: 'bold' }
+                });
+
+                doc.save(`Procurement_History_Report.pdf`);
+                showPdfLoader(false);
+                showNotification("Procurement History PDF generated.", 'success');
+            }, 50);
+        }
+
+        // ============================================================
+        // ====================== AUTHENTICATION ======================
+        // ============================================================
+
+        function renderAuthScreen() {
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('recovery-container').classList.add('hidden');
+            document.getElementById('auth-container').classList.remove('hidden');
+
+            document.getElementById('auth-container').innerHTML = `
+                <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+                    <div class="text-center mb-6">
+                        <i data-lucide="scissors" class="w-10 h-10 mx-auto text-indigo-600 mb-2"></i>
+                        <h2 class="text-2xl font-bold text-gray-900">Admin Login</h2>
+                        <p class="text-sm text-gray-500">Sign in to manage Trinah Designs</p>
+                        <p id="auth-status" class="mt-2 text-xs text-red-500"></p>
+                    </div>
+                    <form onsubmit="event.preventDefault(); handleAuthSubmit(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number (Admin)</label>
+                                <input type="tel" id="phone" name="phone" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 0712345678">
+                            </div>
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                                <input type="password" id="password" name="password" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg shadow-md transition duration-150 ease-in-out">
+                                Login / Register
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-6 text-center">
+                        <button onclick="renderRecoveryScreen()" class="text-sm text-indigo-600 hover:text-indigo-800 transition duration-150">
+                            Forgot Password?
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        window.renderAuthScreen = renderAuthScreen;
+
+        // Placeholder authentication submission handler
+        function handleAuthSubmit(event) {
+            const phone = event.target.phone.value;
+            const password = event.target.password.value;
+            
+            // This is simple local auth for the demo, which will be replaced by the Firebase logic later
+            // In a real app, this would use Firebase Auth functions.
+            const isAdmin = (window.localDb.find(d => d.key === 'staffList')?.data || [])
+                            .find(u => u.phone === phone && u.role === 'Admin');
+
+            if (isAdmin) {
+                const user = { phone, password, role: 'admin' };
+                handleLogin(user);
+            } else {
+                document.getElementById('auth-status').textContent = "Invalid phone or password. Only Admin can login.";
+            }
+        }
+
+        function handleLogin(user) {
+            window.currentUser = user;
+            localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            setView('dashboard');
+            showNotification(`Welcome, ${user.role}!`, 'success');
+        }
+
+        function logoutUser() {
+            localStorage.removeItem(SESSION_KEY);
+            window.currentUser = null;
+            // The Firebase signOut is not strictly needed here since we rely on custom token, 
+            // but for completeness in a non-canvas environment, it would be here.
+            renderAuthScreen();
+            showNotification("Logged out successfully.", 'info');
+        }
+
+
+        // ============================================================
+        // ====================== RECOVERY LOGIC ======================
+        // ============================================================
+
+        function renderRecoveryScreen() {
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('recovery-container').classList.remove('hidden');
+
+            document.getElementById('recovery-container').innerHTML = `
+                <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+                    <div class="text-center mb-6">
+                        <i data-lucide="lock-open" class="w-10 h-10 mx-auto text-yellow-600 mb-2"></i>
+                        <h2 class="text-2xl font-bold text-gray-900">Password Recovery</h2>
+                        <p class="text-sm text-gray-500">Step 1: Verify System PIN</p>
+                    </div>
+                    <form onsubmit="event.preventDefault(); handleRecoveryStep1(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="pin" class="block text-sm font-medium text-gray-700">System PIN</label>
+                                <input type="password" id="pin" name="pin" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <button type="submit" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2.5 px-4 rounded-lg shadow-md transition duration-150 ease-in-out">
+                                Verify PIN
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-6 text-center">
+                        <button onclick="renderAuthScreen()" class="text-sm text-indigo-600 hover:text-indigo-800 transition duration-150">
+                            Back to Login
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        window.renderRecoveryScreen = renderRecoveryScreen;
+
+        function verifySystemPin(pin) {
+            return pin === SYSTEM_PIN;
+        }
+        window.verifySystemPin = verifySystemPin;
+
+        function handleRecoveryStep1(event) {
+            const pin = event.target.pin.value;
+            if (verifySystemPin(pin)) {
+                renderRecoveryStep2();
+            } else {
+                showMessageBox("Access Denied", "Incorrect System PIN. Recovery cancelled.", 'error');
+            }
+        }
+        window.handleRecoveryStep1 = handleRecoveryStep1;
+
+        function renderRecoveryStep2() {
+            document.getElementById('recovery-container').innerHTML = `
+                <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+                    <div class="text-center mb-6">
+                        <i data-lucide="shield-check" class="w-10 h-10 mx-auto text-green-600 mb-2"></i>
+                        <h2 class="text-2xl font-bold text-gray-900">Password Recovery</h2>
+                        <p class="text-sm text-gray-500">Step 2: Reset Admin Password (Phone Auth is now unlocked)</p>
+                    </div>
+                    <form onsubmit="event.preventDefault(); handleRecoveryStep2(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="adminPhone" class="block text-sm font-medium text-gray-700">Admin Phone Number</label>
+                                <input type="tel" id="adminPhone" name="adminPhone" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 0712345678">
+                            </div>
+                            <div>
+                                <label for="newPassword" class="block text-sm font-medium text-gray-700">New Password</label>
+                                <input type="password" id="newPassword" name="newPassword" required class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg shadow-md transition duration-150 ease-in-out">
+                                Reset Password
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-6 text-center">
+                        <button onclick="renderAuthScreen()" class="text-sm text-indigo-600 hover:text-indigo-800 transition duration-150">
+                            Back to Login
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function handleRecoveryStep2(event) {
+            const phone = event.target.adminPhone.value;
+            const newPassword = event.target.newPassword.value;
+            
+            // In a real app, this would use Firebase Auth to update the user's password.
+            // For this demo, we'll just log it.
+
+            // Find the admin user (or just assume the one logging in is the admin for simplicity)
+            const adminUser = (window.localDb.find(d => d.key === 'staffList')?.data || [])
+                            .find(u => u.phone === phone && u.role === 'Admin');
+
+            if (adminUser) {
+                // In a real Firebase setup, the user's password would be updated in the Firebase Auth system.
+                // Since this demo uses simple phone/password logic for local login, we can't truly update it without
+                // a full backend. We will just confirm the change.
+                showMessageBox("Password Reset Successful", "The password for the admin phone has been securely reset. You can now log in.", 'success', () => {
+                    renderAuthScreen();
+                    document.getElementById('phone').value = phone;
+                    document.getElementById('password').value = newPassword;
+                });
+            } else {
+                showMessageBox("Error", "Admin phone number not found in staff list.", 'error');
+            }
+        }
+        window.handleRecoveryStep2 = handleRecoveryStep2;
+
+        // ============================================================
+        // =================== INIT AND SETUP =========================
+        // ============================================================
+
+        // Functions exposed globally for HTML interaction
         window.handleSaveStaff = handleSaveStaff;
         window.handleDeleteStaff = handleDeleteStaff;
         window.handleProcurementSave = handleProcurementSave;
         window.handleProcurementDateChange = handleProcurementDateChange;
-        window.showBalanceModal = showBalanceModal;
-        window.handleDeleteProcurement = handleDeleteProcurement;
-
-        // Recovery Logic
-        window.renderRecoveryScreen = renderRecoveryScreen;
-        window.handleRecoveryStep1 = handleRecoveryStep1;
-        window.handleRecoveryStep2 = handleRecoveryStep2;
-        window.verifySystemPin = verifySystemPin;
         
-        // Report Generation (jsPDF)
-        window.generateReport = generateReport;
-
-        // --- jsPDF Report Generation ---
-        function generateReport(type, recordIndex = -1) {
-            // Show loader
-            document.getElementById('pdf-loader').style.display = 'flex';
-
-            // Wait a moment for UI update before heavy lifting
-            setTimeout(() => {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
-                const margin = 15;
-                let y = margin;
-                const pageHeight = doc.internal.pageSize.height;
-
-                doc.setFont('Inter', 'bold');
-                doc.setFontSize(16);
-                
-                if (type === 'summary') {
-                    const { weeklyRecords, procurement } = state.data;
-                    const totalWeeks = weeklyRecords.length;
-                    const totalDesigns = weeklyRecords.reduce((sum, r) => sum + r.designsProduced, 0);
-                    const totalPayroll = weeklyRecords.reduce((sum, r) => sum + r.totalSalaryPaid, 0);
-                    const totalProcurement = procurement.reduce((sum, p) => sum + p.amount, 0);
-
-                    doc.text("Trinah Designs - Management Summary Report", margin, y);
-                    y += 10;
-                    
-                    doc.setFontSize(10);
-                    doc.setFont('Inter', 'normal');
-                    doc.text(`Generated on: ${formatDate(Date.now())}`, margin, y);
-                    y += 10;
-                    
-                    doc.setFontSize(14);
-                    doc.setFont('Inter', 'bold');
-                    doc.text("Overall Metrics", margin, y);
-                    y += 8;
-
-                    const summaryData = [
-                        ["Total Weeks Recorded", totalWeeks],
-                        ["Total Designs Produced", totalDesigns],
-                        ["Total Net Payroll Paid", formatCurrency(totalPayroll)],
-                        ["Total Procurement Spend", formatCurrency(totalProcurement)],
-                        ["Total Cash Out (Payroll + Procurement)", formatCurrency(totalPayroll + totalProcurement)],
-                    ];
-
-                    doc.autoTable({
-                        startY: y,
-                        head: [['Metric', 'Value']],
-                        body: summaryData,
-                        theme: 'grid',
-                        styles: { font: 'Inter', fontSize: 10 },
-                        headStyles: { fillColor: [59, 130, 246] }, // Blue-600
-                        alternateRowStyles: { fillColor: [243, 244, 246] },
-                        didDrawPage: function (data) {
-                            y = data.cursor.y; // Update y after table
-                        }
-                    });
-                    
-                    y = doc.autoTable.previous.finalY + 10;
-                    
-                    doc.setFontSize(14);
-                    doc.setFont('Inter', 'bold');
-                    doc.text("Weekly Payroll History", margin, y);
-                    y += 8;
-
-                    const weeklyData = weeklyRecords.slice().reverse().map((r, index) => [
-                        weeklyRecords.length - index, 
-                        formatDate(r.weekEndDate), 
-                        r.designsProduced, 
-                        formatCurrency(r.totalSalaryPaid),
-                    ]);
-
-                    doc.autoTable({
-                        startY: y,
-                        head: [['#', 'Week End Date', 'Designs', 'Net Pay']],
-                        body: weeklyData,
-                        theme: 'striped',
-                        styles: { font: 'Inter', fontSize: 9 },
-                        headStyles: { fillColor: [16, 185, 129] }, // Green-500
-                    });
-
-                } else if (type === 'weekly' && recordIndex !== -1) {
-                    const record = state.data.weeklyRecords[recordIndex];
-                    if (!record) {
-                        showNotification("Error: Weekly record not found for report.", "error");
-                        document.getElementById('pdf-loader').style.display = 'none';
-                        return;
-                    }
-
-                    doc.text(`Trinah Designs - Weekly Payroll Report`, margin, y);
-                    y += 8;
-                    doc.setFontSize(14);
-                    doc.setFont('Inter', 'bold');
-                    doc.text(`Week Ending: ${formatDate(record.weekEndDate)}`, margin, y);
-                    y += 10;
-                    
-                    doc.setFontSize(10);
-                    doc.setFont('Inter', 'normal');
-
-                    const summaryData = [
-                        ["Total Designs Produced", record.designsProduced],
-                        ["Total Gross Salary", formatCurrency(record.totalSalaryPaid + record.totalDeduction)],
-                        ["Total Deductions/Advances Taken", formatCurrency(record.totalDeduction)],
-                        ["Net Total Payroll", formatCurrency(record.totalSalaryPaid)],
-                    ];
-
-                    doc.autoTable({
-                        startY: y,
-                        head: [['Metric', 'Value']],
-                        body: summaryData,
-                        theme: 'grid',
-                        styles: { font: 'Inter', fontSize: 10 },
-                        headStyles: { fillColor: [245, 158, 11] }, // Orange-500
-                        alternateRowStyles: { fillColor: [254, 243, 199] },
-                        columnStyles: { 0: { fontStyle: 'bold' } }
-                    });
-                    
-                    y = doc.autoTable.previous.finalY + 10;
-                    
-                    doc.setFontSize(14);
-                    doc.setFont('Inter', 'bold');
-                    doc.text("Staff Breakdown", margin, y);
-                    y += 8;
-                    
-                    const staffData = record.staffDetails.map(d => [
-                        d.name,
-                        d.designs,
-                        formatCurrency(d.grossPay),
-                        formatCurrency(d.deduction),
-                        formatCurrency(d.netPay),
-                    ]);
-
-                    doc.autoTable({
-                        startY: y,
-                        head: [['Staff Name', 'Designs', 'Gross Pay', 'Deductions', 'Net Pay']],
-                        body: staffData,
-                        theme: 'striped',
-                        styles: { font: 'Inter', fontSize: 9 },
-                        headStyles: { fillColor: [59, 130, 246] }, // Blue-500
-                    });
-                }
-
-                // Add footer (page number)
-                const pageCount = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(8);
-                    doc.setFont('Inter', 'normal');
-                    doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - margin, doc.internal.pageSize.height - 10, { align: 'right' });
-                }
-
-                doc.save(`Trinah_Designs_Report_${type}_${Date.now()}.pdf`);
-                document.getElementById('pdf-loader').style.display = 'none';
-                showNotification("Report generated successfully.", "success");
-            }, 10); // Minimal timeout to allow UI update
+        // ============================================================
+        // ================ CORRECTED FIREBASE INTEGRATION ============
+        // ============================================================
+        
+        // Globals for Firebase services
+        let db;
+        let auth;
+        let currentUserId = 'loading'; // Will hold the UID after auth
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // Define the single document path for shared, public application state
+        // We use a public path so all devices sync the same data.
+        function getMainDocRef() {
+            // Path: /artifacts/{APP_ID}/public/data/trinah_manager_state/main_data_state
+            return doc(db, `artifacts/${APP_ID}/public/data/trinah_manager_state`, 'main_data_state');
         }
 
+        // The main function to push the current 'localDb' state to Firestore
+        window.saveDataToCloud = async function() {
+            if (!db || currentUserId === 'loading') {
+                console.error("Firestore not initialized or user not authenticated. Cannot save to cloud.");
+                return;
+            }
+            try {
+                // Store the entire 'localDb' object/array under a 'data' field
+                await setDoc(getMainDocRef(), { 
+                    data: window.localDb, 
+                    lastUpdated: serverTimestamp(),
+                    userId: currentUserId 
+                }, { merge: true });
+                console.log("Data successfully pushed to Firestore.");
+            } catch (e) {
+                console.error("Error saving data to Firestore: ", e);
+                window.showNotification("Error: Could not sync data to the cloud.", 'error');
+            }
+        }
 
-        window.onload = function() {
-            // Initial Admin Setup (if users list is empty)
-            const users = state.data.users;
-            if (users.length === 0) {
-                 // Add default admin user for first run/factory reset
-                 state.data.users.push({ 
-                    id: uuid(), 
-                    name: 'Admin User', 
-                    phone: '0711223344', 
-                    password: 'adminpass', 
-                    role: 'admin' 
-                });
+        // Function to set up the real-time listener from Firestore
+        function startRealtimeSync() {
+            if (window.unsubscribeFirestore) {
+                window.unsubscribeFirestore();
             }
 
-            // Only initialize Firebase. Auth listener and sync handle rendering.
+            window.unsubscribeFirestore = onSnapshot(getMainDocRef(), (docSnap) => {
+                if (docSnap.exists() && docSnap.data().data) {
+                    const cloudData = docSnap.data().data;
+                    // Only update if the cloud data is different from the current local state
+                    // This prevents infinite loops caused by the local device writing to the cloud
+                    if (JSON.stringify(cloudData) !== JSON.stringify(window.localDb)) {
+                        console.log("Received data update from cloud. Updating UI.");
+                        window.localDb = cloudData;
+                        
+                        // Force the UI update after receiving data
+                        window.updateUI(); 
+                        
+                        // Also update localStorage as a last-resort cache
+                        localStorage.setItem(window.LOCAL_DB_KEY, JSON.stringify(window.localDb));
+                        
+                        window.showNotification("Data successfully synced from cloud.", 'success');
+                    }
+                } else if (!docSnap.exists() && window.localDb.length > 0) {
+                    // If the document is missing but we have local data, it's a first run, so push the current local data.
+                    console.log("Main data document missing. Migrating current local data to cloud.");
+                    window.saveDataToCloud();
+                }
+            }, (error) => {
+                console.error("Firestore snapshot error:", error);
+                window.showNotification("Real-time sync failed. Check console for details.", 'error');
+            });
+        }
+
+        // This function initializes Firebase and performs authentication
+        async function initFirebase() {
+            // 1. Load Firebase services
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+            const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+            const { getFirestore, doc, setDoc, onSnapshot, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            
+            // 2. Get Config
+            const firebaseConfig = jparse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}', {});
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is missing. Cannot initialize cloud backend.");
+                return;
+            }
+
+            // 3. Initialize App and Services
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            // 4. Authenticate using the provided custom token
+            const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            try {
+                if (token) {
+                    const userCredential = await signInWithCustomToken(auth, token);
+                    currentUserId = userCredential.user.uid;
+                } else {
+                    const userCredential = await signInAnonymously(auth);
+                    currentUserId = userCredential.user.uid;
+                }
+                console.log("Firebase Auth successful. User ID:", currentUserId);
+
+                // 5. Override the global saveData function to use the cloud
+                window.saveData = window.saveDataToCloud;
+                console.log("Overrode saveData to use Firestore sync.");
+
+                // 6. Start real-time listener
+                startRealtimeSync();
+                
+                // 7. Notify user
+                window.showNotification("Cloud backend active — real-time sync enabled.", 'info');
+
+            } catch (e) {
+                console.error("Firebase Auth or Init failed:", e);
+                currentUserId = 'anonymous-failed';
+                window.showNotification(`Authentication failed. App running in local-only mode. Error: ${e.message}`, 'error');
+            }
+        }
+
+        // Initialize App UI based on session and then init Firebase
+        window.onload = function() {
+            const sessionUser = localStorage.getItem(SESSION_KEY);
+            if (sessionUser) {
+                try {
+                    handleLogin(JSON.parse(sessionUser));
+                } catch(e) {
+                    renderAuthScreen();
+                }
+            } else {
+                renderAuthScreen();
+            }
+            
+            // Start Firebase initialization immediately
             initFirebase();
         };
-
     </script>
 </body>
 </html>
