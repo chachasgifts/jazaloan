@@ -655,12 +655,12 @@
                                 <input type="checkbox" id="staff-reconcile" ${isReconcileEnabled} class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
                                 <label for="staff-reconcile" class="text-sm font-bold text-indigo-900 cursor-pointer">
                                     Enable Balance BF / Cash Tracking
-                                    <span class="block text-[10px] text-indigo-500 font-normal">Allows recording of expenses and cash remitted for this user.</span>
+                                    <span class="block text-[10px] text-indigo-500 font-normal">Allows recording of expenses, overrides on prices, and cash remitted for this user.</span>
                                 </label>
                             </div>
 
                             <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
-                                <h3 class="text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">Price Configuration (KES)</h3>
+                                <h3 class="text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">Default Price Configuration (KES)</h3>
                                 
                                 <div class="grid grid-cols-2 gap-4 mb-4">
                                     <div>
@@ -678,7 +678,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-slate-400">Profit will be calculated based on these margins.</p>
+                                <p class="text-[10px] text-slate-400">Standard profit will be calculated based on these margins.</p>
                             </div>
                             
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">
@@ -1057,27 +1057,45 @@
         function handleSubmit() {
             if (!managedUser) return; // Safety check
 
-            const dispatchDressIn = document.getElementById('dispatch-dress').value;
-            const dispatch2pcIn = document.getElementById('dispatch-2pc').value;
-            const salesDressIn = document.getElementById('sales-dress').value;
-            const sales2pcIn = document.getElementById('sales-2pc').value;
+            // Standard inputs
+            const dispatchDressIn = document.getElementById('dispatch-dress');
+            const dispatch2pcIn = document.getElementById('dispatch-2pc');
+            const salesDressIn = document.getElementById('sales-dress');
+            const sales2pcIn = document.getElementById('sales-2pc');
+            
+            // Reconciled specific inputs
+            const dBPIn = document.getElementById('rec-dress-buy');
+            const dSPIn = document.getElementById('rec-dress-sell');
+            const tBPIn = document.getElementById('rec-2pc-buy');
+            const tSPIn = document.getElementById('rec-2pc-sell');
+            const sentIn = document.getElementById('rec-sent');
+            const expNameIn = document.getElementById('rec-exp-name');
+            const expAmtIn = document.getElementById('rec-exp-amt');
 
-            const dDress = Number(dispatchDressIn) || 0;
-            const d2pc = Number(dispatch2pcIn) || 0;
-            const sDress = Number(salesDressIn) || 0;
-            const s2pc = Number(sales2pcIn) || 0;
+            const dDress = Number(dispatchDressIn ? dispatchDressIn.value : 0) || 0;
+            const d2pc = Number(dispatch2pcIn ? dispatch2pcIn.value : 0) || 0;
+            const sDress = Number(salesDressIn ? salesDressIn.value : 0) || 0;
+            const s2pc = Number(sales2pcIn ? sales2pcIn.value : 0) || 0;
 
             if (dDress === 0 && d2pc === 0 && sDress === 0 && s2pc === 0) {
                 showNotification("Please enter dispatch or sales amount.");
                 return;
             }
 
-            // Get Prices (with fallback for old users)
-            const prices = managedUser.prices || {};
-            const dressBuy = prices.dressBuy || DEFAULT_BUY_PRICE;
-            const dressSell = prices.dressSell || DEFAULT_SELL_PRICE;
-            const twoPcBuy = prices.twoPcBuy || DEFAULT_BUY_PRICE; // Fallback same as dress
-            const twoPcSell = prices.twoPcSell || DEFAULT_SELL_PRICE; // Fallback same as dress
+            // Get Prices (Default or Override)
+            const defaultPrices = managedUser.prices || {};
+            let dressBuy = defaultPrices.dressBuy || DEFAULT_BUY_PRICE;
+            let dressSell = defaultPrices.dressSell || DEFAULT_SELL_PRICE;
+            let twoPcBuy = defaultPrices.twoPcBuy || DEFAULT_BUY_PRICE;
+            let twoPcSell = defaultPrices.twoPcSell || DEFAULT_SELL_PRICE;
+
+            // Override if Reconciliation is enabled
+            if (managedUser.enableReconciliation) {
+                if (dBPIn && dBPIn.value) dressBuy = Number(dBPIn.value);
+                if (dSPIn && dSPIn.value) dressSell = Number(dSPIn.value);
+                if (tBPIn && tBPIn.value) twoPcBuy = Number(tBPIn.value);
+                if (tSPIn && tSPIn.value) twoPcSell = Number(tSPIn.value);
+            }
 
             const now = new Date();
             const jsDay = now.getDay(); 
@@ -1122,6 +1140,22 @@
             const profitDress = sDress * (dressSell - dressBuy);
             const profit2pc = s2pc * (twoPcSell - twoPcBuy);
             const totalProfit = profitDress + profit2pc;
+            
+            let balanceBF = 0;
+            let amtSent = 0;
+            let expenseName = "";
+            let expenseAmt = 0;
+
+            // Calculate Reconciliation
+            if (managedUser.enableReconciliation) {
+                const totalSalesValue = (sDress * dressSell) + (s2pc * twoPcSell);
+                amtSent = Number(sentIn.value) || 0;
+                expenseAmt = Number(expAmtIn.value) || 0;
+                expenseName = expNameIn.value || "";
+                
+                // Formula: Balance BF = Sales Value - (Sent + Expenses)
+                balanceBF = totalSalesValue - (amtSent + expenseAmt);
+            }
 
             const record = {
                 id: Date.now(),
@@ -1134,20 +1168,32 @@
                 remDresses: newRemDress,
                 remTwoPcs: newRem2pc,
                 profit: totalProfit,
-                // keep these for backward compat in basic displays if needed
+                // keep these for backward compat
                 dispatched: dDress + d2pc,
                 sold: sDress + s2pc,
-                remaining: newRemDress + newRem2pc 
+                remaining: newRemDress + newRem2pc,
+                // New Fields
+                balanceBF: balanceBF,
+                amountSent: amtSent,
+                expenseName: expenseName,
+                expenseAmount: expenseAmt,
+                // Store prices used for this specific transaction
+                transPrices: {
+                    dBP: dressBuy, dSP: dressSell, tBP: twoPcBuy, tSP: twoPcSell
+                }
             };
 
             history.push(record);
             startingPressure = { dresses: newRemDress, twoPcs: newRem2pc };
 
             // Clear inputs
-            document.getElementById('dispatch-dress').value = "";
-            document.getElementById('dispatch-2pc').value = "";
-            document.getElementById('sales-dress').value = "";
-            document.getElementById('sales-2pc').value = "";
+            if (dispatchDressIn) dispatchDressIn.value = "";
+            if (dispatch2pcIn) dispatch2pcIn.value = "";
+            if (salesDressIn) salesDressIn.value = "";
+            if (sales2pcIn) sales2pcIn.value = "";
+            if (sentIn) sentIn.value = "";
+            if (expNameIn) expNameIn.value = "";
+            if (expAmtIn) expAmtIn.value = "";
 
             saveData(managedUser.phone);
 
@@ -1168,91 +1214,10 @@
             renderIndividualDashboard();
         }
 
-        // --- Balance BF Logic ---
+        // --- Balance BF Logic (Deprecated Modal, kept for safety but unused in new flow) ---
         function showBalanceModal(dayName, dateStr) {
-            // Find entry for this day
-            const entryIndex = history.findIndex(e => e.fullDate === dateStr);
-            if (entryIndex === -1) {
-                showNotification("Please enter sales data for this day first.");
-                return;
-            }
-
-            const entry = history[entryIndex];
-            
-            // Calculate Expected Sales Value
-            const prices = managedUser.prices || {};
-            const dSell = prices.dressSell || DEFAULT_SELL_PRICE;
-            const tSell = prices.twoPcSell || DEFAULT_SELL_PRICE;
-            
-            const expectedSalesValue = ((entry.soldDresses || 0) * dSell) + ((entry.soldTwoPcs || 0) * tSell);
-            
-            const existingSent = entry.amountSent || '';
-            const existingExpName = entry.expenseName || '';
-            const existingExpAmt = entry.expenseAmount || '';
-
-            const modalHTML = `
-                <div id="balance-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('balance-modal').remove()"></div>
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative z-10">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-slate-800">Financial Reconciliation</h2>
-                            <button onclick="document.getElementById('balance-modal').remove()" class="text-slate-400 hover:text-slate-600">
-                                ${renderIcon('x', {class:'w-6 h-6'})}
-                            </button>
-                        </div>
-                        
-                        <div class="bg-indigo-50 p-4 rounded-xl mb-4 text-center">
-                             <p class="text-xs font-bold text-indigo-500 uppercase">EXPECTED CASH FROM SALES</p>
-                             <p class="text-2xl font-bold text-indigo-700">${formatCurrency(expectedSalesValue)}</p>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-xs font-bold text-slate-500">AMOUNT SENT (REMITTED)</label>
-                                <input type="number" id="bal-sent" value="${existingSent}" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-bold text-lg" placeholder="0">
-                            </div>
-                            
-                            <div class="p-3 border border-slate-200 rounded-xl">
-                                <label class="text-xs font-bold text-slate-500 block mb-2">EXPENSES</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input type="text" id="bal-exp-name" value="${existingExpName}" placeholder="Description (e.g. Lunch)" class="w-full p-2 text-sm rounded-lg border border-slate-200">
-                                    <input type="number" id="bal-exp-amt" value="${existingExpAmt}" placeholder="Amount" class="w-full p-2 text-sm rounded-lg border border-slate-200">
-                                </div>
-                            </div>
-                            
-                            <button onclick="saveBalance('${dateStr}', ${expectedSalesValue})" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200">
-                                Calculate & Save
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            modalContainer.innerHTML = modalHTML;
-            refreshIcons();
-        }
-
-        function saveBalance(dateStr, expectedVal) {
-            const sent = Number(document.getElementById('bal-sent').value) || 0;
-            const expName = document.getElementById('bal-exp-name').value;
-            const expAmt = Number(document.getElementById('bal-exp-amt').value) || 0;
-            
-            const entryIndex = history.findIndex(e => e.fullDate === dateStr);
-            if (entryIndex !== -1) {
-                // Formula: Balance BF = Expected - (Sent + Expenses)
-                // If Positive: Shortage (Owe money)
-                // If Negative: Surplus (Paid too much)
-                const balance = expectedVal - (sent + expAmt);
-                
-                history[entryIndex].amountSent = sent;
-                history[entryIndex].expenseName = expName;
-                history[entryIndex].expenseAmount = expAmt;
-                history[entryIndex].balanceBF = balance;
-                
-                saveData(managedUser.phone);
-                document.getElementById('balance-modal').remove();
-                showNotification(`Balance Recorded: ${balance}`);
-                renderIndividualDashboard();
-            }
+            // Deprecated in favor of inline inputs
+            showNotification("Please use the main form to enter expenses.");
         }
 
         function handleStartNewWeek() {
@@ -1742,16 +1707,7 @@
                 twoPcBuy: DEFAULT_BUY_PRICE, twoPcSell: DEFAULT_SELL_PRICE
             };
             
-            // Determine date for new entry based on selected tab
-            const jsDay = now.getDay(); 
-            const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
-            const dayDiff = mappedDay - selectedDayIndex;
-            const targetEntryDate = new Date();
-            targetEntryDate.setDate(now.getDate() - dayDiff);
-            const targetFullDate = targetEntryDate.toLocaleDateString();
-            const targetDayName = DAYS[selectedDayIndex];
-            
-            const hasEntryForSelectedDay = history.some(e => e.fullDate === targetFullDate);
+            const isReconciled = managedUser.enableReconciliation;
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1792,6 +1748,8 @@
                                 <!-- Day Selection -->
                                 <div class="grid grid-cols-4 gap-2 mb-4">
                                     ${DAYS.map((d, i) => {
+                                        const jsDay = now.getDay();
+                                        const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
                                         const isLocked = i > mappedDay;
                                         return `
                                             <button 
@@ -1807,42 +1765,121 @@
                                 </div>
 
                                 <div class="space-y-4">
-                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                        <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses (Sell: ${prices.dressSell})</p>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
-                                                <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
-                                            </div>
-                                            <div>
-                                                <label class="text-[10px] font-bold text-slate-500">Sold</label>
-                                                <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                    ${isReconciled ? `
+                                        <!-- RECONCILED VIEW (Split Layout) -->
+                                        
+                                        <!-- 1. DISPATCH SECTION (TOP) -->
+                                        <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                            <p class="text-[10px] font-bold text-indigo-800 mb-2 uppercase flex items-center gap-1">
+                                                ${renderIcon('package-plus', {class:'w-3 h-3'})} Dispatch (Stock In)
+                                            </p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dresses</label>
+                                                    <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Qty">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">2pcs</label>
+                                                    <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Qty">
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                        <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces (Sell: ${prices.twoPcSell})</p>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
-                                                <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
-                                            </div>
-                                            <div>
-                                                <label class="text-[10px] font-bold text-slate-500">Sold</label>
-                                                <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                        <!-- 2. SALES SECTION (Middle - Dresses/Premium) -->
+                                        <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                                            <p class="text-[10px] font-bold text-purple-600 mb-2 uppercase">Dresses / Premium</p>
+                                            <div class="flex gap-2">
+                                                <div class="w-1/3">
+                                                    <label class="text-[9px] font-bold text-slate-400">Sold Qty</label>
+                                                    <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200 bg-purple-50" placeholder="Qty">
+                                                </div>
+                                                <div class="w-1/3">
+                                                    <label class="text-[9px] font-bold text-slate-400">BP</label>
+                                                    <input type="number" id="rec-dress-buy" value="${prices.dressBuy}" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Buy">
+                                                </div>
+                                                <div class="w-1/3">
+                                                    <label class="text-[9px] font-bold text-slate-400">SP</label>
+                                                    <input type="number" id="rec-dress-sell" value="${prices.dressSell}" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Sell">
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+
+                                        <!-- 3. SALES SECTION (Middle - 2pcs/Clean-Up) -->
+                                        <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                                            <p class="text-[10px] font-bold text-emerald-600 mb-2 uppercase">2pcs / Clean-Up</p>
+                                            <div class="flex gap-2">
+                                                <div class="w-1/3">
+                                                    <label class="text-[9px] font-bold text-slate-400">Sold Qty</label>
+                                                    <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200 bg-emerald-50" placeholder="Qty">
+                                                </div>
+                                                <div class="w-1/3">
+                                                    <label class="text-[9px] font-bold text-slate-400">BP</label>
+                                                    <input type="number" id="rec-2pc-buy" value="${prices.twoPcBuy}" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Buy">
+                                                </div>
+                                                <div class="w-1/3">
+                                                    <label class="text-[9px] font-bold text-slate-400">SP</label>
+                                                    <input type="number" id="rec-2pc-sell" value="${prices.twoPcSell}" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Sell">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 4. FINANCE & EXPENSES (Bottom) -->
+                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                            <p class="text-[10px] font-bold text-slate-500 mb-2 uppercase flex items-center gap-1">
+                                                ${renderIcon('wallet', {class:'w-3 h-3'})} Reconciliation
+                                            </p>
+                                            <div class="space-y-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-400">Amount Sent (M-Pesa/Cash)</label>
+                                                    <input type="number" id="rec-sent" class="w-full p-2 text-sm rounded-lg border border-slate-300 font-bold" placeholder="0">
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[10px] font-bold text-slate-400">Expense Name</label>
+                                                        <input type="text" id="rec-exp-name" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="e.g. Lunch">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[10px] font-bold text-slate-400">Expense Amt</label>
+                                                        <input type="number" id="rec-exp-amt" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    ` : `
+                                        <!-- STANDARD VIEW (Original) -->
+                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses (Sell: ${prices.dressSell})</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces (Sell: ${prices.twoPcSell})</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `}
                                     
-                                    <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Add Record</button>
-                                    
-                                    <!-- Conditional Reconciliation Button -->
-                                    ${managedUser.enableReconciliation ? `
-                                        <button onclick="showBalanceModal('${targetDayName}', '${targetFullDate}')" class="w-full py-3 bg-white border-2 border-dashed border-emerald-300 text-emerald-700 rounded-xl font-bold hover:bg-emerald-50 transition flex items-center justify-center gap-2">
-                                            ${renderIcon('calculator', {class:'w-4 h-4'})} Record Finance (Reconciliation)
-                                        </button>
-                                    ` : ''}
+                                    <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                                        Save Entry
+                                    </button>
                                 </div>
                             </div>
 
@@ -1882,10 +1919,14 @@
                                         <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
                                             <tr>
                                                 <th class="px-4 py-3 rounded-l-lg">Date</th>
-                                                <th class="px-4 py-3">Sold <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
-                                                <th class="px-4 py-3">Stock <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
+                                                <th class="px-4 py-3">Sold <span class="text-[9px] block text-slate-400">
+                                                    ${isReconciled ? 'PREMIUM / CLEAN-UP' : 'DRESS / 2PC'}
+                                                </span></th>
+                                                <th class="px-4 py-3">Stock <span class="text-[9px] block text-slate-400">
+                                                    ${isReconciled ? 'PREMIUM / CLEAN-UP' : 'DRESS / 2PC'}
+                                                </span></th>
                                                 <th class="px-4 py-3 rounded-r-lg">
-                                                    ${managedUser.enableReconciliation ? 'Balance BF' : 'Profit'}
+                                                    ${isReconciled ? 'Balance BF' : 'Profit'}
                                                 </th>
                                             </tr>
                                         </thead>
@@ -1900,7 +1941,7 @@
                                                         ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0}
                                                     </td>
                                                     <td class="px-4 py-3 text-slate-600">
-                                                        ${managedUser.enableReconciliation ? 
+                                                        ${isReconciled ? 
                                                             (d.balanceBF !== undefined ? formatCurrency(d.balanceBF) : '-') : 
                                                             formatCurrency(d.profit)}
                                                     </td>
@@ -2111,7 +2152,6 @@
         window.handleProcurementSave = handleProcurementSave;
         window.handleProcurementDateChange = handleProcurementDateChange;
         window.showBalanceModal = showBalanceModal;
-        window.saveBalance = saveBalance;
         
         // Recovery Logic
         window.renderRecoveryScreen = renderRecoveryScreen;
