@@ -2314,5 +2314,227 @@
             }
         };
     </script>
+    <!-- START: Firebase migration + cloud sync shim -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+  import { 
+    getFirestore, doc, setDoc, getDoc, getDocs, 
+    collection, onSnapshot 
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+  /* -------------------- Firebase Config -------------------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDtCiK6C3a4maD29waoCNx5TJxTc_IKA0c",
+    authDomain: "trina-designs.firebaseapp.com",
+    projectId: "trina-designs",
+    storageBucket: "trina-designs.firebasestorage.app",
+    messagingSenderId: "428606152656",
+    appId: "1:428606152656:web:eeacda0606dd82d2a9a3d5"
+  };
+
+  /* -------------------- Initialize Firebase -------------------- */
+  const fbApp = initializeApp(firebaseConfig);
+  const auth = getAuth(fbApp);
+  const db = getFirestore(fbApp);
+
+  /* -------------------- LocalStorage Keys -------------------- */
+  const LOCAL_DB_KEY = window.DB_KEY || "trinah_users_db";
+  const LOCAL_PROC_KEY = window.PROCUREMENT_KEY || "trinah_procurement_log";
+  const LOCAL_SESSION_KEY = window.SESSION_KEY || "trinah_active_session";
+  const MIGRATION_FLAG = "trinah_migrated_to_firestore_v1";
+
+  const jparse = (x, fallback = null) => { try { return JSON.parse(x); } catch { return fallback; } };
+  const phoneToEmail = phone => `${String(phone).replace(/\s+/g, "")}@trina.local`;
+
+  /* ============================================================
+     =============== ONE-TIME MIGRATION LOGIC ====================
+     ============================================================ */
+  async function migrateLocalToFirestore() {
+    if (localStorage.getItem(MIGRATION_FLAG)) {
+      console.log("Migration already done.");
+      return;
+    }
+
+    const users = jparse(localStorage.getItem(LOCAL_DB_KEY) || "[]", []);
+
+    /* ---- Migrate users to Firestore + create Auth accounts ---- */
+    for (const user of users) {
+      try {
+        await setDoc(doc(db, "users", user.phone), {
+          name: user.name || "",
+          phone: user.phone,
+          role: user.role || "staff",
+          prices: user.prices || {},
+          password: user.password || ""   // kept for compatibility
+        }, { merge: true });
+      } catch (e) {
+        console.error("User write error", user.phone, e);
+      }
+
+      if (user.password) {
+        const email = phoneToEmail(user.phone);
+        try {
+          await createUserWithEmailAndPassword(auth, email, user.password);
+        } catch (e) {
+          if (e.code === "auth/email-already-in-use") {
+            try { await signInWithEmailAndPassword(auth, email, user.password); } catch {}
+          } else {
+            console.warn("Auth issue:", email, e.code);
+          }
+        }
+      }
+    }
+
+    /* ---- Migrate per-user data ---- */
+    for (const user of users) {
+      const phone = user.phone;
+
+      const week = jparse(localStorage.getItem(`trinah_current_week_${phone}`) || "[]", []);
+      const archive = jparse(localStorage.getItem(`trinah_archive_${phone}`) || "[]", []);
+      const pressure = jparse(localStorage.getItem(`trinah_starting_pressure_${phone}`) || "{}", { dresses: 0, twoPcs: 0 });
+
+      await setDoc(doc(db, "users", phone, "data", "current_week"), { entries: week }, { merge: true });
+      await setDoc(doc(db, "users", phone, "data", "archive"), { entries: archive }, { merge: true });
+      await setDoc(doc(db, "users", phone, "data", "starting_pressure"), { pressure }, { merge: true });
+    }
+
+    /* ---- Migrate procurement ---- */
+    const procurement = jparse(localStorage.getItem(LOCAL_PROC_KEY) || "{}", {});
+    await setDoc(doc(db, "procurement", "log"), { entries: procurement }, { merge: true });
+
+    localStorage.setItem(MIGRATION_FLAG, "true");
+
+    if (window.showNotification) {
+      window.showNotification("Migration complete — cloud sync enabled.");
+    }
+  }
+
+  /* ============================================================
+     =============== REALTIME CLOUD SYNC LISTENERS ===============
+     ============================================================ */
+  async function startRealtimeSync() {
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    const phones = usersSnapshot.docs.map(d => d.id);
+
+    for (const phone of phones) {
+      /* ---- Sync core user document ---- */
+      onSnapshot(doc(db, "users", phone), snap => {
+        if (!snap.exists()) return;
+
+        const localUsers = jparse(localStorage.getItem(LOCAL_DB_KEY) || "[]", []);
+        const updated = snap.data();
+
+        const index = localUsers.findIndex(u => u.phone === phone);
+        const password = (index !== -1 ? localUsers[index].password : updated.password) || "";
+
+        const merged = { ...updated, password };
+        if (index === -1) localUsers.push(merged);
+        else localUsers[index] = merged;
+
+        localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(localUsers));
+      });
+
+      /* ---- Sync weekly ---- */
+      onSnapshot(doc(db, "users", phone, "data", "current_week"), snap => {
+        const entries = (snap.data()?.entries) || [];
+        localStorage.setItem(`trinah_current_week_${phone}`, JSON.stringify(entries));
+      });
+
+      /* ---- Sync archive ---- */
+      onSnapshot(doc(db, "users", phone, "data", "archive"), snap => {
+        const entries = (snap.data()?.entries) || [];
+        localStorage.setItem(`trinah_archive_${phone}`, JSON.stringify(entries));
+      });
+
+      /* ---- Sync starting pressure ---- */
+      onSnapshot(doc(db, "users", phone, "data", "starting_pressure"), snap => {
+        const pressure = snap.data()?.pressure || { dresses: 0, twoPcs: 0 };
+        localStorage.setItem(`trinah_starting_pressure_${phone}`, JSON.stringify(pressure));
+      });
+    }
+
+    /* ---- Sync procurement ---- */
+    onSnapshot(doc(db, "procurement", "log"), snap => {
+      const entries = snap.data()?.entries || {};
+      localStorage.setItem(LOCAL_PROC_KEY, JSON.stringify(entries));
+    });
+
+    console.log("Realtime sync active.");
+  }
+
+  /* ============================================================
+     =============== PATCH saveData() TO WRITE CLOUD =============
+     ============================================================ */
+  function wrapSaveDataToCloud() {
+    if (!window.saveData) {
+      console.warn("saveData() missing — cannot sync user updates.");
+      return;
+    }
+
+    const original = window.saveData;
+
+    window.saveData = async function(phone) {
+      original.call(window, phone);
+
+      const week = jparse(localStorage.getItem(`trinah_current_week_${phone}`) || "[]", []);
+      const archive = jparse(localStorage.getItem(`trinah_archive_${phone}`) || "[]", []);
+      const pressure = jparse(localStorage.getItem(`trinah_starting_pressure_${phone}`) || "{}", { dresses: 0, twoPcs: 0 });
+
+      await setDoc(doc(db, "users", phone, "data", "current_week"), { entries: week }, { merge: true });
+      await setDoc(doc(db, "users", phone, "data", "archive"), { entries: archive }, { merge: true });
+      await setDoc(doc(db, "users", phone, "data", "starting_pressure"), { pressure }, { merge: true });
+    };
+
+    /* ---- Sync procurement periodically ---- */
+    setInterval(async () => {
+      const procurement = jparse(localStorage.getItem(LOCAL_PROC_KEY) || "{}", {});
+      await setDoc(doc(db, "procurement", "log"), { entries: procurement }, { merge: true });
+    }, 3000);
+  }
+
+  /* ============================================================
+     =============== ADMIN AUTO-AUTH SETUP =======================
+     ============================================================ */
+  async function ensureAdminSignedIn() {
+    const users = jparse(localStorage.getItem(LOCAL_DB_KEY) || "[]", []);
+    const admin = users.find(u => u.role === "admin");
+    if (!admin) return;
+
+    const email = phoneToEmail(admin.phone);
+
+    try {
+      await signInWithEmailAndPassword(auth, email, admin.password);
+      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(admin));
+    } catch {
+      try {
+        await createUserWithEmailAndPassword(auth, email, admin.password);
+        await signInWithEmailAndPassword(auth, email, admin.password);
+        localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(admin));
+      } catch (e) {
+        console.warn("Admin auth error", e);
+      }
+    }
+  }
+
+  /* ============================================================
+     ====================== RUN EVERYTHING =======================
+     ============================================================ */
+  (async function init() {
+    await new Promise(r => setTimeout(r, 300));
+
+    await migrateLocalToFirestore();
+    await startRealtimeSync();
+    wrapSaveDataToCloud();
+    await ensureAdminSignedIn();
+
+    if (window.showNotification) {
+      window.showNotification("Cloud backend active — all devices now sync in real time.");
+    }
+  })();
+</script>
+<!-- END: Firebase migration + cloud sync shim -->
+
 </body>
 </html>
+
