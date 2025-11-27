@@ -612,6 +612,8 @@
             const nameVal = userToEdit ? userToEdit.name : '';
             const phoneVal = userToEdit ? userToEdit.phone : '';
             const passVal = userToEdit ? userToEdit.password : '';
+            const isReconcileEnabled = userToEdit && userToEdit.enableReconciliation ? 'checked' : '';
+
             const prices = userToEdit ? (userToEdit.prices || {}) : {};
             
             const dbVal = prices.dressBuy || '';
@@ -647,6 +649,14 @@
                             <div>
                                 <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
                                 <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            </div>
+
+                            <div class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                <input type="checkbox" id="staff-reconcile" ${isReconcileEnabled} class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
+                                <label for="staff-reconcile" class="text-sm font-bold text-indigo-900 cursor-pointer">
+                                    Enable Balance BF / Cash Tracking
+                                    <span class="block text-[10px] text-indigo-500 font-normal">Allows recording of expenses and cash remitted for this user.</span>
+                                </label>
                             </div>
 
                             <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
@@ -751,6 +761,7 @@
             const name = document.getElementById('staff-name').value.trim();
             const phone = document.getElementById('staff-phone').value.trim();
             const password = document.getElementById('staff-pass').value.trim();
+            const enableReconciliation = document.getElementById('staff-reconcile').checked;
             
             // New Price Fields
             const dressBuy = Number(document.getElementById('price-dress-buy').value);
@@ -777,7 +788,8 @@
                 }
                 const newUser = { 
                     name, phone, password, role: 'staff',
-                    prices: { dressBuy, dressSell, twoPcBuy, twoPcSell }
+                    prices: { dressBuy, dressSell, twoPcBuy, twoPcSell },
+                    enableReconciliation: enableReconciliation
                 };
                 users.push(newUser);
                 showNotification(`Staff member ${name} added!`);
@@ -788,6 +800,7 @@
                     users[index].name = name;
                     users[index].password = password;
                     users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell };
+                    users[index].enableReconciliation = enableReconciliation;
                     showNotification(`Details for ${name} updated!`);
                 }
             }
@@ -1155,6 +1168,93 @@
             renderIndividualDashboard();
         }
 
+        // --- Balance BF Logic ---
+        function showBalanceModal(dayName, dateStr) {
+            // Find entry for this day
+            const entryIndex = history.findIndex(e => e.fullDate === dateStr);
+            if (entryIndex === -1) {
+                showNotification("Please enter sales data for this day first.");
+                return;
+            }
+
+            const entry = history[entryIndex];
+            
+            // Calculate Expected Sales Value
+            const prices = managedUser.prices || {};
+            const dSell = prices.dressSell || DEFAULT_SELL_PRICE;
+            const tSell = prices.twoPcSell || DEFAULT_SELL_PRICE;
+            
+            const expectedSalesValue = ((entry.soldDresses || 0) * dSell) + ((entry.soldTwoPcs || 0) * tSell);
+            
+            const existingSent = entry.amountSent || '';
+            const existingExpName = entry.expenseName || '';
+            const existingExpAmt = entry.expenseAmount || '';
+
+            const modalHTML = `
+                <div id="balance-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('balance-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative z-10">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-slate-800">Financial Reconciliation</h2>
+                            <button onclick="document.getElementById('balance-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                                ${renderIcon('x', {class:'w-6 h-6'})}
+                            </button>
+                        </div>
+                        
+                        <div class="bg-indigo-50 p-4 rounded-xl mb-4 text-center">
+                             <p class="text-xs font-bold text-indigo-500 uppercase">EXPECTED CASH FROM SALES</p>
+                             <p class="text-2xl font-bold text-indigo-700">${formatCurrency(expectedSalesValue)}</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">AMOUNT SENT (REMITTED)</label>
+                                <input type="number" id="bal-sent" value="${existingSent}" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-bold text-lg" placeholder="0">
+                            </div>
+                            
+                            <div class="p-3 border border-slate-200 rounded-xl">
+                                <label class="text-xs font-bold text-slate-500 block mb-2">EXPENSES</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="text" id="bal-exp-name" value="${existingExpName}" placeholder="Description (e.g. Lunch)" class="w-full p-2 text-sm rounded-lg border border-slate-200">
+                                    <input type="number" id="bal-exp-amt" value="${existingExpAmt}" placeholder="Amount" class="w-full p-2 text-sm rounded-lg border border-slate-200">
+                                </div>
+                            </div>
+                            
+                            <button onclick="saveBalance('${dateStr}', ${expectedSalesValue})" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200">
+                                Calculate & Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function saveBalance(dateStr, expectedVal) {
+            const sent = Number(document.getElementById('bal-sent').value) || 0;
+            const expName = document.getElementById('bal-exp-name').value;
+            const expAmt = Number(document.getElementById('bal-exp-amt').value) || 0;
+            
+            const entryIndex = history.findIndex(e => e.fullDate === dateStr);
+            if (entryIndex !== -1) {
+                // Formula: Balance BF = Expected - (Sent + Expenses)
+                // If Positive: Shortage (Owe money)
+                // If Negative: Surplus (Paid too much)
+                const balance = expectedVal - (sent + expAmt);
+                
+                history[entryIndex].amountSent = sent;
+                history[entryIndex].expenseName = expName;
+                history[entryIndex].expenseAmount = expAmt;
+                history[entryIndex].balanceBF = balance;
+                
+                saveData(managedUser.phone);
+                document.getElementById('balance-modal').remove();
+                showNotification(`Balance Recorded: ${balance}`);
+                renderIndividualDashboard();
+            }
+        }
+
         function handleStartNewWeek() {
             const modal = document.getElementById('week-complete-modal');
             if (modal) modal.remove();
@@ -1212,7 +1312,6 @@
                 };
             } else {
                  // Fallback to what was stored originally if history is empty and no archive
-                 // Note: Ideally we store the initial week's starting pressure separately, but this simplifies for now
                  const savedPressure = localStorage.getItem(`trinah_starting_pressure_${managedUser.phone}`);
                  try {
                      startingPressure = JSON.parse(savedPressure) || { dresses: 0, twoPcs: 0};
@@ -1236,6 +1335,8 @@
             const loader = document.getElementById('pdf-loader');
             if (loader) loader.style.display = 'flex';
 
+            const showBalance = managedUser.enableReconciliation;
+
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
@@ -1243,16 +1344,29 @@
                 const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
                 const totalSoldDresses = data.reduce((sum, r) => sum + (Number(r.soldDresses) || 0), 0);
                 const totalSoldTwoPcs = data.reduce((sum, r) => sum + (Number(r.soldTwoPcs) || 0), 0);
+                
+                // Balance Total (Sum of all daily balances)
+                const totalBalance = data.reduce((sum, r) => sum + (Number(r.balanceBF) || 0), 0);
 
-                // For simple display, sum them up or show breakdown
-                const totalSold = totalSoldDresses + totalSoldTwoPcs;
-
-                const rows = data.map(item => [
-                    item.fullDate, 
-                    `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
-                    `${item.remDresses || 0} / ${item.remTwoPcs || 0}`,
-                    item.profit.toLocaleString()
-                ]);
+                const rows = data.map(item => {
+                    // Format Date: Day, Date
+                    const friendlyDate = `${item.date}, ${item.fullDate}`;
+                    
+                    const rowData = [
+                        friendlyDate, 
+                        `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
+                        `${item.remDresses || 0} / ${item.remTwoPcs || 0}`
+                    ];
+                    
+                    if (showBalance) {
+                        // Use Balance BF column
+                        rowData.push(item.balanceBF !== undefined ? item.balanceBF.toLocaleString() : '0');
+                    } else {
+                        // Use Profit column
+                        rowData.push(item.profit.toLocaleString());
+                    }
+                    return rowData;
+                });
 
                 doc.setFillColor(30, 58, 138); // Primary Blue
                 doc.rect(0, 0, 210, 30, 'F');
@@ -1262,12 +1376,15 @@
                 doc.setFontSize(10);
                 doc.text(`Format: Dresses / 2pcs`, 14, 26);
 
+                const finalColumnHeader = showBalance ? 'Balance BF (KES)' : 'Profit (KES)';
+                const finalTotal = showBalance ? totalBalance.toLocaleString() : totalProfit.toLocaleString();
+
                 doc.autoTable({
                     startY: 40,
-                    head: [['Date', 'Sold (D/2pc)', 'Rem (D/2pc)', 'Profit (KES)']],
+                    head: [['Date', 'Sold (D/2pc)', 'Rem (D/2pc)', finalColumnHeader]],
                     body: rows,
                     theme: 'grid',
-                    foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', totalProfit.toLocaleString()]]
+                    foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', finalTotal]]
                 });
 
                 doc.save(`${managedUser.name}_${reportName}_Report.pdf`);
@@ -1624,6 +1741,17 @@
                 dressBuy: DEFAULT_BUY_PRICE, dressSell: DEFAULT_SELL_PRICE,
                 twoPcBuy: DEFAULT_BUY_PRICE, twoPcSell: DEFAULT_SELL_PRICE
             };
+            
+            // Determine date for new entry based on selected tab
+            const jsDay = now.getDay(); 
+            const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
+            const dayDiff = mappedDay - selectedDayIndex;
+            const targetEntryDate = new Date();
+            targetEntryDate.setDate(now.getDate() - dayDiff);
+            const targetFullDate = targetEntryDate.toLocaleDateString();
+            const targetDayName = DAYS[selectedDayIndex];
+            
+            const hasEntryForSelectedDay = history.some(e => e.fullDate === targetFullDate);
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1664,10 +1792,7 @@
                                 <!-- Day Selection -->
                                 <div class="grid grid-cols-4 gap-2 mb-4">
                                     ${DAYS.map((d, i) => {
-                                        const jsDay = now.getDay();
-                                        const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
                                         const isLocked = i > mappedDay;
-                                        
                                         return `
                                             <button 
                                                 onclick="selectedDayIndex = ${i}; renderIndividualDashboard();"
@@ -1711,6 +1836,13 @@
                                     </div>
                                     
                                     <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Add Record</button>
+                                    
+                                    <!-- Conditional Reconciliation Button -->
+                                    ${managedUser.enableReconciliation ? `
+                                        <button onclick="showBalanceModal('${targetDayName}', '${targetFullDate}')" class="w-full py-3 bg-white border-2 border-dashed border-emerald-300 text-emerald-700 rounded-xl font-bold hover:bg-emerald-50 transition flex items-center justify-center gap-2">
+                                            ${renderIcon('calculator', {class:'w-4 h-4'})} Record Finance (Reconciliation)
+                                        </button>
+                                    ` : ''}
                                 </div>
                             </div>
 
@@ -1752,7 +1884,9 @@
                                                 <th class="px-4 py-3 rounded-l-lg">Date</th>
                                                 <th class="px-4 py-3">Sold <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
                                                 <th class="px-4 py-3">Stock <span class="text-[9px] block text-slate-400">DRESS / 2PC</span></th>
-                                                <th class="px-4 py-3 rounded-r-lg">Profit</th>
+                                                <th class="px-4 py-3 rounded-r-lg">
+                                                    ${managedUser.enableReconciliation ? 'Balance BF' : 'Profit'}
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
@@ -1765,7 +1899,11 @@
                                                     <td class="px-4 py-3 text-orange-600 font-bold">
                                                         ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0}
                                                     </td>
-                                                    <td class="px-4 py-3 text-slate-600">${d.profit.toLocaleString()}</td>
+                                                    <td class="px-4 py-3 text-slate-600">
+                                                        ${managedUser.enableReconciliation ? 
+                                                            (d.balanceBF !== undefined ? formatCurrency(d.balanceBF) : '-') : 
+                                                            formatCurrency(d.profit)}
+                                                    </td>
                                                 </tr>
                                             `).reverse().join('') : `
                                                 <tr>
@@ -1972,6 +2110,8 @@
         window.handleDeleteStaff = handleDeleteStaff;
         window.handleProcurementSave = handleProcurementSave;
         window.handleProcurementDateChange = handleProcurementDateChange;
+        window.showBalanceModal = showBalanceModal;
+        window.saveBalance = saveBalance;
         
         // Recovery Logic
         window.renderRecoveryScreen = renderRecoveryScreen;
