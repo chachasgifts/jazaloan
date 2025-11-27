@@ -211,11 +211,12 @@
 
         function isEntryLocked(entry) {
             if (!entry) return false;
-            const entryTime = new Date(entry.id);
-            const deadline = new Date(entryTime);
-            deadline.setDate(deadline.getDate() + 1);
-            deadline.setHours(9, 0, 0, 0); 
-            return new Date() > deadline;
+            // UPDATE: Lock if more than 72 hours have passed since entry creation
+            const entryTime = entry.id; // entry.id is Date.now() at creation
+            const timeSinceCreation = Date.now() - entryTime;
+            const hours72 = 72 * 60 * 60 * 1000;
+            
+            return timeSinceCreation > hours72;
         }
 
         function getFilteredHistory() {
@@ -654,8 +655,8 @@
                             <div class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
                                 <input type="checkbox" id="staff-reconcile" ${isReconcileEnabled} class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
                                 <label for="staff-reconcile" class="text-sm font-bold text-indigo-900 cursor-pointer">
-                                    Enable Balance BF / Cash Tracking
-                                    <span class="block text-[10px] text-indigo-500 font-normal">Allows recording of expenses, overrides on prices, and cash remitted for this user.</span>
+                                    Enable Reconciliation & Expenses
+                                    <span class="block text-[10px] text-indigo-500 font-normal">Changes labels to 'Premium/Clean-Up', enables expenses, balance tracking.</span>
                                 </label>
                             </div>
 
@@ -664,14 +665,14 @@
                                 
                                 <div class="grid grid-cols-2 gap-4 mb-4">
                                     <div>
-                                        <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES</p>
+                                        <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES / PREMIUM</p>
                                         <div class="space-y-2">
                                             <input id="price-dress-buy" value="${dbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                             <input id="price-dress-sell" value="${dsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                     <div>
-                                        <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES (2PCS)</p>
+                                        <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES / CLEAN-UP</p>
                                         <div class="space-y-2">
                                             <input id="price-2pc-buy" value="${tbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                             <input id="price-2pc-sell" value="${tsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
@@ -1077,8 +1078,16 @@
             const sDress = Number(salesDressIn ? salesDressIn.value : 0) || 0;
             const s2pc = Number(sales2pcIn ? sales2pcIn.value : 0) || 0;
 
-            if (dDress === 0 && d2pc === 0 && sDress === 0 && s2pc === 0) {
-                showNotification("Please enter dispatch or sales amount.");
+            // Updated Validation: Allow 0 sales/dispatch if expenses/sent are present
+            let expenseAmt = 0;
+            let amtSent = 0;
+            if (managedUser.enableReconciliation) {
+                expenseAmt = Number(expAmtIn ? expAmtIn.value : 0) || 0;
+                amtSent = Number(sentIn ? sentIn.value : 0) || 0;
+            }
+
+            if (dDress === 0 && d2pc === 0 && sDress === 0 && s2pc === 0 && expenseAmt === 0 && amtSent === 0) {
+                showNotification("Please enter dispatch, sales, or expenses.");
                 return;
             }
 
@@ -1142,23 +1151,18 @@
             const totalProfit = profitDress + profit2pc;
             
             let balanceBF = 0;
-            let amtSent = 0;
             let expenseName = "";
-            let expenseAmt = 0;
 
             // Calculate Reconciliation
             if (managedUser.enableReconciliation) {
+                expenseName = expNameIn ? expNameIn.value : "";
                 const totalSalesValue = (sDress * dressSell) + (s2pc * twoPcSell);
-                amtSent = Number(sentIn.value) || 0;
-                expenseAmt = Number(expAmtIn.value) || 0;
-                expenseName = expNameIn.value || "";
-                
                 // Formula: Balance BF = Sales Value - (Sent + Expenses)
                 balanceBF = totalSalesValue - (amtSent + expenseAmt);
             }
 
             const record = {
-                id: Date.now(),
+                id: Date.now(), // This acts as creation timestamp
                 date: currentDayName,
                 fullDate: fullDateString,
                 dispatchedDresses: dDress,
@@ -1255,7 +1259,7 @@
             if (!lastEntry) return;
 
             if (isEntryLocked(lastEntry)) {
-                showNotification("Locked: 9AM deadline passed.");
+                showNotification("Locked: 72 hours passed since entry.");
                 return;
             }
 
@@ -1313,6 +1317,10 @@
                 // Balance Total (Sum of all daily balances)
                 const totalBalance = data.reduce((sum, r) => sum + (Number(r.balanceBF) || 0), 0);
 
+                // Define headers based on Reconciliation mode
+                const item1Label = showBalance ? 'Premium' : 'Dresses';
+                const item2Label = showBalance ? 'Clean-Up' : '2pcs';
+                
                 const rows = data.map(item => {
                     // Format Date: Day, Date
                     const friendlyDate = `${item.date}, ${item.fullDate}`;
@@ -1324,8 +1332,12 @@
                     ];
                     
                     if (showBalance) {
-                        // Use Balance BF column
-                        rowData.push(item.balanceBF !== undefined ? item.balanceBF.toLocaleString() : '0');
+                        // Use Balance BF column and show Expenses if any
+                        let balanceText = item.balanceBF !== undefined ? item.balanceBF.toLocaleString() : '0';
+                        if (item.expenseAmount > 0) {
+                             balanceText += `\n(Exp: ${item.expenseAmount})`;
+                        }
+                        rowData.push(balanceText);
                     } else {
                         // Use Profit column
                         rowData.push(item.profit.toLocaleString());
@@ -1339,14 +1351,14 @@
                 doc.setFontSize(14);
                 doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
                 doc.setFontSize(10);
-                doc.text(`Format: Dresses / 2pcs`, 14, 26);
+                doc.text(`Format: ${item1Label} / ${item2Label}`, 14, 26);
 
-                const finalColumnHeader = showBalance ? 'Balance BF (KES)' : 'Profit (KES)';
+                const finalColumnHeader = showBalance ? 'Bal BF (Exp)' : 'Profit (KES)';
                 const finalTotal = showBalance ? totalBalance.toLocaleString() : totalProfit.toLocaleString();
 
                 doc.autoTable({
                     startY: 40,
-                    head: [['Date', 'Sold (D/2pc)', 'Rem (D/2pc)', finalColumnHeader]],
+                    head: [['Date', `Sold (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, `Stock (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, finalColumnHeader]],
                     body: rows,
                     theme: 'grid',
                     foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', finalTotal]]
@@ -1369,6 +1381,8 @@
             const last = history.length > 0 ? history[history.length - 1] : null;
             const remD = last ? last.remDresses : startingPressure.dresses;
             const rem2 = last ? last.remTwoPcs : startingPressure.twoPcs;
+            const label1 = managedUser.enableReconciliation ? "Premium" : "Dresses";
+            const label2 = managedUser.enableReconciliation ? "Clean-Up" : "2pcs";
             
             const modalHTML = `
                 <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1377,8 +1391,8 @@
                         <h2 class="text-2xl font-bold text-slate-800 mb-2">Week Completed!</h2>
                         <p class="text-slate-600 mb-4 text-sm">
                             Final Inventory: <br>
-                            <span class="font-bold text-indigo-600"> ${remD} Dresses </span> & 
-                            <span class="font-bold text-purple-600"> ${rem2} 2pcs </span>
+                            <span class="font-bold text-indigo-600"> ${remD} ${label1} </span> & 
+                            <span class="font-bold text-purple-600"> ${rem2} ${label2} </span>
                         </p>
                         <div class="space-y-3">
                             <button onclick="downloadReport(history, 'Weekly_Completed'); document.getElementById('week-complete-modal').remove();" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Download Report</button>
@@ -1570,7 +1584,9 @@
                             <div class="bg-orange-50 p-2 rounded-lg">
                                 <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
                                 <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs}</p>
-                                <p class="text-[8px] text-orange-300">DRESS / 2PC</p>
+                                <p class="text-[8px] text-orange-300">
+                                    ${user.enableReconciliation ? 'PREMIUM / CLEAN-UP' : 'DRESS / 2PC'}
+                                </p>
                             </div>
                             <div class="bg-emerald-50 p-2 rounded-lg">
                                 <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Selected Date)</p>
@@ -1708,6 +1724,12 @@
             };
             
             const isReconciled = managedUser.enableReconciliation;
+            
+            // Dynamic Labels
+            const labelItem1 = isReconciled ? "Premium" : "Dress";
+            const labelItem2 = isReconciled ? "Clean-Up" : "2pc";
+            const labelItem1Plural = isReconciled ? "Premium" : "Dresses";
+            const labelItem2Plural = isReconciled ? "Clean-Up" : "2pcs";
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1731,8 +1753,8 @@
 
                     <!-- Stats Grid -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        ${renderStatCard("Stock (Dress)", curDresses, "shirt", "text-indigo-600")}
-                        ${renderStatCard("Stock (2pc)", cur2pcs, "layers", "text-purple-600")}
+                        ${renderStatCard(`Stock (${labelItem1})`, curDresses, "shirt", "text-indigo-600")}
+                        ${renderStatCard(`Stock (${labelItem2})`, cur2pcs, "layers", "text-purple-600")}
                         ${renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")}
                         ${renderStatCard("Today Sold", todaysSales, "trending-up", "text-amber-600")}
                     </div>
@@ -1775,11 +1797,11 @@
                                             </p>
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
-                                                    <label class="text-[10px] font-bold text-slate-500">Dresses</label>
+                                                    <label class="text-[10px] font-bold text-slate-500">${labelItem1Plural}</label>
                                                     <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Qty">
                                                 </div>
                                                 <div>
-                                                    <label class="text-[10px] font-bold text-slate-500">2pcs</label>
+                                                    <label class="text-[10px] font-bold text-slate-500">${labelItem2Plural}</label>
                                                     <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Qty">
                                                 </div>
                                             </div>
@@ -1787,7 +1809,7 @@
 
                                         <!-- 2. SALES SECTION (Middle - Dresses/Premium) -->
                                         <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-                                            <p class="text-[10px] font-bold text-purple-600 mb-2 uppercase">Dresses / Premium</p>
+                                            <p class="text-[10px] font-bold text-purple-600 mb-2 uppercase">${labelItem1Plural}</p>
                                             <div class="flex gap-2">
                                                 <div class="w-1/3">
                                                     <label class="text-[9px] font-bold text-slate-400">Sold Qty</label>
@@ -1806,7 +1828,7 @@
 
                                         <!-- 3. SALES SECTION (Middle - 2pcs/Clean-Up) -->
                                         <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-                                            <p class="text-[10px] font-bold text-emerald-600 mb-2 uppercase">2pcs / Clean-Up</p>
+                                            <p class="text-[10px] font-bold text-emerald-600 mb-2 uppercase">${labelItem2Plural}</p>
                                             <div class="flex gap-2">
                                                 <div class="w-1/3">
                                                     <label class="text-[9px] font-bold text-slate-400">Sold Qty</label>
@@ -2174,4 +2196,3 @@
     </script>
 </body>
 </html>
-
