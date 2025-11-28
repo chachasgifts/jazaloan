@@ -1356,22 +1356,18 @@
             const profitDress = sDress * (dressSell - dressBuy);
             const profit2pc = s2pc * (twoPcSell - twoPcBuy);
             const profitKimono = sKimono * (kimonoSell - kimonoBuy);
-            const totalProfit = profitDress + profit2pc + profitKimono;
+            let totalProfit = profitDress + profit2pc + profitKimono;
             
             let balanceBF = 0;
             
             if (isReconciled) {
-                // NEW LOGIC: Balance BF = (Dispatched * Price) + PrevBalance - (Sent + Expenses)
-                // Dispatched values are Liability
-                const liabilityPremium = dDress * dressSell; // In reconciled, dDress is the single dispatch pool
-                const liabilityCleanup = d2pc * twoPcSell; // Should be 0 usually in this mode, but if used
-                const liabilityKimono = dKimono * kimonoSell;
-                
-                const totalLiabilityGenerated = liabilityPremium + liabilityCleanup + liabilityKimono;
-                
-                const totalDeductions = amtSent + expenseAmt;
-                
-                balanceBF = totalLiabilityGenerated + prevBalanceBF - totalDeductions;
+                // NEW LOGIC
+                // Profit metric shows pressure (total remaining pieces * sell price)
+                const pressure = (newRemDress * dressSell) + (newRemKimono * kimonoSell);
+                totalProfit = pressure;
+
+                // Balance BF = pressure - (sent + expenses)
+                balanceBF = pressure - (amtSent + expenseAmt);
             }
             
             const expenseNameStr = expensesList.map(e => `${e.name} (${e.amount})`).join(', ');
