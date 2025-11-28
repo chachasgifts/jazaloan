@@ -81,6 +81,7 @@
         const DB_KEY = "trinah_users_db";
         const SESSION_KEY = "trinah_active_session";
         const PROCUREMENT_KEY = "trinah_procurement_log";
+        const CONTROLLER_KEY = "trinah_stock_controller_log"; // New Key for Controller
 
         // View States
         const VIEW_DASHBOARD = 'dashboard';
@@ -94,8 +95,8 @@
         // Data for managed user
         let history = []; 
         let archive = []; 
-        // startingPressure is now an object: { dresses: 0, twoPcs: 0 }
-        let startingPressure = { dresses: 0, twoPcs: 0 }; 
+        // startingPressure updated to include kimonos
+        let startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 }; 
         
         let selectedDayIndex = 0;
         let selectedReport = "Daily"; 
@@ -152,25 +153,30 @@
             if (savedPressure) {
                 try {
                     const parsed = JSON.parse(savedPressure);
-                    // Handle migration from old number format to new object format
+                    // Handle migration and defaults
                     if (typeof parsed === 'number') {
-                        startingPressure = { dresses: parsed, twoPcs: 0 };
+                        startingPressure = { dresses: parsed, twoPcs: 0, kimonos: 0 };
                     } else {
-                        startingPressure = parsed;
+                        startingPressure = {
+                            dresses: parsed.dresses || 0,
+                            twoPcs: parsed.twoPcs || 0,
+                            kimonos: parsed.kimonos || 0
+                        };
                     }
                 } catch (e) {
-                    startingPressure = { dresses: 0, twoPcs: 0 };
+                    startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
                 }
             } else {
-                startingPressure = { dresses: 0, twoPcs: 0 };
+                startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
             }
 
             // Recalculate from last archive entry if exists and history is empty
             if (history.length === 0 && archive.length > 0) {
                 const last = archive[archive.length - 1];
                 startingPressure = {
-                    dresses: last.remDresses || last.remaining || 0, // Fallback for old data
-                    twoPcs: last.remTwoPcs || 0
+                    dresses: last.remDresses || last.remaining || 0, 
+                    twoPcs: last.remTwoPcs || 0,
+                    kimonos: last.remKimonos || 0
                 };
             }
 
@@ -227,8 +233,6 @@
             const todayEnd = todayStart + (24 * 60 * 60 * 1000);
 
             return fullHistory.filter(entry => {
-                // Use entry.id (which is a timestamp) for robust comparison across all devices
-                // Fallback to parsing Date string only if ID is missing (legacy data)
                 let entryTime = entry.id;
                 if (!entryTime) {
                     const parsed = new Date(entry.fullDate);
@@ -238,30 +242,23 @@
 
                 switch (selectedReport) {
                     case "Daily": 
-                        // Show entries that happened today
                         return entryTime >= todayStart && entryTime < todayEnd;
-                    
                     case "Weekly": {
-                        // Show entries from last 7 days (rolling week)
-                        const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000); // 6 days ago + today = 7 days
+                        const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
                         return entryTime >= oneWeekAgo;
                     }
-                    
                     case "Monthly": {
                         const thirtyDaysAgo = todayStart - (30 * 24 * 60 * 60 * 1000);
                         return entryTime >= thirtyDaysAgo;
                     }
-                    
                     case "Quarterly": {
                         const ninetyDaysAgo = todayStart - (90 * 24 * 60 * 60 * 1000);
                         return entryTime >= ninetyDaysAgo;
                     }
-                    
                     case "Yearly": {
                         const oneYearAgo = todayStart - (365 * 24 * 60 * 60 * 1000);
                         return entryTime >= oneYearAgo;
                     }
-                    
                     default: return true;
                 }
             });
@@ -292,12 +289,11 @@
         }
 
         // --- Master Report Logic ---
-        // Modified to accept a custom date string for 'Daily' reports
         async function downloadMasterReport(type = 'Daily', customDateStr = null) {
             const loader = document.getElementById('pdf-loader');
             if (loader) loader.style.display = 'flex';
             
-            await new Promise(r => setTimeout(r, 800)); // Slightly longer for loader visibility
+            await new Promise(r => setTimeout(r, 800));
 
             try {
                 const { jsPDF } = window.jspdf;
@@ -305,11 +301,9 @@
                 
                 const allUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
                 
-                // Determine target date (default to today)
                 let targetDateLocale = new Date().toLocaleDateString();
                 let reportDateTitle = new Date().toDateString();
 
-                // If custom date provided (YYYY-MM-DD), convert to locale date string
                 if (customDateStr && type === 'Daily') {
                     const [y, m, d] = customDateStr.split('-').map(Number);
                     const dateObj = new Date(y, m - 1, d);
@@ -320,6 +314,7 @@
                 let reportRows = [];
                 let grandTotalSoldDresses = 0;
                 let grandTotalSoldTwoPcs = 0;
+                let grandTotalSoldKimonos = 0;
                 let grandTotalProfit = 0;
                 let grandTotalDispatched = 0;
 
@@ -341,95 +336,92 @@
 
                     const soldDresses = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldDresses)||0), 0);
                     const soldTwoPcs = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldTwoPcs)||0), 0);
-                    // Legacy support for 'sold' field if exists
+                    const soldKimonos = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldKimonos)||0), 0);
                     const soldLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.soldDresses ? 0 : (Number(curr.sold)||0)), 0); 
                     
-                    // Dispatch Calcs for report
                     const dispatchedDresses = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatchedDresses)||0), 0);
                     const dispatchedTwoPcs = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatchedTwoPcs)||0), 0);
+                    const dispatchedKimonos = filteredEntries.reduce((acc, curr) => acc + (Number(curr.dispatchedKimonos)||0), 0);
                     const dispatchedLegacy = filteredEntries.reduce((acc, curr) => acc + (curr.dispatchedDresses ? 0 : (Number(curr.dispatched)||0)), 0);
-                    const userTotalDispatched = dispatchedDresses + dispatchedTwoPcs + dispatchedLegacy;
+                    
+                    const userTotalDispatched = dispatchedDresses + dispatchedTwoPcs + dispatchedKimonos + dispatchedLegacy;
 
-                    const totalSoldDresses = soldDresses + soldLegacy; // Treat legacy sold as dresses
+                    const totalSoldDresses = soldDresses + soldLegacy;
                     const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
                     
-                    const totalSold = totalSoldDresses + soldTwoPcs;
+                    const totalSold = totalSoldDresses + soldTwoPcs + soldKimonos;
 
-                    // --- FILTERING LOGIC ---
-                    // If Daily Report, omit staff with ZERO dispatch AND ZERO sales
                     if (type === 'Daily') {
                         if (userTotalDispatched === 0 && totalSold === 0) {
-                            return; // Skip this user
+                            return; 
                         }
                     }
-                    // -----------------------
 
-                    // Only add to grand totals if they are in the report
                     grandTotalDispatched += userTotalDispatched;
                     grandTotalSoldDresses += totalSoldDresses;
                     grandTotalSoldTwoPcs += soldTwoPcs;
+                    grandTotalSoldKimonos += soldKimonos;
                     grandTotalProfit += totalProfit;
 
-                    // Get current remaining for display (snapshot as of now, technically)
                     let currentRemDresses = 0;
                     let currentRemTwoPcs = 0;
+                    let currentRemKimonos = 0;
+
                     if (allEntries.length > 0) {
                         const last = allEntries[allEntries.length - 1];
                         currentRemDresses = last.remDresses || last.remaining || 0;
                         currentRemTwoPcs = last.remTwoPcs || 0;
+                        currentRemKimonos = last.remKimonos || 0;
                     } else {
                          try {
                             const p = JSON.parse(userPressureStr);
                             if (typeof p === 'number') currentRemDresses = p;
-                            else { currentRemDresses = p?.dresses || 0; currentRemTwoPcs = p?.twoPcs || 0; }
+                            else { 
+                                currentRemDresses = p?.dresses || 0; 
+                                currentRemTwoPcs = p?.twoPcs || 0;
+                                currentRemKimonos = p?.kimonos || 0;
+                            }
                         } catch(e) {}
                     }
                     
-                    let stockDisplay = `${currentRemDresses} / ${currentRemTwoPcs}`;
+                    let stockDisplay = `${currentRemDresses} / ${currentRemTwoPcs} / ${currentRemKimonos}`;
                     if (user.enableReconciliation) {
-                        // For Reconciled users, we treat dresses as the main pool now
-                        stockDisplay = `${currentRemDresses}`;
+                        stockDisplay = `${currentRemDresses} / ${currentRemKimonos}`;
                     }
 
                     reportRows.push([
                         user.name,
                         String(totalSoldDresses),
                         String(soldTwoPcs),
+                        String(soldKimonos),
                         stockDisplay,
                         formatCurrency(totalProfit)
                     ]);
                 });
 
-                // --- PROFESSIONAL STYLING ---
-                
-                // 1. Header Banner
-                doc.setFillColor(30, 58, 138); // Deep Blue
+                doc.setFillColor(30, 58, 138); 
                 doc.rect(0, 0, 210, 45, 'F'); 
 
-                // 2. Company Title
                 doc.setTextColor(255, 255, 255);
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(22);
                 doc.text("TRINAH DESIGNS", 105, 20, { align: "center" });
                 
-                // 3. Report Title
                 doc.setFontSize(12);
                 doc.setFont("helvetica", "normal");
                 const titleText = type === 'Daily' ? "DAILY SALES & STOCK REPORT" : `MASTER ${type.toUpperCase()} REPORT`;
                 doc.text(titleText, 105, 30, { align: "center" });
 
-                // 4. Date Subtitle
                 doc.setFontSize(10);
-                doc.setTextColor(203, 213, 225); // Light Slate
+                doc.setTextColor(203, 213, 225); 
                 doc.text(`Period: ${reportDateTitle}`, 105, 38, { align: "center" });
 
-                // 5. Table
                 doc.autoTable({
                     startY: 55,
-                    head: [['Staff Member', 'Sold Dresses', 'Sold 2pcs', 'Current Stock', 'Profit (KES)']],
+                    head: [['Staff Member', 'Sold Premium', 'Sold CleanUp', 'Sold Kimono', 'Stock', 'Profit (KES)']],
                     body: reportRows,
-                    foot: [['TOTALS', String(grandTotalSoldDresses), String(grandTotalSoldTwoPcs), '-', formatCurrency(grandTotalProfit)]],
-                    theme: 'striped', // Cleaner professional theme
+                    foot: [['TOTALS', String(grandTotalSoldDresses), String(grandTotalSoldTwoPcs), String(grandTotalSoldKimonos), '-', formatCurrency(grandTotalProfit)]],
+                    theme: 'striped',
                     headStyles: { 
                         fillColor: [30, 58, 138], 
                         textColor: 255, 
@@ -443,8 +435,8 @@
                         cellPadding: 3 
                     },
                     columnStyles: { 
-                        0: { halign: 'left', fontStyle: 'bold' }, // Staff Name Left Aligned
-                        4: { fontStyle: 'bold', halign: 'right' } // Profit Right Aligned
+                        0: { halign: 'left', fontStyle: 'bold' },
+                        5: { fontStyle: 'bold', halign: 'right' }
                     },
                     footStyles: { 
                         fillColor: [241, 245, 249], 
@@ -455,7 +447,6 @@
                     margin: { top: 55 }
                 });
 
-                // --- Stock Reconciliation Section (Professional Box) ---
                 if (type === 'Daily') {
                     const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
                     const procurementToday = logs[targetDateLocale] || 0;
@@ -463,12 +454,10 @@
                     
                     const finalY = doc.lastAutoTable.finalY + 15;
                     
-                    // Box Background
-                    doc.setDrawColor(226, 232, 240); // Slate 200
-                    doc.setFillColor(248, 250, 252); // Slate 50
-                    doc.rect(14, finalY, 182, 50, 'FD'); // Fill and Draw
+                    doc.setDrawColor(226, 232, 240);
+                    doc.setFillColor(248, 250, 252);
+                    doc.rect(14, finalY, 182, 50, 'FD');
 
-                    // Header for Box
                     doc.setFillColor(30, 58, 138);
                     doc.rect(14, finalY, 182, 10, 'F');
                     doc.setTextColor(255, 255, 255);
@@ -476,8 +465,7 @@
                     doc.setFont("helvetica", "bold");
                     doc.text("STOCK RECONCILIATION ANALYSIS", 20, finalY + 7);
 
-                    // Content
-                    doc.setTextColor(51, 65, 85); // Slate 700
+                    doc.setTextColor(51, 65, 85);
                     doc.setFont("helvetica", "normal");
                     doc.text("Stock Acquired (Procurement):", 20, finalY + 20);
                     doc.text(String(procurementToday), 180, finalY + 20, { align: "right" });
@@ -485,7 +473,6 @@
                     doc.text("Stock Dispatched (Total):", 20, finalY + 27);
                     doc.text(String(grandTotalDispatched), 180, finalY + 27, { align: "right" });
                     
-                    // Variance Line
                     doc.setDrawColor(226, 232, 240);
                     doc.line(20, finalY + 32, 190, finalY + 32);
 
@@ -493,13 +480,13 @@
                     doc.text("Net Variance:", 20, finalY + 40);
                     
                     let varianceText = "";
-                    let varianceColor = [22, 163, 74]; // Green
+                    let varianceColor = [22, 163, 74]; 
 
                     if (variance > 0) {
-                        varianceColor = [220, 38, 38]; // Red
+                        varianceColor = [220, 38, 38];
                         varianceText = `${variance} MISSING / UNDISPATCHED`;
                     } else if (variance < 0) {
-                         varianceColor = [217, 119, 6]; // Orange
+                         varianceColor = [217, 119, 6];
                          varianceText = `${Math.abs(variance)} EXTRA DISPATCHED (Old Stock)`;
                     } else {
                         varianceText = "BALANCED";
@@ -508,7 +495,6 @@
                     doc.setTextColor(varianceColor[0], varianceColor[1], varianceColor[2]);
                     doc.text(varianceText, 180, finalY + 40, { align: "right" });
                     
-                    // Disclaimer if Missing
                     if (variance > 0) {
                         doc.setFontSize(8);
                         doc.setTextColor(100, 116, 139);
@@ -516,7 +502,6 @@
                     }
                 }
 
-                // Footer
                 const pageCount = doc.internal.getNumberOfPages();
                 for(let i = 1; i <= pageCount; i++) {
                     doc.setPage(i);
@@ -525,7 +510,6 @@
                     doc.text(`Generated by Trinah Designs Admin System - ${new Date().toLocaleString()}`, 105, 290, { align: "center" });
                 }
 
-                // Sanitize filename
                 const fileDate = type === 'Daily' ? `_${targetDateLocale.replace(/\//g, '-')}` : '';
                 doc.save(`Trinah_${type}_Report${fileDate}.pdf`);
                 
@@ -545,20 +529,18 @@
         function setView(view) {
             currentView = view;
             if (view === VIEW_DASHBOARD && currentUser.role === 'admin') {
-                // If going to dashboard as admin, clear managed user unless explicitly navigating
                 managedUser = null; 
             }
             renderApp();
         }
 
-        // Specific function for admin drilling down
         function manageUser(userPhone) {
             const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
             const target = users.find(u => u.phone === userPhone);
             if (target) {
                 managedUser = target;
                 loadData(target);
-                renderApp(); // Will detect managedUser and show Individual Dashboard
+                renderApp(); 
             }
         }
 
@@ -586,7 +568,6 @@
             authLoading = false;
             currentUser = user;
             
-            // Fix legacy role issues
             if (!currentUser.role) {
                 const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
                 if (users.length > 0 && users[0].phone === currentUser.phone) {
@@ -601,11 +582,10 @@
             localStorage.setItem(SESSION_KEY, JSON.stringify(user));
 
             if (currentUser.role === 'admin') {
-                managedUser = null; // Admin starts in Overview
-                // Reset date to today on login
+                managedUser = null; 
                 selectedProcurementDate = new Date();
             } else {
-                managedUser = currentUser; // Staff manage themselves
+                managedUser = currentUser; 
                 loadData(currentUser);
             }
             
@@ -613,15 +593,13 @@
         }
 
         function handleLogout() {
-            // Save data only if managing someone
             if (managedUser) saveData(managedUser.phone);
-            
             currentUser = null;
             managedUser = null;
             localStorage.removeItem(SESSION_KEY);
             history = [];
             archive = [];
-            startingPressure = { dresses: 0, twoPcs: 0 };
+            startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
             renderApp();
         }
 
@@ -639,7 +617,6 @@
                 userToEdit = users.find(u => u.phone === userPhone);
             }
 
-            // Defaults or Existing Values
             const nameVal = userToEdit ? userToEdit.name : '';
             const phoneVal = userToEdit ? userToEdit.phone : '';
             const passVal = userToEdit ? userToEdit.password : '';
@@ -651,6 +628,8 @@
             const dsVal = prices.dressSell || '';
             const tbVal = prices.twoPcBuy || '';
             const tsVal = prices.twoPcSell || '';
+            const kbVal = prices.kimonoBuy || '';
+            const ksVal = prices.kimonoSell || '';
 
             const modalHTML = `
                 <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -709,7 +688,16 @@
                                         </div>
                                     </div>
                                 </div>
-                                <p class="text-[10px] text-slate-400">Standard profit will be calculated based on these margins.</p>
+                                <!-- KIMONO SECTION -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-xs font-bold text-pink-600 mb-1">KIMONO</p>
+                                        <div class="space-y-2">
+                                            <input id="price-kimono-buy" value="${kbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-kimono-sell" value="${ksVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">
@@ -724,7 +712,6 @@
         }
 
         function showReportsModal() {
-             // Generate today's date in YYYY-MM-DD for the date input default
              const now = new Date();
              const y = now.getFullYear();
              const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -794,19 +781,20 @@
             const password = document.getElementById('staff-pass').value.trim();
             const enableReconciliation = document.getElementById('staff-reconcile').checked;
             
-            // New Price Fields
             const dressBuy = Number(document.getElementById('price-dress-buy').value);
             const dressSell = Number(document.getElementById('price-dress-sell').value);
             const twoPcBuy = Number(document.getElementById('price-2pc-buy').value);
             const twoPcSell = Number(document.getElementById('price-2pc-sell').value);
+            const kimonoBuy = Number(document.getElementById('price-kimono-buy').value);
+            const kimonoSell = Number(document.getElementById('price-kimono-sell').value);
 
             if (!name || !phone || !password) {
                 showNotification("Please fill name, phone and password.");
                 return;
             }
 
-            if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell) {
-                showNotification("Please set all prices.");
+            if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell || !kimonoBuy || !kimonoSell) {
+                showNotification("Please set all prices including Kimono.");
                 return;
             }
 
@@ -819,18 +807,17 @@
                 }
                 const newUser = { 
                     name, phone, password, role: 'staff',
-                    prices: { dressBuy, dressSell, twoPcBuy, twoPcSell },
+                    prices: { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell },
                     enableReconciliation: enableReconciliation
                 };
                 users.push(newUser);
                 showNotification(`Staff member ${name} added!`);
             } else {
-                // Edit Mode
                 const index = users.findIndex(u => u.phone === originalPhone);
                 if (index !== -1) {
                     users[index].name = name;
                     users[index].password = password;
-                    users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell };
+                    users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell };
                     users[index].enableReconciliation = enableReconciliation;
                     showNotification(`Details for ${name} updated!`);
                 }
@@ -838,16 +825,13 @@
 
             localStorage.setItem(DB_KEY, JSON.stringify(users));
             
-            // Close modal
             const modal = document.getElementById('add-staff-modal');
             if(modal) modal.remove();
 
-            // Refresh view
             if (currentView === VIEW_USERS) renderUserManagementScreen();
         }
 
         function handleAddStaff(e) {
-            // Deprecated proxy to handleSaveStaff for backwards compatibility if needed
             handleSaveStaff(e, 'add', null);
         }
 
@@ -863,7 +847,6 @@
         
         function handleProcurementDateChange(dateStr) {
             if (!dateStr) return;
-            // dateStr is YYYY-MM-DD
             const [y, m, d] = dateStr.split('-').map(Number);
             selectedProcurementDate = new Date(y, m - 1, d);
             renderAdminOverview();
@@ -880,7 +863,70 @@
             localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
             
             showNotification(`Stock saved for ${targetDateKey}!`);
-            renderAdminOverview(); // Refresh to update variance
+            renderAdminOverview(); 
+        }
+
+        // New Function for Stock Controller
+        function handleControllerLogSave(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('control-date').value;
+            const countVal = document.getElementById('control-count').value;
+            const noteVal = document.getElementById('control-note').value;
+
+            if(!dateVal || !countVal) {
+                showNotification("Please select date and count.");
+                return;
+            }
+
+            const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            // Add new entry to top
+            logs.unshift({
+                id: Date.now(),
+                date: dateVal,
+                count: countVal,
+                note: noteVal
+            });
+            
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(logs));
+            showNotification("Stock record saved safely.");
+            document.getElementById('add-control-modal').remove();
+            renderAdminOverview();
+        }
+
+        function showControllerModal() {
+             const now = new Date();
+             const y = now.getFullYear();
+             const m = String(now.getMonth() + 1).padStart(2, '0');
+             const d = String(now.getDate()).padStart(2, '0');
+             const todayStr = `${y}-${m}-${d}`;
+
+             const modalHTML = `
+                <div id="add-control-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-control-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">Record Physical Stock</h2>
+                        <p class="text-sm text-slate-500 mb-4">Safe storage for daily stock counts (Controller's Record).</p>
+                        
+                        <form onsubmit="window.handleControllerLogSave(event)" class="space-y-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Date</label>
+                                <input type="date" id="control-date" value="${todayStr}" class="w-full p-2 rounded-lg border border-slate-300">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Physical Count</label>
+                                <input type="number" id="control-count" placeholder="Total Stock Count" class="w-full p-2 rounded-lg border border-slate-300">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Note (Optional)</label>
+                                <input type="text" id="control-note" placeholder="e.g. Checked by John" class="w-full p-2 rounded-lg border border-slate-300">
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 mt-2">Save Record</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
         }
 
         function handleFactoryReset() {
@@ -947,8 +993,6 @@
 
             const form = document.getElementById('recovery-form');
             
-            // SECURITY CHECK: If Admin, require PIN. If Staff, instruct to contact Admin.
-            
             if (user.role === 'admin') {
                 form.innerHTML = `
                     <div class="bg-indigo-50 text-indigo-800 p-4 rounded-xl text-sm mb-4 border border-indigo-100">
@@ -969,7 +1013,6 @@
                     </div>
                 `;
             } else {
-                // Staff Logic: Contact Admin (More Secure)
                 form.innerHTML = `
                     <div class="bg-amber-50 text-amber-800 p-6 rounded-xl text-sm mb-6 border border-amber-200 text-center">
                         <div class="mx-auto w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-2">
@@ -1033,7 +1076,6 @@
             setTimeout(() => {
                 let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
                 
-                // --- Creation Logic ---
                 if (showAdminCreation && users.length === 0) {
                      if (!name) {
                         authError = "Admin name required.";
@@ -1053,7 +1095,6 @@
                     return;
                 }
 
-                // --- Standard Login Logic ---
                 const user = users.find(u => u.phone === phone && u.password === password);
                 
                 if (user) {
@@ -1086,34 +1127,38 @@
         // --- Core Logic ---
 
         function handleSubmit() {
-            if (!managedUser) return; // Safety check
+            if (!managedUser) return; 
 
-            // Standard inputs (used by both modes, but logic differs)
             const dispatchDressIn = document.getElementById('dispatch-dress');
             const dispatch2pcIn = document.getElementById('dispatch-2pc');
             const salesDressIn = document.getElementById('sales-dress');
             const sales2pcIn = document.getElementById('sales-2pc');
             
-            // Reconciled specific inputs
             const dBPIn = document.getElementById('rec-dress-buy');
             const dSPIn = document.getElementById('rec-dress-sell');
             const tBPIn = document.getElementById('rec-2pc-buy');
             const tSPIn = document.getElementById('rec-2pc-sell');
             const sentIn = document.getElementById('rec-sent');
-            const singleDispatchIn = document.getElementById('dispatch-single'); // New single dispatch field
+            const singleDispatchIn = document.getElementById('dispatch-single'); 
+            
+            // Kimono Inputs
+            const dispatchKimonoIn = document.getElementById('dispatch-kimono');
+            const salesKimonoIn = document.getElementById('sales-kimono');
 
             const isReconciled = managedUser.enableReconciliation;
 
-            // Get Dispatch Quantities
             let dDress = 0;
             let d2pc = 0;
+            let dKimono = 0;
             let singleDispatch = 0;
+
+            // Kimono Dispatch
+            dKimono = Number(dispatchKimonoIn ? dispatchKimonoIn.value : 0) || 0;
 
             if (isReconciled) {
                 singleDispatch = Number(singleDispatchIn ? singleDispatchIn.value : 0) || 0;
-                // For reconciled, we treat 'dresses' storage as the main pool
                 dDress = singleDispatch; 
-                d2pc = 0; // Not used in reconciled mode logic
+                d2pc = 0; 
             } else {
                 dDress = Number(dispatchDressIn ? dispatchDressIn.value : 0) || 0;
                 d2pc = Number(dispatch2pcIn ? dispatch2pcIn.value : 0) || 0;
@@ -1121,8 +1166,8 @@
 
             const sDress = Number(salesDressIn ? salesDressIn.value : 0) || 0;
             const s2pc = Number(sales2pcIn ? sales2pcIn.value : 0) || 0;
+            const sKimono = Number(salesKimonoIn ? salesKimonoIn.value : 0) || 0;
 
-            // Gather Expenses (New Multi-Row Logic)
             let expenseAmt = 0;
             let amtSent = 0;
             let expensesList = [];
@@ -1130,7 +1175,6 @@
             if (isReconciled) {
                 amtSent = Number(sentIn ? sentIn.value : 0) || 0;
                 
-                // Collect dynamic expenses
                 const expNames = document.getElementsByName('expense_name[]');
                 const expAmts = document.getElementsByName('expense_amt[]');
                 
@@ -1144,19 +1188,19 @@
                 }
             }
 
-            if (dDress === 0 && d2pc === 0 && sDress === 0 && s2pc === 0 && expenseAmt === 0 && amtSent === 0) {
+            if (dDress === 0 && d2pc === 0 && dKimono === 0 && sDress === 0 && s2pc === 0 && sKimono === 0 && expenseAmt === 0 && amtSent === 0) {
                 showNotification("Please enter dispatch, sales, or expenses.");
                 return;
             }
 
-            // Get Prices (Default or Override)
             const defaultPrices = managedUser.prices || {};
             let dressBuy = defaultPrices.dressBuy || DEFAULT_BUY_PRICE;
             let dressSell = defaultPrices.dressSell || DEFAULT_SELL_PRICE;
             let twoPcBuy = defaultPrices.twoPcBuy || DEFAULT_BUY_PRICE;
             let twoPcSell = defaultPrices.twoPcSell || DEFAULT_SELL_PRICE;
+            let kimonoBuy = defaultPrices.kimonoBuy || 150; // Default fallback
+            let kimonoSell = defaultPrices.kimonoSell || 300; // Default fallback
 
-            // Override if Reconciliation is enabled
             if (isReconciled) {
                 if (dBPIn && dBPIn.value) dressBuy = Number(dBPIn.value);
                 if (dSPIn && dSPIn.value) dressSell = Number(dSPIn.value);
@@ -1180,9 +1224,10 @@
             const currentDayName = DAYS[selectedDayIndex];
             const fullDateString = targetDate.toLocaleDateString();
 
-            // Calculate Pressure / Inventory
             let prevRemDress = 0;
             let prevRem2pc = 0;
+            let prevRemKimono = 0;
+            let prevBalanceBF = 0;
 
             const fullHistory = getFullHistory();
 
@@ -1190,52 +1235,54 @@
                 const last = fullHistory[fullHistory.length - 1];
                 prevRemDress = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
                 prevRem2pc = last.remTwoPcs !== undefined ? last.remTwoPcs : 0;
+                prevRemKimono = last.remKimonos !== undefined ? last.remKimonos : 0;
+                prevBalanceBF = last.balanceBF || 0;
             } else {
-                prevRemDress = startingPressure.dresses;
-                prevRem2pc = startingPressure.twoPcs;
+                prevRemDress = startingPressure.dresses || 0;
+                prevRem2pc = startingPressure.twoPcs || 0;
+                prevRemKimono = startingPressure.kimonos || 0;
+                prevBalanceBF = 0;
             }
 
             let newRemDress = 0;
             let newRem2pc = 0;
+            let newRemKimono = 0;
 
             if (isReconciled) {
-                // Reconciled Logic: Single Pool (stored in newRemDress)
-                // NewStock = OldStock + SingleDispatch - (PremiumSold + CleanUpSold)
-                // Note: We ignore prevRem2pc for stock calculation if in reconciled mode, assuming total stock is in 'dresses' field
-                // Safe check: if previously not reconciled, we might need to sum them? 
-                // Let's assume for reconciled users we only look at the first field or sum them effectively.
-                const totalPrevStock = prevRemDress + (isReconciled ? prevRem2pc : 0); 
-                // We zero out 2pc prev stock so we don't double count if we just switched modes, but let's stick to simple logic:
-                // Just use prevRemDress as the accumulator.
-                
                 newRemDress = prevRemDress + singleDispatch - (sDress + s2pc);
-                newRem2pc = 0; // Unused
+                newRem2pc = 0; 
             } else {
-                // Standard Logic: Separated
                 newRemDress = prevRemDress + dDress - sDress;
                 newRem2pc = prevRem2pc + d2pc - s2pc;
             }
+            newRemKimono = prevRemKimono + dKimono - sKimono;
 
-            if (newRemDress < 0 || newRem2pc < 0) {
+            if (newRemDress < 0 || newRem2pc < 0 || newRemKimono < 0) {
                 showNotification("Error: Sales cannot exceed inventory.");
                 return;
             }
 
-            // Calculate Profit
             const profitDress = sDress * (dressSell - dressBuy);
             const profit2pc = s2pc * (twoPcSell - twoPcBuy);
-            const totalProfit = profitDress + profit2pc;
+            const profitKimono = sKimono * (kimonoSell - kimonoBuy);
+            const totalProfit = profitDress + profit2pc + profitKimono;
             
             let balanceBF = 0;
             
-            // Calculate Reconciliation Balance
             if (isReconciled) {
-                const totalSalesValue = (sDress * dressSell) + (s2pc * twoPcSell);
-                // Formula: Balance BF = Sales Value - (Sent + Expenses)
-                balanceBF = totalSalesValue - (amtSent + expenseAmt);
+                // NEW LOGIC: Balance BF = (Dispatched * Price) + PrevBalance - (Sent + Expenses)
+                // Dispatched values are Liability
+                const liabilityPremium = dDress * dressSell; // In reconciled, dDress is the single dispatch pool
+                const liabilityCleanup = d2pc * twoPcSell; // Should be 0 usually in this mode, but if used
+                const liabilityKimono = dKimono * kimonoSell;
+                
+                const totalLiabilityGenerated = liabilityPremium + liabilityCleanup + liabilityKimono;
+                
+                const totalDeductions = amtSent + expenseAmt;
+                
+                balanceBF = totalLiabilityGenerated + prevBalanceBF - totalDeductions;
             }
             
-            // Backward compatibility for expense string
             const expenseNameStr = expensesList.map(e => `${e.name} (${e.amount})`).join(', ');
 
             const record = {
@@ -1244,39 +1291,39 @@
                 fullDate: fullDateString,
                 dispatchedDresses: dDress,
                 dispatchedTwoPcs: d2pc,
+                dispatchedKimonos: dKimono,
                 soldDresses: sDress,
                 soldTwoPcs: s2pc,
+                soldKimonos: sKimono,
                 remDresses: newRemDress,
                 remTwoPcs: newRem2pc,
+                remKimonos: newRemKimono,
                 profit: totalProfit,
-                // keep these for backward compat
-                dispatched: dDress + d2pc,
-                sold: sDress + s2pc,
-                remaining: newRemDress + newRem2pc,
-                // New Fields
+                dispatched: dDress + d2pc + dKimono,
+                sold: sDress + s2pc + sKimono,
+                remaining: newRemDress + newRem2pc + newRemKimono,
                 balanceBF: balanceBF,
                 amountSent: amtSent,
                 expenseName: expenseNameStr,
                 expenseAmount: expenseAmt,
-                expensesList: expensesList, // Store detailed list
-                // Store prices used for this specific transaction
+                expensesList: expensesList,
                 transPrices: {
-                    dBP: dressBuy, dSP: dressSell, tBP: twoPcBuy, tSP: twoPcSell
+                    dBP: dressBuy, dSP: dressSell, tBP: twoPcBuy, tSP: twoPcSell, kBP: kimonoBuy, kSP: kimonoSell
                 }
             };
 
             history.push(record);
-            startingPressure = { dresses: newRemDress, twoPcs: newRem2pc };
+            startingPressure = { dresses: newRemDress, twoPcs: newRem2pc, kimonos: newRemKimono };
 
-            // Clear inputs
             if (dispatchDressIn) dispatchDressIn.value = "";
             if (dispatch2pcIn) dispatch2pcIn.value = "";
             if (singleDispatchIn) singleDispatchIn.value = "";
+            if (dispatchKimonoIn) dispatchKimonoIn.value = "";
             if (salesDressIn) salesDressIn.value = "";
             if (sales2pcIn) sales2pcIn.value = "";
+            if (salesKimonoIn) salesKimonoIn.value = "";
             if (sentIn) sentIn.value = "";
             
-            // Clear expenses
             const expContainer = document.getElementById('expenses-container');
             if(expContainer) expContainer.innerHTML = ''; 
 
@@ -1299,9 +1346,7 @@
             renderIndividualDashboard();
         }
 
-        // --- Balance BF Logic (Deprecated Modal, kept for safety but unused in new flow) ---
         function showBalanceModal(dayName, dateStr) {
-            // Deprecated in favor of inline inputs
             showNotification("Please use the main form to enter expenses.");
         }
 
@@ -1310,13 +1355,14 @@
             if (modal) modal.remove();
 
             const fullHistory = getFullHistory();
-            let finalPressure = { dresses: 0, twoPcs: 0 };
+            let finalPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
 
             if (fullHistory.length > 0) {
                 const last = fullHistory[fullHistory.length - 1];
                 finalPressure = {
                     dresses: last.remDresses || last.remaining || 0,
-                    twoPcs: last.remTwoPcs || 0
+                    twoPcs: last.remTwoPcs || 0,
+                    kimonos: last.remKimonos || 0
                 };
             } else {
                 finalPressure = startingPressure;
@@ -1344,33 +1390,28 @@
                 return;
             }
             
-            // === CORRECT REVERSION LOGIC ===
-            // Calculate what the stock was BEFORE this entry
-            // Logic: Previous Remaining = Current Remaining - Dispatch + Sold
-            
-            // Check if user is Reconciled (handles stock differently? No, the logic is universal if fields are populated correctly)
-            // But we must be careful about nulls
-            
             const curRemDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
             const curRemTwoPcs = lastEntry.remTwoPcs || 0;
+            const curRemKimonos = lastEntry.remKimonos || 0;
             
             const dispatchedD = lastEntry.dispatchedDresses || 0;
             const dispatchedT = lastEntry.dispatchedTwoPcs || 0;
+            const dispatchedK = lastEntry.dispatchedKimonos || 0;
             
             const soldD = lastEntry.soldDresses !== undefined ? lastEntry.soldDresses : (lastEntry.sold || 0);
             const soldT = lastEntry.soldTwoPcs || 0;
+            const soldK = lastEntry.soldKimonos || 0;
             
-            // Reconstruct previous state
             const prevRemDresses = curRemDresses - dispatchedD + soldD;
             const prevRemTwoPcs = curRemTwoPcs - dispatchedT + soldT;
+            const prevRemKimonos = curRemKimonos - dispatchedK + soldK;
             
-            // Set as new starting pressure (This fixes the empty history bug)
             startingPressure = {
                 dresses: prevRemDresses,
-                twoPcs: prevRemTwoPcs
+                twoPcs: prevRemTwoPcs,
+                kimonos: prevRemKimonos
             };
 
-            // Remove the entry
             history.pop();
             
             const dayIndex = DAYS.indexOf(lastEntry.date);
@@ -1399,35 +1440,37 @@
                 const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
                 const totalSoldDresses = data.reduce((sum, r) => sum + (Number(r.soldDresses) || 0), 0);
                 const totalSoldTwoPcs = data.reduce((sum, r) => sum + (Number(r.soldTwoPcs) || 0), 0);
+                const totalSoldKimonos = data.reduce((sum, r) => sum + (Number(r.soldKimonos) || 0), 0);
                 
-                // Balance Total (Sum of all daily balances)
-                const totalBalance = data.reduce((sum, r) => sum + (Number(r.balanceBF) || 0), 0);
+                // Use last entry balance for the period total balance logic?
+                // Actually, balance is a running total. The last row shows the current debt.
+                // We shouldn't sum balances. We should show the Balance at end of period.
+                const lastRow = data[data.length-1];
+                const closingBalance = lastRow ? (Number(lastRow.balanceBF)||0) : 0;
 
-                doc.setFillColor(30, 58, 138); // Primary Blue
+                doc.setFillColor(30, 58, 138); 
                 doc.rect(0, 0, 210, 30, 'F');
                 doc.setTextColor(255,255,255);
                 doc.setFontSize(14);
                 doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
                 
                 if (showBalance) {
-                     // === PROFESSIONAL RECONCILIATION LAYOUT ===
                     doc.setFontSize(10);
                     doc.text("Reconciliation Statement", 14, 26);
                     
                     const rows = data.map(item => {
                          const friendlyDate = `${item.date.substring(0,3)}, ${item.fullDate}`;
                          
-                         // Calculate Gross Sales (what came in before deductions)
-                         // Gross = Balance + Sent + Expenses
                          const expensesVal = Number(item.expenseAmount) || 0;
                          const sentVal = Number(item.amountSent) || 0;
                          const balanceVal = Number(item.balanceBF) || 0;
-                         const grossSales = balanceVal + sentVal + expensesVal;
+                         // Display Dispatched Value as "New Debt"
+                         const dD = item.dispatchedDresses || 0;
+                         const dK = item.dispatchedKimonos || 0;
+                         const prices = item.transPrices || managedUser.prices || {};
+                         const dVal = (dD * (prices.dSP||0)) + (dK * (prices.kSP||0));
                          
-                         // Stock Display
-                         const stockDisplay = `${item.remDresses || 0}`;
-
-                         // Build Expenses String
+                         // Deduction String
                          let deductionDetails = "";
                          if (sentVal > 0) deductionDetails += `Sent: ${sentVal.toLocaleString()}\n`;
                          if (item.expensesList && item.expensesList.length > 0) {
@@ -1438,9 +1481,8 @@
                          
                          return [
                              friendlyDate,
-                             `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`,
-                             stockDisplay,
-                             grossSales.toLocaleString(),
+                             `${item.soldDresses || 0} / ${item.soldKimonos || 0}`,
+                             `+${dVal.toLocaleString()}`, 
                              deductionDetails.trim(),
                              balanceVal.toLocaleString()
                          ];
@@ -1448,40 +1490,39 @@
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Date', 'Sold (P/C)', 'Stock', 'Gross Sales', 'Deductions (Sent/Exp)', 'Net Balance']],
+                        head: [['Date', 'Sold (P/K)', 'Stock Value Added', 'Deductions', 'Balance BF']],
                         body: rows,
                         theme: 'grid',
                         headStyles: { fillColor: [30, 58, 138], halign: 'center' },
                         columnStyles: {
-                            3: { halign: 'right', fontStyle: 'bold' },
-                            5: { halign: 'right', fontStyle: 'bold', textColor: [22, 163, 74] } // Green Balance
+                            4: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] } // Red Balance (Debt)
                         },
-                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', '-', '-', totalBalance.toLocaleString()]]
+                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldKimonos}`, '-', '-', closingBalance.toLocaleString()]]
                     });
 
                 } else {
-                    // === STANDARD LAYOUT ===
                     const item1Label = 'Dresses';
                     const item2Label = '2pcs';
+                    const item3Label = 'Kimono';
                     doc.setFontSize(10);
-                    doc.text(`Format: ${item1Label} / ${item2Label}`, 14, 26);
+                    doc.text(`Format: ${item1Label} / ${item2Label} / ${item3Label}`, 14, 26);
                     
                     const rows = data.map(item => {
                         const friendlyDate = `${item.date}, ${item.fullDate}`;
                         return [
                             friendlyDate, 
-                            `${item.soldDresses || 0} / ${item.soldTwoPcs || 0}`, 
-                            `${item.remDresses || 0} / ${item.remTwoPcs || 0}`,
+                            `${item.soldDresses || 0} / ${item.soldTwoPcs || 0} / ${item.soldKimonos || 0}`, 
+                            `${item.remDresses || 0} / ${item.remTwoPcs || 0} / ${item.remKimonos || 0}`,
                             item.profit.toLocaleString()
                         ];
                     });
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Date', `Sold (${item1Label.charAt(0)}/${item2Label.charAt(0)})`, `Stock (D/2)`, 'Profit (KES)']],
+                        head: [['Date', `Sold (D/2/K)`, `Stock (D/2/K)`, 'Profit (KES)']],
                         body: rows,
                         theme: 'grid',
-                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs}`, '-', totalProfit.toLocaleString()]]
+                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs} / ${totalSoldKimonos}`, '-', totalProfit.toLocaleString()]]
                     });
                 }
 
@@ -1502,8 +1543,7 @@
             const last = history.length > 0 ? history[history.length - 1] : null;
             const remD = last ? last.remDresses : startingPressure.dresses;
             const rem2 = last ? last.remTwoPcs : startingPressure.twoPcs;
-            const label1 = managedUser.enableReconciliation ? "Premium" : "Dresses";
-            const label2 = managedUser.enableReconciliation ? "Clean-Up" : "2pcs";
+            const remK = last ? last.remKimonos : startingPressure.kimonos;
             
             const modalHTML = `
                 <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1512,8 +1552,7 @@
                         <h2 class="text-2xl font-bold text-slate-800 mb-2">Week Completed!</h2>
                         <p class="text-slate-600 mb-4 text-sm">
                             Final Inventory: <br>
-                            <span class="font-bold text-indigo-600"> ${remD} ${label1} </span> & 
-                            <span class="font-bold text-purple-600"> ${rem2} ${label2} </span>
+                            ${remD} Prem/Dress, ${rem2} Clean/2pc, ${remK} Kimono
                         </p>
                         <div class="space-y-3">
                             <button onclick="downloadReport(history, 'Weekly_Completed'); document.getElementById('week-complete-modal').remove();" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Download Report</button>
@@ -1558,19 +1597,22 @@
                                 <button onclick="showReportsModal()" class="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg hover:bg-emerald-100 flex items-center gap-2">
                                     ${renderIcon('file-bar-chart', {class:'w-4 h-4'})} Master Reports
                                 </button>
+                                <button onclick="showControllerModal()" class="text-sm font-medium text-slate-600 bg-slate-50 px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2">
+                                    ${renderIcon('clipboard-list', {class:'w-4 h-4'})} Stock Log
+                                </button>
                             ` : ''}
 
                             <button onclick="handleLogout()" class="text-sm font-medium text-red-500 hover:text-red-700">Logout</button>
                         </nav>
-
+                        
                         <!-- Mobile Menu Button -->
                         <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
                             ${renderIcon('menu', { class: 'w-6 h-6' })}
                         </button>
                     </div>
                 </header>
-
-                <!-- Mobile Menu Overlay -->
+                
+                 <!-- Mobile Menu Overlay -->
                 <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden"></div>
 
                 <!-- Mobile Menu Sidebar -->
@@ -1594,6 +1636,9 @@
                             </button>
                             <button onclick="showReportsModal(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-emerald-50 text-emerald-700">
                                 ${renderIcon('file-bar-chart', {class:'w-5 h-5'})} Master Reports
+                            </button>
+                             <button onclick="showControllerModal(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
+                                ${renderIcon('clipboard-list', {class:'w-5 h-5'})} Stock Log
                             </button>
                         ` : ''}
 
@@ -1620,12 +1665,9 @@
         }
 
         function renderAdminOverview() {
-            // Fetch all users except admin
             const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
             
-            // Generate Date Keys from selectedProcurementDate
             const targetDateLocale = selectedProcurementDate.toLocaleDateString();
-            // Input date needs YYYY-MM-DD format
             const y = selectedProcurementDate.getFullYear();
             const m = String(selectedProcurementDate.getMonth() + 1).padStart(2, '0');
             const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
@@ -1637,7 +1679,6 @@
             let grandTotalDispatchedToday = 0;
 
             const userCards = users.map(user => {
-                // Fetch user data directly from storage
                 const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
                 const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
                 const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
@@ -1646,18 +1687,15 @@
                 const userArchive = JSON.parse(aStr);
                 const allEntries = [...userArchive, ...userHistory];
                 
-                // Calculate User Metrics
                 const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
-                // Check if new format (soldDresses/soldTwoPcs) or legacy (sold)
                 const userSalesToday = todayEntries.reduce((sum, e) => {
                     const legacy = Number(e.sold) || 0;
-                    const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0);
-                    // Use new format if soldDresses exists, else legacy
+                    const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0) + (Number(e.soldKimonos)||0);
                     return sum + (e.soldDresses !== undefined ? newFormat : legacy);
                 }, 0);
 
                 const userDispatchedToday = todayEntries.reduce((sum, e) => {
-                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0);
+                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0) + (Number(e.dispatchedKimonos)||0);
                      return sum + (e.dispatchedDresses !== undefined ? val : (Number(e.dispatched)||0));
                 }, 0);
                 
@@ -1665,11 +1703,13 @@
                 
                 let currentRemDresses = 0;
                 let currentRemTwoPcs = 0;
+                let currentRemKimonos = 0;
 
                 if (allEntries.length > 0) {
                     const last = allEntries[allEntries.length - 1];
-                    currentRemDresses = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
+                    currentRemDresses = last.remDresses || last.remaining || 0;
                     currentRemTwoPcs = last.remTwoPcs || 0;
+                    currentRemKimonos = last.remKimonos || 0;
                 } else {
                      try {
                         const p = JSON.parse(pStr);
@@ -1677,12 +1717,12 @@
                         else {
                             currentRemDresses = p?.dresses || 0;
                             currentRemTwoPcs = p?.twoPcs || 0;
+                            currentRemKimonos = p?.kimonos || 0;
                         }
                     } catch(e) {}
                 }
 
-                // Add to Grand Totals
-                totalStock += (currentRemDresses + currentRemTwoPcs);
+                totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
                 totalSalesToday += userSalesToday;
                 totalProfitToday += userProfitToday;
                 grandTotalDispatchedToday += userDispatchedToday;
@@ -1704,9 +1744,9 @@
                         <div class="grid grid-cols-2 gap-2 text-center">
                             <div class="bg-orange-50 p-2 rounded-lg">
                                 <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
-                                <p class="font-bold text-orange-700">${currentRemDresses} ${user.enableReconciliation ? '' : '/ ' + currentRemTwoPcs}</p>
+                                <p class="font-bold text-orange-700">${currentRemDresses} ${user.enableReconciliation ? '' : '/ ' + currentRemTwoPcs} / ${currentRemKimonos}</p>
                                 <p class="text-[8px] text-orange-300">
-                                    ${user.enableReconciliation ? 'TOTAL' : 'DRESS / 2PC'}
+                                    ${user.enableReconciliation ? 'P / K' : 'D / 2 / K'}
                                 </p>
                             </div>
                             <div class="bg-emerald-50 p-2 rounded-lg">
@@ -1718,11 +1758,14 @@
                 `;
             }).join('');
 
-            // --- PROCUREMENT LOGIC ---
             const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
             const procurementToday = logs[targetDateLocale] || 0;
             const variance = procurementToday - grandTotalDispatchedToday;
-            // -------------------------
+            
+            // Stock Controller Data
+            const controllerLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            // Sort by date desc
+            controllerLogs.sort((a,b) => new Date(b.date) - new Date(a.date));
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1732,14 +1775,12 @@
                         <p class="text-slate-500">Overview of all active accounts</p>
                     </div>
 
-                    <!-- Grand Totals -->
                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
                         ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
                         ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
                     </div>
                     
-                    <!-- Daily Stock Procurement Section -->
                     <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                          <div class="flex-1 w-full">
                             <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
@@ -1748,7 +1789,6 @@
                             <p class="text-sm text-slate-500 mb-4">Select a date to view/edit procurement and variance.</p>
                             
                             <div class="flex flex-col sm:flex-row gap-2">
-                                <!-- Date Picker -->
                                 <input type="date" value="${dateInputVal}" 
                                     onchange="handleProcurementDateChange(this.value)"
                                     class="p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700">
@@ -1777,8 +1817,39 @@
                                     ${variance > 0 ? `${variance} (Missing)` : (variance < 0 ? variance : 'Balanced')}
                                 </span>
                             </div>
-                            ${variance > 0 ? `<p class="text-[10px] text-red-500 mt-2 font-bold">⚠️ High Alert: ${variance} items unaccounted for.</p>` : ''}
                          </div>
+                    </div>
+                    
+                    <!-- Stock Controller Section -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                ${renderIcon('notebook', {class:'w-5 h-5 text-slate-600'})} Stock Controller's Log
+                            </h2>
+                            <button onclick="showControllerModal()" class="text-xs bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-bold hover:bg-slate-200">
+                                + Add Record
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-slate-500">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3">Date</th>
+                                        <th class="px-4 py-3">Physical Count</th>
+                                        <th class="px-4 py-3">Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${controllerLogs.length > 0 ? controllerLogs.slice(0, 5).map(log => `
+                                        <tr class="bg-white border-b hover:bg-slate-50">
+                                            <td class="px-4 py-2 font-medium text-slate-900">${log.date}</td>
+                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.count}</td>
+                                            <td class="px-4 py-2">${log.note || '-'}</td>
+                                        </tr>
+                                    `).join('') : `<tr><td colspan="3" class="px-4 py-4 text-center">No records yet.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <!-- Staff Grid -->
@@ -1807,22 +1878,23 @@
         }
 
         function renderIndividualDashboard() {
-            // This is the view for editing a specific user (Managed User)
             if (!managedUser) return;
 
             const fullHistory = getFullHistory();
             const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
             
-            // Get current pressures
             let curDresses = 0;
             let cur2pcs = 0;
+            let curKimonos = 0;
 
             if (lastEntry) {
                 curDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
                 cur2pcs = lastEntry.remTwoPcs || 0;
+                curKimonos = lastEntry.remKimonos || 0;
             } else {
                 curDresses = startingPressure.dresses || 0;
                 cur2pcs = startingPressure.twoPcs || 0;
+                curKimonos = startingPressure.kimonos || 0;
             }
             
             const now = new Date();
@@ -1834,19 +1906,18 @@
             const todaysSales = history
                 .filter(entry => entry.fullDate === today)
                 .reduce((sum, entry) => {
-                    const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0);
+                    const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0) + (entry.soldKimonos||0);
                     return sum + (entry.soldDresses !== undefined ? newF : (entry.sold||0));
                 }, 0);
 
-            // Price Labels for reference
             const prices = managedUser.prices || { 
                 dressBuy: DEFAULT_BUY_PRICE, dressSell: DEFAULT_SELL_PRICE,
-                twoPcBuy: DEFAULT_BUY_PRICE, twoPcSell: DEFAULT_SELL_PRICE
+                twoPcBuy: DEFAULT_BUY_PRICE, twoPcSell: DEFAULT_SELL_PRICE,
+                kimonoBuy: 150, kimonoSell: 300
             };
             
             const isReconciled = managedUser.enableReconciliation;
             
-            // Dynamic Labels
             const labelItem1 = isReconciled ? "Premium" : "Dress";
             const labelItem2 = isReconciled ? "Clean-Up" : "2pc";
             const labelItem1Plural = isReconciled ? "Premium" : "Dresses";
@@ -1872,27 +1943,25 @@
                         </div>
                     </div>
 
-                    <!-- Stats Grid -->
-                    <div class="grid grid-cols-2 ${isReconciled ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4">
+                    <div class="grid grid-cols-2 ${isReconciled ? 'md:grid-cols-4' : 'md:grid-cols-5'} gap-4">
                         ${isReconciled ? 
-                            renderStatCard(`Current Stock`, curDresses, "layers", "text-indigo-600") :
-                            renderStatCard(`Stock (${labelItem1})`, curDresses, "shirt", "text-indigo-600") + 
-                            renderStatCard(`Stock (${labelItem2})`, cur2pcs, "layers", "text-purple-600")
+                            renderStatCard(`Stock`, curDresses, "layers", "text-indigo-600") :
+                            renderStatCard(`${labelItem1}`, curDresses, "shirt", "text-indigo-600") + 
+                            renderStatCard(`${labelItem2}`, cur2pcs, "layers", "text-purple-600")
                         }
+                         ${renderStatCard(`Kimono`, curKimonos, "scissors", "text-pink-600")}
                         
                         ${renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")}
-                        ${renderStatCard("Today Sold", todaysSales, "trending-up", "text-amber-600")}
+                        ${renderStatCard("Sold Today", todaysSales, "trending-up", "text-amber-600")}
                     </div>
 
                     <div class="grid md:grid-cols-3 gap-6">
-                        <!-- Input Section -->
                         <div class="md:col-span-1 space-y-6">
                             <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
                                 <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                                     ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
                                 </h2>
                                 
-                                <!-- Day Selection -->
                                 <div class="grid grid-cols-4 gap-2 mb-4">
                                     ${DAYS.map((d, i) => {
                                         const jsDay = now.getDay();
@@ -1913,19 +1982,17 @@
 
                                 <div class="space-y-4">
                                     ${isReconciled ? `
-                                        <!-- RECONCILED VIEW (Split Layout) -->
                                         
-                                        <!-- 1. DISPATCH SECTION (TOP) - SINGLE DISPATCH -->
                                         <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
                                             <p class="text-[10px] font-bold text-indigo-800 mb-2 uppercase flex items-center gap-1">
                                                 ${renderIcon('package-plus', {class:'w-3 h-3'})} Dispatch (Stock In)
                                             </p>
-                                            <div>
-                                                <input type="number" id="dispatch-single" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Total Items Dispatched">
+                                            <div class="space-y-2">
+                                                <input type="number" id="dispatch-single" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Total Premium Dispatched">
+                                                <input type="number" id="dispatch-kimono" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50" placeholder="Kimonos Dispatched">
                                             </div>
                                         </div>
 
-                                        <!-- 2. SALES SECTION (Middle - Dresses/Premium) -->
                                         <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
                                             <p class="text-[10px] font-bold text-purple-600 mb-2 uppercase">${labelItem1Plural}</p>
                                             <div class="flex gap-2">
@@ -1944,7 +2011,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- 3. SALES SECTION (Middle - 2pcs/Clean-Up) -->
                                         <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
                                             <p class="text-[10px] font-bold text-emerald-600 mb-2 uppercase">${labelItem2Plural}</p>
                                             <div class="flex gap-2">
@@ -1963,7 +2029,17 @@
                                             </div>
                                         </div>
 
-                                        <!-- 4. FINANCE & EXPENSES (Bottom) -->
+                                        <div class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                                            <p class="text-[10px] font-bold text-pink-600 mb-2 uppercase">Kimonos</p>
+                                            <div class="flex gap-2">
+                                                <div class="w-1/2">
+                                                    <label class="text-[9px] font-bold text-slate-400">Sold Qty</label>
+                                                    <input type="number" id="sales-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200 bg-pink-50" placeholder="Qty">
+                                                </div>
+                                                 <!-- Note: Kimono prices not overrideable here to save space, uses Default Config -->
+                                            </div>
+                                        </div>
+
                                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
                                             <p class="text-[10px] font-bold text-slate-500 mb-2 uppercase flex items-center gap-1">
                                                 ${renderIcon('wallet', {class:'w-3 h-3'})} Reconciliation
@@ -1974,11 +2050,9 @@
                                                     <input type="number" id="rec-sent" class="w-full p-2 text-sm rounded-lg border border-slate-300 font-bold" placeholder="0">
                                                 </div>
                                                 
-                                                <!-- Dynamic Expenses -->
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-400 mb-1 block">Expenses List</label>
                                                     <div id="expenses-container" class="space-y-2 mb-2">
-                                                        <!-- Rows Added Here -->
                                                     </div>
                                                     <button onclick="addExpenseRow()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded-lg font-bold w-full">
                                                         + Add Expense
@@ -1988,9 +2062,9 @@
                                         </div>
 
                                     ` : `
-                                        <!-- STANDARD VIEW (Original) -->
+                                        <!-- STANDARD VIEW -->
                                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses (Sell: ${prices.dressSell})</p>
+                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses</p>
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
@@ -2004,7 +2078,7 @@
                                         </div>
 
                                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces (Sell: ${prices.twoPcSell})</p>
+                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces</p>
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
@@ -2016,6 +2090,20 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p class="text-[10px] font-bold text-pink-400 mb-2 uppercase">Kimonos</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
                                     `}
                                     
                                     <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
@@ -2024,7 +2112,6 @@
                                 </div>
                             </div>
 
-                            <!-- Last Entry Control -->
                             ${lastEntry ? `
                             <div class="bg-white rounded-2xl shadow p-4 border border-slate-100">
                                 <div class="flex justify-between items-center mb-2">
@@ -2037,7 +2124,6 @@
                             </div>` : ''}
                         </div>
 
-                        <!-- Report Section -->
                         <div class="md:col-span-2">
                             <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 h-full">
                                 <div class="flex justify-between items-start mb-6">
@@ -2061,10 +2147,10 @@
                                             <tr>
                                                 <th class="px-4 py-3 rounded-l-lg">Date</th>
                                                 <th class="px-4 py-3">Sold <span class="text-[9px] block text-slate-400">
-                                                    ${isReconciled ? 'PREMIUM / CLEAN-UP' : 'DRESS / 2PC'}
+                                                    ${isReconciled ? 'PREM / CLEAN / KIM' : 'DRESS / 2PC / KIM'}
                                                 </span></th>
                                                 <th class="px-4 py-3">Stock <span class="text-[9px] block text-slate-400">
-                                                    ${isReconciled ? 'TOTAL' : 'DRESS / 2PC'}
+                                                    ${isReconciled ? 'TOTAL / KIM' : 'DRESS / 2PC / KIM'}
                                                 </span></th>
                                                 <th class="px-4 py-3 rounded-r-lg">
                                                     ${isReconciled ? 'Balance BF' : 'Profit'}
@@ -2076,10 +2162,10 @@
                                                 <tr class="hover:bg-slate-50">
                                                     <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate} <span class="text-slate-400 text-xs block">${d.date.substring(0,3)}</span></td>
                                                     <td class="px-4 py-3 text-emerald-600 font-bold">
-                                                        ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0}
+                                                        ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0} / ${d.soldKimonos || 0}
                                                     </td>
                                                     <td class="px-4 py-3 text-orange-600 font-bold">
-                                                        ${d.remDresses !== undefined ? d.remDresses : d.remaining} ${isReconciled ? '' : '/ ' + (d.remTwoPcs || 0)}
+                                                        ${d.remDresses !== undefined ? d.remDresses : d.remaining} ${isReconciled ? '' : '/ ' + (d.remTwoPcs || 0)} / ${d.remKimonos || 0}
                                                     </td>
                                                     <td class="px-4 py-3 text-slate-600">
                                                         ${isReconciled ? 
@@ -2115,7 +2201,6 @@
             const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
             const isFirstRun = users.length === 0;
 
-            // If First Run and Admin Creation NOT unlocked, show System Initialization
             if (isFirstRun && !showAdminCreation) {
                 appElement.innerHTML = `
                     <div class="min-h-screen flex items-center justify-center p-4">
@@ -2138,7 +2223,6 @@
                 return;
             }
 
-            // Standard Auth Screen (Login or Create Admin if unlocked)
             appElement.innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4">
                     <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
@@ -2190,7 +2274,6 @@
         }
 
         function renderUserManagementScreen() {
-            // Only admins should really be here, mainly for resets
             const storedUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
             
             appElement.innerHTML = `
@@ -2243,7 +2326,7 @@
                                         </div>
                                         <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded flex gap-4">
                                             <span><strong>Dress Sell:</strong> ${prices.dressSell || 200}</span>
-                                            <span><strong>2pc Sell:</strong> ${prices.twoPcSell || 200}</span>
+                                            <span><strong>Kimono Sell:</strong> ${prices.kimonoSell || 300}</span>
                                         </div>
                                     </div>
                                 `;
@@ -2293,13 +2376,17 @@
         window.handleProcurementSave = handleProcurementSave;
         window.handleProcurementDateChange = handleProcurementDateChange;
         window.showBalanceModal = showBalanceModal;
-        window.addExpenseRow = addExpenseRow; // Exposed
+        window.addExpenseRow = addExpenseRow; 
         
         // Recovery Logic
         window.renderRecoveryScreen = renderRecoveryScreen;
         window.handleRecoveryStep1 = handleRecoveryStep1;
         window.handleRecoveryStep2 = handleRecoveryStep2;
         window.verifySystemPin = verifySystemPin;
+
+        // New controller handlers
+        window.showControllerModal = showControllerModal;
+        window.handleControllerLogSave = handleControllerLogSave;
         
         window.onload = function() {
             const sessionUser = localStorage.getItem(SESSION_KEY);
