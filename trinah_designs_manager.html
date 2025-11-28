@@ -872,8 +872,6 @@
             const dressVal = document.getElementById('procurement-dress-input').value;
             const kimonoVal = document.getElementById('procurement-kimono-input').value;
             
-            // if(!dressVal && !kimonoVal) return;
-            
             const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
             const targetDateKey = selectedProcurementDate.toLocaleDateString();
             
@@ -888,6 +886,28 @@
             renderAdminOverview(); 
         }
 
+        function handleDeleteProcurement() {
+            if(!confirm("Are you sure you want to delete the procurement record for this date?")) return;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
+            
+            if (logs[targetDateKey]) {
+                delete logs[targetDateKey];
+                localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+                showNotification("Procurement record deleted.");
+                
+                const dIn = document.getElementById('procurement-dress-input');
+                const kIn = document.getElementById('procurement-kimono-input');
+                if(dIn) dIn.value = "";
+                if(kIn) kIn.value = "";
+                
+                renderAdminOverview();
+            } else {
+                showNotification("No record to delete for this date.");
+            }
+        }
+
         // New Function for Stock Controller
         function handleControllerLogSave(e) {
             e.preventDefault();
@@ -895,6 +915,7 @@
             const countVal = document.getElementById('control-count').value;
             const kimonoVal = document.getElementById('control-kimono-count').value;
             const noteVal = document.getElementById('control-note').value;
+            const originalId = document.getElementById('control-original-id').value;
 
             if(!dateVal || (!countVal && !kimonoVal)) {
                 showNotification("Please select date and at least one count.");
@@ -903,6 +924,12 @@
 
             const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
             
+            // If editing, remove the ORIGINAL record first (to handle date changes cleanly)
+            if (originalId) {
+                const idx = logs.findIndex(l => l.id == originalId); 
+                if (idx !== -1) logs.splice(idx, 1);
+            }
+
             // Check if entry exists for this date, if so remove it (overwrite)
             const existingIndex = logs.findIndex(l => l.date === dateVal);
             if (existingIndex !== -1) {
@@ -911,7 +938,7 @@
 
             // Add new entry to top
             logs.unshift({
-                id: Date.now(),
+                id: originalId ? Number(originalId) : Date.now(), // Preserve ID if editing, else new
                 date: dateVal,
                 dressCount: Number(countVal) || 0,
                 kimonoCount: Number(kimonoVal) || 0,
@@ -927,40 +954,64 @@
             renderAdminOverview();
         }
 
-        function showControllerModal() {
+        function handleDeleteControllerLog(id) {
+            if(!confirm("Delete this stock record?")) return;
+            const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            const newLogs = logs.filter(l => l.id !== id);
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(newLogs));
+            renderAdminOverview();
+            showNotification("Record deleted.");
+        }
+
+        function showControllerModal(editLogId = null) {
+            let logToEdit = null;
+            if (editLogId) {
+                const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+                logToEdit = logs.find(l => l.id === editLogId);
+            }
+
              const now = new Date();
              const y = now.getFullYear();
              const m = String(now.getMonth() + 1).padStart(2, '0');
              const d = String(now.getDate()).padStart(2, '0');
              const todayStr = `${y}-${m}-${d}`;
+             
+             const defaultDate = logToEdit ? logToEdit.date : todayStr;
+             const defaultDress = logToEdit ? (logToEdit.dressCount !== undefined ? logToEdit.dressCount : (logToEdit.count||'')) : '';
+             const defaultKimono = logToEdit ? (logToEdit.kimonoCount || '') : '';
+             const defaultNote = logToEdit ? (logToEdit.note || '') : '';
+             const originalId = logToEdit ? logToEdit.id : '';
 
              const modalHTML = `
                 <div id="add-control-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-control-modal').remove()"></div>
                     <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10">
-                        <h2 class="text-xl font-bold text-slate-800 mb-2">Record Physical Stock</h2>
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">${editLogId ? 'Edit Stock Record' : 'Record Physical Stock'}</h2>
                         <p class="text-sm text-slate-500 mb-4">Safe storage for daily stock counts (Controller's Record).</p>
                         
                         <form onsubmit="window.handleControllerLogSave(event)" class="space-y-3">
+                            <input type="hidden" id="control-original-id" value="${originalId}">
                             <div>
                                 <label class="text-[10px] font-bold text-slate-500 uppercase">Date</label>
-                                <input type="date" id="control-date" value="${todayStr}" class="w-full p-2 rounded-lg border border-slate-300">
+                                <input type="date" id="control-date" value="${defaultDate}" class="w-full p-2 rounded-lg border border-slate-300">
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="text-[10px] font-bold text-indigo-600 uppercase">Dresses + 2Pcs</label>
-                                    <input type="number" id="control-count" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-indigo-50">
+                                    <input type="number" id="control-count" value="${defaultDress}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-indigo-50">
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-pink-600 uppercase">Kimonos</label>
-                                    <input type="number" id="control-kimono-count" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-pink-50">
+                                    <input type="number" id="control-kimono-count" value="${defaultKimono}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-pink-50">
                                 </div>
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-slate-500 uppercase">Note (Optional)</label>
-                                <input type="text" id="control-note" placeholder="e.g. Checked by John" class="w-full p-2 rounded-lg border border-slate-300">
+                                <input type="text" id="control-note" value="${defaultNote}" placeholder="e.g. Checked by John" class="w-full p-2 rounded-lg border border-slate-300">
                             </div>
-                            <button type="submit" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 mt-2">Save Record</button>
+                            <button type="submit" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 mt-2">
+                                ${editLogId ? 'Update Record' : 'Save Record'}
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -1865,7 +1916,12 @@
                                         <input type="number" id="procurement-kimono-input" value="${procKimonos || ''}" placeholder="Kimonos" class="w-full p-3 rounded-xl bg-pink-50 border border-pink-100 outline-none focus:border-pink-500 font-bold">
                                     </div>
                                 </div>
-                                <button onclick="handleProcurementSave()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 mt-2">Save Procurement</button>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="handleProcurementSave()" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
+                                    <button onclick="handleDeleteProcurement()" class="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 border border-red-100" title="Delete Entry for this Date">
+                                        ${renderIcon('trash-2', {class:'w-5 h-5'})}
+                                    </button>
+                                </div>
                             </div>
                          </div>
                          
@@ -1922,6 +1978,7 @@
                                         <th class="px-4 py-3">Dresses/2Pcs Count</th>
                                         <th class="px-4 py-3">Kimonos Count</th>
                                         <th class="px-4 py-3">Notes</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1931,8 +1988,16 @@
                                             <td class="px-4 py-2 font-bold text-indigo-600">${log.dressCount !== undefined ? log.dressCount : (log.count||0)}</td>
                                             <td class="px-4 py-2 font-bold text-pink-600">${log.kimonoCount || 0}</td>
                                             <td class="px-4 py-2">${log.note || '-'}</td>
+                                            <td class="px-4 py-2 text-right flex justify-end gap-2">
+                                                <button onclick="showControllerModal(${log.id})" class="text-indigo-600 hover:text-indigo-800 p-1">
+                                                    ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                </button>
+                                                <button onclick="handleDeleteControllerLog(${log.id})" class="text-red-600 hover:text-red-800 p-1">
+                                                    ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                                                </button>
+                                            </td>
                                         </tr>
-                                    `).join('') : `<tr><td colspan="4" class="px-4 py-4 text-center">No records yet.</td></tr>`}
+                                    `).join('') : `<tr><td colspan="5" class="px-4 py-4 text-center">No records yet.</td></tr>`}
                                 </tbody>
                             </table>
                         </div>
@@ -2460,6 +2525,7 @@
         window.handleSaveStaff = handleSaveStaff;
         window.handleDeleteStaff = handleDeleteStaff;
         window.handleProcurementSave = handleProcurementSave;
+        window.handleDeleteProcurement = handleDeleteProcurement;
         window.handleProcurementDateChange = handleProcurementDateChange;
         window.showBalanceModal = showBalanceModal;
         window.addExpenseRow = addExpenseRow; 
@@ -2473,6 +2539,7 @@
         // New controller handlers
         window.showControllerModal = showControllerModal;
         window.handleControllerLogSave = handleControllerLogSave;
+        window.handleDeleteControllerLog = handleDeleteControllerLog;
         
         window.onload = function() {
             const sessionUser = localStorage.getItem(SESSION_KEY);
