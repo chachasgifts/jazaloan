@@ -216,7 +216,6 @@
         function isEntryLocked(entry) {
             if (!entry) return false;
             // Lock if more than 1 week (168 hours) have passed since entry creation
-            // Changed from 72 hours as requested
             const entryTime = entry.id; 
             const timeSinceCreation = Date.now() - entryTime;
             const lockDuration = 168 * 60 * 60 * 1000; // 1 week in milliseconds
@@ -265,7 +264,6 @@
         function recalculateBalances() {
             if (!managedUser) return;
             
-            // Combine all records
             const allRecords = [...archive, ...history];
             
             if (allRecords.length === 0) {
@@ -273,26 +271,12 @@
                  return;
             }
 
-            // Sort by ID (Timestamp) to ensure chronological order
             allRecords.sort((a, b) => a.id - b.id);
 
             const isPressure = managedUser.enableReconciliation;
             const prices = managedUser.prices || {};
 
-            // Initial state variables (before the first record in our list)
-            // We assume the very first record's starting point was 0 or handled manually
-            // We will re-run the chain logic from index 0
-            
             let prevPressure = 0; // For Pressure Mode
-            
-            // For Standard Mode, we need a baseline. 
-            // If the user did a Factory Reset, baseline is 0. 
-            // If we have history, we try to infer from the first entry if possible, or assume 0.
-            // A safer bet for Standard Mode is to recalculate "remaining" based on the previous "remaining".
-            // If it's the very first entry, we assume starting stock was what they said it was? 
-            // To simplify, we will trust the `dispatched` and `sold` values and just fix the `remaining` math.
-            // We'll treat the first entry's "implied starting" as (Remaining - Dispatched + Sold).
-            
             let prevRemDress = 0;
             let prevRem2pc = 0;
             let prevRemKimono = 0;
@@ -300,28 +284,34 @@
             allRecords.forEach((entry, index) => {
                 if (isPressure) {
                     // PRESSURE RECALCULATION
-                    // Formula: NewPressure = (Dispatched * BP + PreviousBF) - (AmountSent + Expenses)
+                    // Formula Updated: (PremiumQty * PremiumSP) + (CleanupQty * CleanupSP) + PreviousBF - (Sent + Expenses)
                     
                     if (index === 0) {
-                        // First entry: Reverse engineer the starting balance if needed, or assume 0 if it looks like a start
-                        // We will use 0 as base for the very first entry ever, unless we want to preserve manual edits?
-                        // Let's assume the chain starts clean.
                         prevPressure = 0; 
-                        
-                        // However, if the user manually set a starting pressure before the first entry, we lose it.
-                        // Ideally, we check if there's a stored "startingPressure" that predates the first entry.
-                        // But simplification: The first entry's balanceBF is the truth anchor if we don't change it.
-                        // Actually, better to just Recalculate:
-                        // BalanceBF = (TotalExpected) - (Deductions)
-                        // TotalExpected = (Dispatched * BP) + PrevBalance
                     }
 
+                    // New Data Structure Support
+                    const premQty = Number(entry.premiumQty) || 0;
+                    const premSP = Number(entry.premiumSP) || 0;
+                    const cleanQty = Number(entry.cleanupQty) || 0;
+                    const cleanSP = Number(entry.cleanupSP) || 0;
+                    
+                    // Legacy Fallback
                     const dispatched = Number(entry.dispatched) || 0;
                     const bp = Number(entry.bp) || 0;
+                    
+                    let stockValue = 0;
+                    // If we have split data, calculate using that
+                    if (entry.hasSplitData || (premQty > 0 || cleanQty > 0)) {
+                        stockValue = (premQty * premSP) + (cleanQty * cleanSP);
+                    } else {
+                        // Legacy calculation: Dispatched * BP
+                        stockValue = dispatched * bp;
+                    }
+
                     const sent = Number(entry.amountSent) || 0;
                     const exp = Number(entry.expenseAmount) || 0;
                     
-                    const stockValue = dispatched * bp;
                     const totalExpected = stockValue + prevPressure;
                     const newBalance = totalExpected - (sent + exp);
                     
@@ -335,8 +325,6 @@
                     
                 } else {
                     // STANDARD RECALCULATION
-                    // NewRem = PrevRem + Dispatched - Sold
-                    
                     const dD = Number(entry.dispatchedDresses) || 0;
                     const dT = Number(entry.dispatchedTwoPcs) || 0;
                     const dK = Number(entry.dispatchedKimonos) || 0;
@@ -346,8 +334,6 @@
                     const sK = Number(entry.soldKimonos) || 0;
                     
                     if (index === 0) {
-                        // Infer starting stock of the very first entry
-                        // Start = Rem - Disp + Sold
                         const firstRemD = entry.remDresses !== undefined ? entry.remDresses : (entry.remaining || 0);
                         const firstRemT = entry.remTwoPcs || 0;
                         const firstRemK = entry.remKimonos || 0;
@@ -361,45 +347,26 @@
                     const newRem2pc = prevRem2pc + dT - sT;
                     const newRemKimono = prevRemKimono + dK - sK;
                     
-                    // Update Entry
                     entry.remDresses = newRemDress;
                     entry.remTwoPcs = newRem2pc;
                     entry.remKimonos = newRemKimono;
                     entry.remaining = newRemDress + newRem2pc + newRemKimono;
                     
-                    // Recalculate Profit just in case prices changed? No, keep historical profit based on simple math if desired
-                    // But usually profit = Sold * (Sell - Buy). Let's update it to be safe.
                     const pD = sD * ((prices.dressSell||0) - (prices.dressBuy||0));
                     const pT = sT * ((prices.twoPcSell||0) - (prices.twoPcBuy||0));
                     const pK = sK * ((prices.kimonoSell||0) - (prices.kimonoBuy||0));
                     entry.profit = pD + pT + pK;
 
-                    // Set prev
                     prevRemDress = newRemDress;
                     prevRem2pc = newRem2pc;
                     prevRemKimono = newRemKimono;
                 }
             });
 
-            // Now split back into archive and history
-            // We need to know how many were in archive vs history. 
-            // Or simpler: entries that are "older" than the current week start should be in archive?
-            // Actually, the structure uses `history` for the active week. 
-            // We can just re-assign based on the original counts if we want to preserve the "week view", 
-            // or just put everything back into archive and start a fresh history? 
-            // No, user wants to keep current week active.
-            
-            // Strategy: Re-fill the arrays based on their IDs.
-            // But we modified the objects in place! `allRecords` contains references to the objects in `archive` and `history`.
-            // So `archive` and `history` are ALREADY updated because objects are passed by reference in JS arrays.
-            
-            // However, we need to update `startingPressure` to match the end of `archive` so that if `history` is cleared, it's correct.
-            // If `history` is not empty, `startingPressure` should theoretically match `archive[last]`.
-            
             if (archive.length > 0) {
                 const lastArch = archive[archive.length - 1];
                 if (isPressure) {
-                    startingPressure = { dresses: lastArch.balanceBF, twoPcs: 0, kimonos: 0 }; // Hacky use of dresses field for pressure
+                    startingPressure = { dresses: lastArch.balanceBF, twoPcs: 0, kimonos: 0 }; 
                 } else {
                     startingPressure = {
                         dresses: lastArch.remDresses || lastArch.remaining || 0,
@@ -479,18 +446,15 @@
                         filteredEntries = allEntries;
                     }
 
-                    // Handle standard users vs Pressure users
                     const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
                     
                     let statusDisplay = '-';
                     if (user.enableReconciliation) {
-                        // For Pressure users, show their last known balance
                         if (filteredEntries.length > 0) {
                             const last = filteredEntries[filteredEntries.length-1];
                             statusDisplay = `Bal: ${formatCurrency(last.balanceBF || 0)}`;
                         }
                     } else {
-                        // Standard stock display
                         let remD = 0, remK = 0;
                          if (allEntries.length > 0) {
                             const last = allEntries[allEntries.length - 1];
@@ -508,7 +472,7 @@
                         user.name,
                         user.enableReconciliation ? 'Pressure Calc' : 'Standard',
                         statusDisplay,
-                        formatCurrency(totalProfit) // For Pressure users this is "Total Expected" for the period usually, or profit sum
+                        formatCurrency(totalProfit)
                     ]);
                 });
 
@@ -700,7 +664,7 @@
                                 <input type="checkbox" id="staff-reconcile" ${isReconcileEnabled} class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
                                 <label for="staff-reconcile" class="text-sm font-bold text-indigo-900 cursor-pointer">
                                     Enable Pressure Calculation Mode
-                                    <span class="block text-[10px] text-indigo-500 font-normal">Enables detailed pressure tracking: Dispatched x BP + Prev Balance.</span>
+                                    <span class="block text-[10px] text-indigo-500 font-normal">Enables detailed pressure tracking: (Premium x SP + Cleanup x SP) + Prev Balance.</span>
                                 </label>
                             </div>
 
@@ -761,22 +725,35 @@
             if (isPressure) {
                 const expensesStr = entry.expensesList ? entry.expensesList.map(e => `${e.name}:${e.amount}`).join(', ') : "";
                 
+                // Determine values (support both new split and legacy single inputs)
+                const premQty = entry.premiumQty || entry.dispatched || 0;
+                const premSP = entry.premiumSP || entry.bp || 0;
+                const cleanQty = entry.cleanupQty || 0;
+                const cleanSP = entry.cleanupSP || 0;
+
                 formContent = `
                     <div class="space-y-3">
                         <div>
                             <label class="text-[10px] font-bold text-indigo-800 uppercase">Market</label>
                             <input type="text" id="edit-market" value="${entry.marketName || ''}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched</label>
-                                <input type="number" id="edit-dispatched" value="${entry.dispatched || 0}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-indigo-800 uppercase">BP</label>
-                                <input type="number" id="edit-bp" value="${entry.bp || 0}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
-                            </div>
+                        
+                        <div class="p-2 bg-indigo-50 rounded border border-indigo-100">
+                             <p class="text-[10px] font-bold text-indigo-800 uppercase mb-1">Premium</p>
+                             <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="edit-prem-qty" value="${premQty}" placeholder="Qty" class="w-full p-2 text-sm rounded border border-indigo-200">
+                                <input type="number" id="edit-prem-sp" value="${premSP}" placeholder="SP" class="w-full p-2 text-sm rounded border border-indigo-200">
+                             </div>
                         </div>
+
+                         <div class="p-2 bg-orange-50 rounded border border-orange-100">
+                             <p class="text-[10px] font-bold text-orange-800 uppercase mb-1">Clean-up</p>
+                             <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="edit-clean-qty" value="${cleanQty}" placeholder="Qty" class="w-full p-2 text-sm rounded border border-orange-200">
+                                <input type="number" id="edit-clean-sp" value="${cleanSP}" placeholder="SP" class="w-full p-2 text-sm rounded border border-orange-200">
+                             </div>
+                        </div>
+
                         <div>
                             <label class="text-[10px] font-bold text-emerald-600 uppercase">Amount Sent</label>
                             <input type="number" id="edit-sent" value="${entry.amountSent || 0}" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50">
@@ -811,7 +788,7 @@
             const modalHTML = `
                 <div id="edit-entry-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('edit-entry-modal').remove()"></div>
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10">
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 overflow-y-auto max-h-[90vh]">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-bold text-slate-800">Edit Entry (${entry.date})</h2>
                             <button onclick="document.getElementById('edit-entry-modal').remove()" class="text-slate-400 hover:text-slate-600">
@@ -844,8 +821,16 @@
 
             if (isPressure) {
                 entry.marketName = document.getElementById('edit-market').value;
-                entry.dispatched = Number(document.getElementById('edit-dispatched').value) || 0;
-                entry.bp = Number(document.getElementById('edit-bp').value) || 0;
+                entry.premiumQty = Number(document.getElementById('edit-prem-qty').value) || 0;
+                entry.premiumSP = Number(document.getElementById('edit-prem-sp').value) || 0;
+                entry.cleanupQty = Number(document.getElementById('edit-clean-qty').value) || 0;
+                entry.cleanupSP = Number(document.getElementById('edit-clean-sp').value) || 0;
+                
+                // For legacy compatibility, we might update these or leave them as sums
+                entry.dispatched = entry.premiumQty + entry.cleanupQty;
+                entry.bp = 0; // Legacy field not used in new calculation
+                entry.hasSplitData = true;
+
                 entry.amountSent = Number(document.getElementById('edit-sent').value) || 0;
                 entry.expenseAmount = Number(document.getElementById('edit-expense').value) || 0;
             } else {
@@ -1357,11 +1342,15 @@
             const expenseNames = document.getElementsByName('expense_name[]');
             const expenseAmts = document.getElementsByName('expense_amt[]');
             
-            // Reconcile/Pressure Mode specific
+            // Reconcile/Pressure Mode specific inputs
             const marketIn = document.getElementById('rec-market');
-            const dispatchedIn = document.getElementById('rec-dispatched');
-            const bpIn = document.getElementById('rec-bp');
             const sentIn = document.getElementById('rec-sent');
+            
+            // New Split Inputs
+            const premQtyIn = document.getElementById('rec-prem-qty');
+            const premSPIn = document.getElementById('rec-prem-sp');
+            const cleanQtyIn = document.getElementById('rec-clean-qty');
+            const cleanSPIn = document.getElementById('rec-clean-sp');
             
             // Standard Mode specific
             const dispatchDressIn = document.getElementById('dispatch-dress');
@@ -1371,12 +1360,11 @@
             const sales2pcIn = document.getElementById('sales-2pc');
             const salesKimonoIn = document.getElementById('sales-kimono');
 
-            const isPressureMode = managedUser.enableReconciliation; // Reusing variable for Pressure Logic
+            const isPressureMode = managedUser.enableReconciliation;
 
             let expensesList = [];
             let expenseAmt = 0;
 
-            // Collect Expenses (Shared logic but mainly used in Pressure mode)
             if (isPressureMode) {
                 for(let i=0; i<expenseNames.length; i++) {
                     const nm = expenseNames[i].value.trim();
@@ -1406,48 +1394,57 @@
 
             // PRESSURE MODE CALCULATION
             if (isPressureMode) {
-                const piecesDispatched = Number(dispatchedIn ? dispatchedIn.value : 0) || 0;
-                const dailyBP = Number(bpIn ? bpIn.value : 0) || 0;
+                // Get Split Values
+                const premQty = Number(premQtyIn ? premQtyIn.value : 0) || 0;
+                const premSP = Number(premSPIn ? premSPIn.value : 0) || 0;
+                const cleanQty = Number(cleanQtyIn ? cleanQtyIn.value : 0) || 0;
+                const cleanSP = Number(cleanSPIn ? cleanSPIn.value : 0) || 0;
+                
                 const amountSent = Number(sentIn ? sentIn.value : 0) || 0;
                 const marketName = marketIn ? marketIn.value.trim() : 'N/A';
 
-                if (piecesDispatched === 0 && amountSent === 0 && expenseAmt === 0 && dailyBP === 0) {
-                     showNotification("Please enter dispatched stock or payment info.");
+                if (premQty === 0 && cleanQty === 0 && amountSent === 0 && expenseAmt === 0) {
+                     showNotification("Please enter stock info or payment.");
                      return;
                 }
 
-                // Get Previous Balance BF
                 let prevBalanceBF = 0;
                 if (fullHistory.length > 0) {
                     const last = fullHistory[fullHistory.length - 1];
                     prevBalanceBF = Number(last.balanceBF) || 0;
                 } else {
-                    // Could use startingPressure if we wanted, but sticking to 0 for financial start
                     prevBalanceBF = 0; 
                 }
 
-                // FORMULA: Pressure = (Dispatched * BP + Previous BF) - (Amount Sent + Expenses)
-                // We also need "Total Expected" for the table: Dispatched * BP + Previous BF
-                
-                const stockValue = piecesDispatched * dailyBP;
+                // Updated Formula: (Prem * SP) + (Clean * SP) + PrevBF - Sent - Exp
+                const stockValue = (premQty * premSP) + (cleanQty * cleanSP);
                 const totalExpected = stockValue + prevBalanceBF;
                 const deductions = amountSent + expenseAmt;
-                const newPressure = totalExpected - deductions; // This is the new Balance BF
+                const newPressure = totalExpected - deductions; 
 
                 const record = {
                     id: Date.now(),
                     date: currentDayName,
                     fullDate: fullDateString,
                     marketName: marketName,
-                    dispatched: piecesDispatched,
-                    bp: dailyBP,
+                    
+                    // New Fields
+                    premiumQty: premQty,
+                    premiumSP: premSP,
+                    cleanupQty: cleanQty,
+                    cleanupSP: cleanSP,
+                    hasSplitData: true,
+                    
+                    // Legacy fill
+                    dispatched: premQty + cleanQty,
+                    bp: 0, 
+
                     totalExpected: totalExpected,
                     amountSent: amountSent,
                     expenseAmount: expenseAmt,
                     expensesList: expensesList,
                     balanceBF: newPressure,
-                    // Legacy fields for compatibility (set to 0)
-                    profit: totalExpected, // Storing expected as profit for graph/summary compatibility if needed
+                    profit: totalExpected, 
                     sold: 0, 
                     remaining: 0 
                 };
@@ -1455,15 +1452,17 @@
                 history.push(record);
 
                 // Clear inputs
-                if(dispatchedIn) dispatchedIn.value = "";
-                if(bpIn) bpIn.value = "";
+                if(premQtyIn) premQtyIn.value = "";
+                if(premSPIn) premSPIn.value = "";
+                if(cleanQtyIn) cleanQtyIn.value = "";
+                if(cleanSPIn) cleanSPIn.value = "";
                 if(sentIn) sentIn.value = "";
                 if(marketIn) marketIn.value = "";
                 const expContainer = document.getElementById('expenses-container');
                 if(expContainer) expContainer.innerHTML = '';
 
             } else {
-                // STANDARD MODE CALCULATION (Original Logic)
+                // STANDARD MODE CALCULATION
                 const dDress = Number(dispatchDressIn ? dispatchDressIn.value : 0) || 0;
                 const d2pc = Number(dispatch2pcIn ? dispatch2pcIn.value : 0) || 0;
                 const dKimono = Number(dispatchKimonoIn ? dispatchKimonoIn.value : 0) || 0;
@@ -2259,16 +2258,35 @@
                                                 <label class="text-[10px] font-bold text-indigo-800 uppercase">Market Name</label>
                                                 <input type="text" id="rec-market" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="e.g. Kamukunji">
                                             </div>
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">Pieces Dispatched</label>
-                                                    <input type="number" id="rec-dispatched" class="w-full p-2 text-sm rounded-lg border border-indigo-200 font-bold" placeholder="0">
-                                                </div>
-                                                <div>
-                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">BP (Unit Price)</label>
-                                                    <input type="number" id="rec-bp" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Price">
+                                            
+                                            <div class="p-3 bg-white rounded-lg border border-indigo-100 mb-2">
+                                                <p class="text-[10px] font-bold text-indigo-800 uppercase mb-2 border-b border-indigo-50 pb-1">Premium Stock</p>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">Qty</label>
+                                                        <input type="number" id="rec-prem-qty" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">SP</label>
+                                                        <input type="number" id="rec-prem-sp" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Price">
+                                                    </div>
                                                 </div>
                                             </div>
+
+                                            <div class="p-3 bg-white rounded-lg border border-indigo-100">
+                                                <p class="text-[10px] font-bold text-orange-800 uppercase mb-2 border-b border-orange-50 pb-1">Clean-up Stock</p>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">Qty</label>
+                                                        <input type="number" id="rec-clean-qty" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">SP</label>
+                                                        <input type="number" id="rec-clean-sp" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Price">
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                         </div>
 
                                         <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-3">
