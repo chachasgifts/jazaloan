@@ -215,11 +215,12 @@
 
         function isEntryLocked(entry) {
             if (!entry) return false;
-            // Lock if more than 72 hours have passed since entry creation
+            // Lock if more than 1 week (168 hours) have passed since entry creation
+            // Changed from 72 hours as requested
             const entryTime = entry.id; 
             const timeSinceCreation = Date.now() - entryTime;
-            const hours72 = 72 * 60 * 60 * 1000;
-            return timeSinceCreation > hours72;
+            const lockDuration = 168 * 60 * 60 * 1000; // 1 week in milliseconds
+            return timeSinceCreation > lockDuration;
         }
 
         function getFilteredHistory() {
@@ -258,6 +259,159 @@
                     default: return true;
                 }
             });
+        }
+        
+        // --- Recalculation Logic ---
+        function recalculateBalances() {
+            if (!managedUser) return;
+            
+            // Combine all records
+            const allRecords = [...archive, ...history];
+            
+            if (allRecords.length === 0) {
+                 showNotification("No records to recalculate.");
+                 return;
+            }
+
+            // Sort by ID (Timestamp) to ensure chronological order
+            allRecords.sort((a, b) => a.id - b.id);
+
+            const isPressure = managedUser.enableReconciliation;
+            const prices = managedUser.prices || {};
+
+            // Initial state variables (before the first record in our list)
+            // We assume the very first record's starting point was 0 or handled manually
+            // We will re-run the chain logic from index 0
+            
+            let prevPressure = 0; // For Pressure Mode
+            
+            // For Standard Mode, we need a baseline. 
+            // If the user did a Factory Reset, baseline is 0. 
+            // If we have history, we try to infer from the first entry if possible, or assume 0.
+            // A safer bet for Standard Mode is to recalculate "remaining" based on the previous "remaining".
+            // If it's the very first entry, we assume starting stock was what they said it was? 
+            // To simplify, we will trust the `dispatched` and `sold` values and just fix the `remaining` math.
+            // We'll treat the first entry's "implied starting" as (Remaining - Dispatched + Sold).
+            
+            let prevRemDress = 0;
+            let prevRem2pc = 0;
+            let prevRemKimono = 0;
+
+            allRecords.forEach((entry, index) => {
+                if (isPressure) {
+                    // PRESSURE RECALCULATION
+                    // Formula: NewPressure = (Dispatched * BP + PreviousBF) - (AmountSent + Expenses)
+                    
+                    if (index === 0) {
+                        // First entry: Reverse engineer the starting balance if needed, or assume 0 if it looks like a start
+                        // We will use 0 as base for the very first entry ever, unless we want to preserve manual edits?
+                        // Let's assume the chain starts clean.
+                        prevPressure = 0; 
+                        
+                        // However, if the user manually set a starting pressure before the first entry, we lose it.
+                        // Ideally, we check if there's a stored "startingPressure" that predates the first entry.
+                        // But simplification: The first entry's balanceBF is the truth anchor if we don't change it.
+                        // Actually, better to just Recalculate:
+                        // BalanceBF = (TotalExpected) - (Deductions)
+                        // TotalExpected = (Dispatched * BP) + PrevBalance
+                    }
+
+                    const dispatched = Number(entry.dispatched) || 0;
+                    const bp = Number(entry.bp) || 0;
+                    const sent = Number(entry.amountSent) || 0;
+                    const exp = Number(entry.expenseAmount) || 0;
+                    
+                    const stockValue = dispatched * bp;
+                    const totalExpected = stockValue + prevPressure;
+                    const newBalance = totalExpected - (sent + exp);
+                    
+                    // Update Entry
+                    entry.balanceBF = newBalance;
+                    entry.totalExpected = totalExpected;
+                    entry.profit = totalExpected; // legacy sync
+                    
+                    // Set prev for next iteration
+                    prevPressure = newBalance;
+                    
+                } else {
+                    // STANDARD RECALCULATION
+                    // NewRem = PrevRem + Dispatched - Sold
+                    
+                    const dD = Number(entry.dispatchedDresses) || 0;
+                    const dT = Number(entry.dispatchedTwoPcs) || 0;
+                    const dK = Number(entry.dispatchedKimonos) || 0;
+                    
+                    const sD = entry.soldDresses !== undefined ? Number(entry.soldDresses) : (Number(entry.sold)||0);
+                    const sT = Number(entry.soldTwoPcs) || 0;
+                    const sK = Number(entry.soldKimonos) || 0;
+                    
+                    if (index === 0) {
+                        // Infer starting stock of the very first entry
+                        // Start = Rem - Disp + Sold
+                        const firstRemD = entry.remDresses !== undefined ? entry.remDresses : (entry.remaining || 0);
+                        const firstRemT = entry.remTwoPcs || 0;
+                        const firstRemK = entry.remKimonos || 0;
+                        
+                        prevRemDress = firstRemD - dD + sD;
+                        prevRem2pc = firstRemT - dT + sT;
+                        prevRemKimono = firstRemK - dK + sK;
+                    }
+                    
+                    const newRemDress = prevRemDress + dD - sD;
+                    const newRem2pc = prevRem2pc + dT - sT;
+                    const newRemKimono = prevRemKimono + dK - sK;
+                    
+                    // Update Entry
+                    entry.remDresses = newRemDress;
+                    entry.remTwoPcs = newRem2pc;
+                    entry.remKimonos = newRemKimono;
+                    entry.remaining = newRemDress + newRem2pc + newRemKimono;
+                    
+                    // Recalculate Profit just in case prices changed? No, keep historical profit based on simple math if desired
+                    // But usually profit = Sold * (Sell - Buy). Let's update it to be safe.
+                    const pD = sD * ((prices.dressSell||0) - (prices.dressBuy||0));
+                    const pT = sT * ((prices.twoPcSell||0) - (prices.twoPcBuy||0));
+                    const pK = sK * ((prices.kimonoSell||0) - (prices.kimonoBuy||0));
+                    entry.profit = pD + pT + pK;
+
+                    // Set prev
+                    prevRemDress = newRemDress;
+                    prevRem2pc = newRem2pc;
+                    prevRemKimono = newRemKimono;
+                }
+            });
+
+            // Now split back into archive and history
+            // We need to know how many were in archive vs history. 
+            // Or simpler: entries that are "older" than the current week start should be in archive?
+            // Actually, the structure uses `history` for the active week. 
+            // We can just re-assign based on the original counts if we want to preserve the "week view", 
+            // or just put everything back into archive and start a fresh history? 
+            // No, user wants to keep current week active.
+            
+            // Strategy: Re-fill the arrays based on their IDs.
+            // But we modified the objects in place! `allRecords` contains references to the objects in `archive` and `history`.
+            // So `archive` and `history` are ALREADY updated because objects are passed by reference in JS arrays.
+            
+            // However, we need to update `startingPressure` to match the end of `archive` so that if `history` is cleared, it's correct.
+            // If `history` is not empty, `startingPressure` should theoretically match `archive[last]`.
+            
+            if (archive.length > 0) {
+                const lastArch = archive[archive.length - 1];
+                if (isPressure) {
+                    startingPressure = { dresses: lastArch.balanceBF, twoPcs: 0, kimonos: 0 }; // Hacky use of dresses field for pressure
+                } else {
+                    startingPressure = {
+                        dresses: lastArch.remDresses || lastArch.remaining || 0,
+                        twoPcs: lastArch.remTwoPcs || 0,
+                        kimonos: lastArch.remKimonos || 0
+                    };
+                }
+            }
+            
+            saveData(managedUser.phone);
+            renderIndividualDashboard();
+            showNotification("Recalculation Complete!");
         }
 
         // --- Expense Management Functions ---
@@ -589,6 +743,128 @@
             `;
             modalContainer.innerHTML = modalHTML;
             refreshIcons();
+        }
+
+        // --- Edit Entry Modal ---
+        function showEditEntryModal(entryId) {
+            const allRecords = [...archive, ...history];
+            const entry = allRecords.find(r => r.id == entryId);
+            
+            if (!entry) {
+                showNotification("Entry not found.");
+                return;
+            }
+
+            const isPressure = managedUser.enableReconciliation;
+            let formContent = "";
+
+            if (isPressure) {
+                const expensesStr = entry.expensesList ? entry.expensesList.map(e => `${e.name}:${e.amount}`).join(', ') : "";
+                
+                formContent = `
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-indigo-800 uppercase">Market</label>
+                            <input type="text" id="edit-market" value="${entry.marketName || ''}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched</label>
+                                <input type="number" id="edit-dispatched" value="${entry.dispatched || 0}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-indigo-800 uppercase">BP</label>
+                                <input type="number" id="edit-bp" value="${entry.bp || 0}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-emerald-600 uppercase">Amount Sent</label>
+                            <input type="number" id="edit-sent" value="${entry.amountSent || 0}" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Expense Total (Manual Override)</label>
+                            <input type="number" id="edit-expense" value="${entry.expenseAmount || 0}" class="w-full p-2 text-sm rounded-lg border border-slate-200">
+                            <p class="text-[9px] text-slate-400">Editing individual expense items not supported in quick edit. Update total directly.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                formContent = `
+                    <div class="space-y-3">
+                        <p class="text-xs font-bold text-slate-400 uppercase border-b pb-1">Dispatched Stock</p>
+                        <div class="grid grid-cols-3 gap-2">
+                             <input type="number" id="edit-d-dress" value="${entry.dispatchedDresses || 0}" placeholder="Dress" class="p-2 border rounded">
+                             <input type="number" id="edit-d-2pc" value="${entry.dispatchedTwoPcs || 0}" placeholder="2Pc" class="p-2 border rounded">
+                             <input type="number" id="edit-d-kimono" value="${entry.dispatchedKimonos || 0}" placeholder="Kim" class="p-2 border rounded">
+                        </div>
+                        
+                        <p class="text-xs font-bold text-slate-400 uppercase border-b pb-1 pt-2">Sold Stock</p>
+                        <div class="grid grid-cols-3 gap-2">
+                             <input type="number" id="edit-s-dress" value="${entry.soldDresses !== undefined ? entry.soldDresses : (entry.sold||0)}" placeholder="Dress" class="p-2 border rounded">
+                             <input type="number" id="edit-s-2pc" value="${entry.soldTwoPcs || 0}" placeholder="2Pc" class="p-2 border rounded">
+                             <input type="number" id="edit-s-kimono" value="${entry.soldKimonos || 0}" placeholder="Kim" class="p-2 border rounded">
+                        </div>
+                    </div>
+                `;
+            }
+
+            const modalHTML = `
+                <div id="edit-entry-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('edit-entry-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-800">Edit Entry (${entry.date})</h2>
+                            <button onclick="document.getElementById('edit-entry-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                                ${renderIcon('x', {class:'w-5 h-5'})}
+                            </button>
+                        </div>
+                        
+                        <form onsubmit="window.handleEditSave(event, ${entryId})" class="space-y-4">
+                            ${formContent}
+                            <div class="bg-amber-50 p-3 rounded-lg text-amber-700 text-xs flex gap-2">
+                                ${renderIcon('alert-circle', {class:'w-4 h-4 flex-shrink-0'})}
+                                <p>Saving triggers an auto-recalculation for subsequent days to correct balances.</p>
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save & Recalculate</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function handleEditSave(e, entryId) {
+            e.preventDefault();
+            const allRecords = [...archive, ...history];
+            const entry = allRecords.find(r => r.id == entryId);
+            if (!entry) return;
+
+            const isPressure = managedUser.enableReconciliation;
+
+            if (isPressure) {
+                entry.marketName = document.getElementById('edit-market').value;
+                entry.dispatched = Number(document.getElementById('edit-dispatched').value) || 0;
+                entry.bp = Number(document.getElementById('edit-bp').value) || 0;
+                entry.amountSent = Number(document.getElementById('edit-sent').value) || 0;
+                entry.expenseAmount = Number(document.getElementById('edit-expense').value) || 0;
+            } else {
+                entry.dispatchedDresses = Number(document.getElementById('edit-d-dress').value) || 0;
+                entry.dispatchedTwoPcs = Number(document.getElementById('edit-d-2pc').value) || 0;
+                entry.dispatchedKimonos = Number(document.getElementById('edit-d-kimono').value) || 0;
+                
+                entry.soldDresses = Number(document.getElementById('edit-s-dress').value) || 0;
+                entry.soldTwoPcs = Number(document.getElementById('edit-s-2pc').value) || 0;
+                entry.soldKimonos = Number(document.getElementById('edit-s-kimono').value) || 0;
+                
+                entry.dispatched = entry.dispatchedDresses + entry.dispatchedTwoPcs + entry.dispatchedKimonos;
+                entry.sold = entry.soldDresses + entry.soldTwoPcs + entry.soldKimonos;
+            }
+
+            // Since objects in array are references, history/archive are updated.
+            // But we must run recalculate to fix the chain logic (balances).
+            document.getElementById('edit-entry-modal').remove();
+            recalculateBalances();
         }
 
         function showReportsModal() {
@@ -1317,7 +1593,7 @@
             if (!lastEntry) return;
 
             if (isEntryLocked(lastEntry)) {
-                showNotification("Locked: 72 hours passed since entry.");
+                showNotification("Locked: 1 week passed since entry.");
                 return;
             }
             
@@ -2079,13 +2355,18 @@
                                         <h2 class="text-lg font-bold text-slate-800">History Log</h2>
                                         <p class="text-sm text-slate-500">Viewing: ${selectedReport}</p>
                                     </div>
-                                    <div class="flex bg-slate-100 p-1 rounded-lg">
-                                        ${REPORT_TYPES.map(type => `
-                                            <button onclick="selectedReport='${type}'; renderIndividualDashboard();" 
-                                                class="px-3 py-1 text-xs font-bold rounded-md transition ${selectedReport === type ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}">
-                                                ${type}
-                                            </button>
-                                        `).join('')}
+                                    <div class="flex flex-col items-end gap-2">
+                                        <div class="flex bg-slate-100 p-1 rounded-lg">
+                                            ${REPORT_TYPES.map(type => `
+                                                <button onclick="selectedReport='${type}'; renderIndividualDashboard();" 
+                                                    class="px-3 py-1 text-xs font-bold rounded-md transition ${selectedReport === type ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}">
+                                                    ${type}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                        <button onclick="recalculateBalances()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded">
+                                            ${renderIcon('refresh-cw', {class:'w-3 h-3'})} Recalculate Chain
+                                        </button>
                                     </div>
                                 </div>
 
@@ -2098,32 +2379,42 @@
                                                     <th class="px-4 py-3">Market</th>
                                                     <th class="px-4 py-3 text-right">Total Expected</th>
                                                     <th class="px-4 py-3 text-right">Amt Sent</th>
-                                                    <th class="px-4 py-3 text-right rounded-r-lg">Balance BF</th>
+                                                    <th class="px-4 py-3 text-right">Balance BF</th>
+                                                    <th class="px-4 py-3 rounded-r-lg"></th>
                                                 </tr>
                                             ` : `
                                                 <tr>
                                                     <th class="px-4 py-3 rounded-l-lg">Date</th>
                                                     <th class="px-4 py-3">Sold (D/2/K)</th>
                                                     <th class="px-4 py-3">Stock (D/2/K)</th>
-                                                    <th class="px-4 py-3 rounded-r-lg">Profit</th>
+                                                    <th class="px-4 py-3">Profit</th>
+                                                    <th class="px-4 py-3 rounded-r-lg"></th>
                                                 </tr>
                                             `}
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
                                             ${filteredData.length > 0 ? filteredData.map(d => {
+                                                const isLocked = isEntryLocked(d);
+                                                const editBtn = isLocked ? '' : `
+                                                    <button onclick="showEditEntryModal(${d.id})" class="text-slate-400 hover:text-indigo-600">
+                                                        ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                    </button>
+                                                `;
+
                                                 if (isPressureMode) {
                                                     return `
-                                                        <tr class="hover:bg-slate-50">
+                                                        <tr class="hover:bg-slate-50 group">
                                                             <td class="px-4 py-3 font-medium text-slate-900">${d.date.substring(0,3)}, ${d.fullDate}</td>
                                                             <td class="px-4 py-3 text-slate-600">${d.marketName || '-'}</td>
                                                             <td class="px-4 py-3 text-right font-bold text-indigo-600">${formatCurrency(d.totalExpected || 0)}</td>
                                                             <td class="px-4 py-3 text-right text-emerald-600">${formatCurrency(d.amountSent || 0)}</td>
                                                             <td class="px-4 py-3 text-right font-bold text-red-600">${formatCurrency(d.balanceBF || 0)}</td>
+                                                            <td class="px-4 py-3 text-right">${editBtn}</td>
                                                         </tr>
                                                     `;
                                                 } else {
                                                     return `
-                                                        <tr class="hover:bg-slate-50">
+                                                        <tr class="hover:bg-slate-50 group">
                                                             <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate} <span class="text-slate-400 text-xs block">${d.date.substring(0,3)}</span></td>
                                                             <td class="px-4 py-3 text-emerald-600 font-bold">
                                                                 ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0} / ${d.soldKimonos || 0}
@@ -2132,12 +2423,13 @@
                                                                 ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0} / ${d.remKimonos || 0}
                                                             </td>
                                                             <td class="px-4 py-3 text-slate-600">${formatCurrency(d.profit)}</td>
+                                                            <td class="px-4 py-3 text-right">${editBtn}</td>
                                                         </tr>
                                                     `;
                                                 }
                                             }).reverse().join('') : `
                                                 <tr>
-                                                    <td colspan="${isPressureMode ? 5 : 4}" class="text-center py-8 text-slate-400">
+                                                    <td colspan="${isPressureMode ? 6 : 5}" class="text-center py-8 text-slate-400">
                                                         No records found for ${selectedReport} view.
                                                     </td>
                                                 </tr>
@@ -2347,6 +2639,11 @@
         window.showControllerModal = showControllerModal;
         window.handleControllerLogSave = handleControllerLogSave;
         window.handleDeleteControllerLog = handleDeleteControllerLog;
+        
+        // New exports for editing and recalculating
+        window.recalculateBalances = recalculateBalances;
+        window.showEditEntryModal = showEditEntryModal;
+        window.handleEditSave = handleEditSave;
         
         window.onload = function() {
             const sessionUser = localStorage.getItem(SESSION_KEY);
