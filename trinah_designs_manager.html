@@ -94,6 +94,7 @@
         // Data for managed user
         let history = []; 
         let archive = []; 
+        // startingPressure updated to include kimonos
         let startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 }; 
         
         let selectedDayIndex = 0;
@@ -167,6 +168,16 @@
                 startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
             }
 
+            // Recalculate from last archive entry if exists and history is empty
+            if (history.length === 0 && archive.length > 0) {
+                const last = archive[archive.length - 1];
+                startingPressure = {
+                    dresses: last.remDresses || last.remaining || 0, 
+                    twoPcs: last.remTwoPcs || 0,
+                    kimonos: last.remKimonos || 0
+                };
+            }
+
             // Set default day to today
             const jsDay = new Date().getDay();
             const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
@@ -176,6 +187,7 @@
         function showNotification(msg) {
             notificationContainer.innerHTML = `
                 <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-medium flex items-center gap-2">
+                    ${msg.includes("Locked") ? renderIcon('lock', { class: 'w-4 h-4' }) : ''}
                     ${msg}
                 </div>`;
             notificationContainer.style.display = 'block';
@@ -194,7 +206,7 @@
         }
 
         function formatCurrency(val) {
-            return `KES ${Number(val).toLocaleString()}`;
+            return `KES ${val.toLocaleString()}`;
         }
 
         function getFullHistory() {
@@ -204,7 +216,7 @@
         function isEntryLocked(entry) {
             if (!entry) return false;
             // Lock if more than 72 hours have passed since entry creation
-            const entryTime = entry.id; // entry.id is Date.now() at creation
+            const entryTime = entry.id; 
             const timeSinceCreation = Date.now() - entryTime;
             const hours72 = 72 * 60 * 60 * 1000;
             return timeSinceCreation > hours72;
@@ -301,6 +313,7 @@
                 allUsers.forEach(user => {
                     const userHistoryStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
                     const userArchiveStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                    
                     const userHistory = JSON.parse(userHistoryStr);
                     const userArchive = JSON.parse(userArchiveStr);
                     const allEntries = [...userArchive, ...userHistory];
@@ -312,56 +325,36 @@
                         filteredEntries = allEntries;
                     }
 
-                    // Handle Pressure Logic vs Standard Logic
-                    const isPressure = user.enableReconciliation;
-                    let lastBalance = 0;
-                    if (allEntries.length > 0) {
-                         lastBalance = allEntries[allEntries.length - 1].balanceBF || 0;
-                    }
-
-                    let soldDisplay = "";
-                    let stockDisplay = "";
-                    let financialDisplay = "";
-
-                    if (isPressure) {
-                        // For Pressure users, we show their Debt/Balance
-                        soldDisplay = "Pressure Mode";
-                        stockDisplay = "N/A";
-                        // For Pressure users, 'Profit' column usually tracks debt or cleared amount.
-                        // Let's just show their current standing balance
-                        financialDisplay = formatCurrency(lastBalance);
-                    } else {
-                        // Standard User
-                        const soldDresses = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldDresses)||0), 0);
-                        const soldTwoPcs = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldTwoPcs)||0), 0);
-                        const soldKimonos = filteredEntries.reduce((acc, curr) => acc + (Number(curr.soldKimonos)||0), 0);
-                        const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
-                        
-                        grandTotalProfit += totalProfit;
-
-                        let currentRemDresses = 0;
-                        let currentRemTwoPcs = 0;
-                        let currentRemKimonos = 0;
-
-                        if (allEntries.length > 0) {
-                            const last = allEntries[allEntries.length - 1];
-                            currentRemDresses = last.remDresses || last.remaining || 0;
-                            currentRemTwoPcs = last.remTwoPcs || 0;
-                            currentRemKimonos = last.remKimonos || 0;
+                    // Handle standard users vs Pressure users
+                    const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
+                    
+                    let statusDisplay = '-';
+                    if (user.enableReconciliation) {
+                        // For Pressure users, show their last known balance
+                        if (filteredEntries.length > 0) {
+                            const last = filteredEntries[filteredEntries.length-1];
+                            statusDisplay = `Bal: ${formatCurrency(last.balanceBF || 0)}`;
                         }
-
-                        soldDisplay = `${soldDresses} / ${soldTwoPcs} / ${soldKimonos}`;
-                        stockDisplay = `${currentRemDresses} / ${currentRemTwoPcs} / ${currentRemKimonos}`;
-                        financialDisplay = formatCurrency(totalProfit);
+                    } else {
+                        // Standard stock display
+                        let remD = 0, remK = 0;
+                         if (allEntries.length > 0) {
+                            const last = allEntries[allEntries.length - 1];
+                            remD = last.remDresses || last.remaining || 0;
+                            remK = last.remKimonos || 0;
+                        }
+                        statusDisplay = `${remD} / ${remK}`;
                     }
 
                     if (type === 'Daily' && filteredEntries.length === 0) return;
 
+                    grandTotalProfit += totalProfit;
+
                     reportRows.push([
                         user.name,
-                        soldDisplay,
-                        stockDisplay,
-                        financialDisplay
+                        user.enableReconciliation ? 'Pressure Calc' : 'Standard',
+                        statusDisplay,
+                        formatCurrency(totalProfit) // For Pressure users this is "Total Expected" for the period usually, or profit sum
                     ]);
                 });
 
@@ -375,16 +368,20 @@
                 
                 doc.setFontSize(12);
                 doc.setFont("helvetica", "normal");
-                doc.text(`MASTER ${type.toUpperCase()} REPORT`, 105, 30, { align: "center" });
+                const titleText = type === 'Daily' ? "DAILY OPERATIONS REPORT" : `MASTER ${type.toUpperCase()} REPORT`;
+                doc.text(titleText, 105, 30, { align: "center" });
+
+                doc.setFontSize(10);
+                doc.setTextColor(203, 213, 225); 
                 doc.text(`Period: ${reportDateTitle}`, 105, 38, { align: "center" });
 
                 doc.autoTable({
                     startY: 55,
-                    head: [['Staff Member', 'Sold (D/2/K)', 'Stock (D/2/K)', 'Profit / Balance']],
+                    head: [['Staff Member', 'Type', 'Status/Stock', 'Value/Profit (KES)']],
                     body: reportRows,
                     theme: 'striped',
-                    headStyles: { fillColor: [30, 58, 138], halign: 'center' },
-                    columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } },
+                    headStyles: { fillColor: [30, 58, 138], textColor: 255, halign: 'center' },
+                    bodyStyles: { textColor: 50, halign: 'center' },
                     margin: { top: 55 }
                 });
 
@@ -396,8 +393,8 @@
                     doc.text(`Generated by Trinah Designs Admin System - ${new Date().toLocaleString()}`, 105, 290, { align: "center" });
                 }
 
-                doc.save(`Trinah_Master_${type}.pdf`);
-                showNotification("Master Report Downloaded");
+                doc.save(`Trinah_${type}_Report.pdf`);
+                showNotification("Report Downloaded Successfully");
 
             } catch (e) {
                 console.error(e);
@@ -407,10 +404,14 @@
             }
         }
 
-        // --- Navigation & View Logic ---
+
+        // --- Navigation ---
+
         function setView(view) {
             currentView = view;
-            if (view === VIEW_DASHBOARD && currentUser.role === 'admin') managedUser = null; 
+            if (view === VIEW_DASHBOARD && currentUser.role === 'admin') {
+                managedUser = null; 
+            }
             renderApp();
         }
 
@@ -442,6 +443,7 @@
         }
 
         // --- Auth & User Management ---
+
         function handleLogin(user) {
             authError = "";
             authLoading = false;
@@ -457,6 +459,7 @@
                     currentUser.role = 'staff';
                 }
             }
+
             localStorage.setItem(SESSION_KEY, JSON.stringify(user));
 
             if (currentUser.role === 'admin') {
@@ -466,6 +469,7 @@
                 managedUser = currentUser; 
                 loadData(currentUser);
             }
+            
             setView(VIEW_DASHBOARD);
         }
 
@@ -480,7 +484,13 @@
             renderApp();
         }
 
-        // --- Admin: Staff Modal ---
+        function handleSwitchUser(user) {
+            if (managedUser) saveData(managedUser.phone);
+            handleLogin(user);
+        }
+
+        // --- Admin Functions ---
+
         function showAddStaffModal(isEdit = false, userPhone = null) {
             let userToEdit = null;
             if (isEdit && userPhone) {
@@ -491,10 +501,10 @@
             const nameVal = userToEdit ? userToEdit.name : '';
             const phoneVal = userToEdit ? userToEdit.phone : '';
             const passVal = userToEdit ? userToEdit.password : '';
-            const isPressureEnabled = userToEdit && userToEdit.enableReconciliation ? 'checked' : '';
+            const isReconcileEnabled = userToEdit && userToEdit.enableReconciliation ? 'checked' : '';
 
-            // Standard prices (used for standard users)
             const prices = userToEdit ? (userToEdit.prices || {}) : {};
+            
             const dbVal = prices.dressBuy || '';
             const dsVal = prices.dressSell || '';
             const tbVal = prices.twoPcBuy || '';
@@ -533,30 +543,29 @@
                             </div>
 
                             <div class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-                                <input type="checkbox" id="staff-reconcile" ${isPressureEnabled} class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
+                                <input type="checkbox" id="staff-reconcile" ${isReconcileEnabled} class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
                                 <label for="staff-reconcile" class="text-sm font-bold text-indigo-900 cursor-pointer">
-                                    Enable Pressure Mode
-                                    <span class="block text-[10px] text-indigo-500 font-normal">Calculates pressure based on Dispatched x BP + Prev Balance.</span>
+                                    Enable Pressure Calculation Mode
+                                    <span class="block text-[10px] text-indigo-500 font-normal">Enables detailed pressure tracking: Dispatched x BP + Prev Balance.</span>
                                 </label>
                             </div>
 
                             <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
                                 <h3 class="text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">Default Price Config (Standard Mode Only)</h3>
-                                <p class="text-[10px] text-slate-400 mb-2">These are ignored if Pressure Mode is enabled.</p>
                                 
                                 <div class="grid grid-cols-2 gap-4 mb-4">
                                     <div>
                                         <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES</p>
                                         <div class="space-y-2">
-                                            <input id="price-dress-buy" value="${dbVal || 120}" type="number" placeholder="Buying" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-dress-sell" value="${dsVal || 200}" type="number" placeholder="Selling" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-buy" value="${dbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-sell" value="${dsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                     <div>
                                         <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES</p>
                                         <div class="space-y-2">
-                                            <input id="price-2pc-buy" value="${tbVal || 120}" type="number" placeholder="Buying" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-2pc-sell" value="${tsVal || 200}" type="number" placeholder="Selling" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-buy" value="${tbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-sell" value="${tsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                 </div>
@@ -564,8 +573,8 @@
                                     <div>
                                         <p class="text-xs font-bold text-pink-600 mb-1">KIMONO</p>
                                         <div class="space-y-2">
-                                            <input id="price-kimono-buy" value="${kbVal || 150}" type="number" placeholder="Buying" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-kimono-sell" value="${ksVal || 300}" type="number" placeholder="Selling" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-kimono-buy" value="${kbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-kimono-sell" value="${ksVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                 </div>
@@ -582,12 +591,71 @@
             refreshIcons();
         }
 
+        function showReportsModal() {
+             const now = new Date();
+             const y = now.getFullYear();
+             const m = String(now.getMonth() + 1).padStart(2, '0');
+             const d = String(now.getDate()).padStart(2, '0');
+             const todayStr = `${y}-${m}-${d}`;
+
+             const modalHTML = `
+                <div id="reports-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reports-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">Master Reports</h2>
+                        <p class="text-sm text-slate-500 mb-6">Select the type of report to generate for ALL users.</p>
+                        
+                        <div class="space-y-3">
+                            <div class="text-left bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Date for Daily Report</label>
+                                <input type="date" id="report-date-picker" value="${todayStr}" 
+                                    class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
+                            </div>
+
+                            <button onclick="const d = document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d); document.getElementById('reports-modal').remove()" 
+                                class="w-full py-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 border border-emerald-100">
+                                ${renderIcon('calendar', {class:'w-5 h-5'})} Daily Master Report
+                            </button>
+                            
+                            <button onclick="document.getElementById('reports-modal').remove()" class="w-full py-3 text-slate-400 font-medium text-sm mt-2">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function showResetModal() {
+            const modalHTML = `
+                <div id="reset-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reset-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            ${renderIcon('alert-triangle', {class:'w-6 h-6'})}
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">System Factory Reset</h2>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Are you sure? This will <strong class="text-red-600">permanently delete ALL accounts, records, and history</strong>. This cannot be undone.
+                        </p>
+                        
+                        <div class="space-y-3">
+                            <button onclick="window.handleFactoryReset()" class="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200">Yes, Delete Everything</button>
+                            <button onclick="document.getElementById('reset-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
         function handleSaveStaff(e, mode, originalPhone) {
             e.preventDefault();
             const name = document.getElementById('staff-name').value.trim();
             const phone = document.getElementById('staff-phone').value.trim();
             const password = document.getElementById('staff-pass').value.trim();
-            const enablePressure = document.getElementById('staff-reconcile').checked;
+            const enableReconciliation = document.getElementById('staff-reconcile').checked;
             
             const dressBuy = Number(document.getElementById('price-dress-buy').value);
             const dressSell = Number(document.getElementById('price-dress-sell').value);
@@ -601,6 +669,13 @@
                 return;
             }
 
+            // Note: Prices are mandatory for standard mode, but less critical for Pressure mode
+            // We still enforce them for data consistency
+            if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell || !kimonoBuy || !kimonoSell) {
+                showNotification("Please set all default prices.");
+                return;
+            }
+
             let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
 
             if (mode === 'add') {
@@ -611,7 +686,7 @@
                 const newUser = { 
                     name, phone, password, role: 'staff',
                     prices: { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell },
-                    enableReconciliation: enablePressure
+                    enableReconciliation: enableReconciliation
                 };
                 users.push(newUser);
                 showNotification(`Staff member ${name} added!`);
@@ -621,19 +696,25 @@
                     users[index].name = name;
                     users[index].password = password;
                     users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell };
-                    users[index].enableReconciliation = enablePressure;
+                    users[index].enableReconciliation = enableReconciliation;
                     showNotification(`Details for ${name} updated!`);
                 }
             }
 
             localStorage.setItem(DB_KEY, JSON.stringify(users));
+            
             const modal = document.getElementById('add-staff-modal');
             if(modal) modal.remove();
+
             if (currentView === VIEW_USERS) renderUserManagementScreen();
         }
 
+        function handleAddStaff(e) {
+            handleSaveStaff(e, 'add', null);
+        }
+
         function handleDeleteStaff(phone) {
-            if(confirm("Are you sure? This will remove their login access.")) {
+            if(confirm("Are you sure you want to delete this staff member? This will remove their login access. Their data history will remain until a factory reset.")) {
                 let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
                 users = users.filter(u => u.phone !== phone);
                 localStorage.setItem(DB_KEY, JSON.stringify(users));
@@ -641,12 +722,396 @@
                 showNotification("Staff member deleted.");
             }
         }
+        
+        function handleProcurementDateChange(dateStr) {
+            if (!dateStr) return;
+            const [y, m, d] = dateStr.split('-').map(Number);
+            selectedProcurementDate = new Date(y, m - 1, d);
+            renderAdminOverview();
+        }
 
-        // --- Core: Handle Submit (Pressure & Standard) ---
+        function handleProcurementSave() {
+            const dressVal = document.getElementById('procurement-dress-input').value;
+            const kimonoVal = document.getElementById('procurement-kimono-input').value;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
+            
+            logs[targetDateKey] = {
+                dresses: Number(dressVal) || 0,
+                kimonos: Number(kimonoVal) || 0
+            };
+
+            localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+            
+            showNotification(`Stock saved for ${targetDateKey}!`);
+            renderAdminOverview(); 
+        }
+
+        function handleDeleteProcurement() {
+            if(!confirm("Are you sure you want to delete the procurement record for this date?")) return;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
+            
+            if (logs[targetDateKey]) {
+                delete logs[targetDateKey];
+                localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+                showNotification("Procurement record deleted.");
+                
+                const dIn = document.getElementById('procurement-dress-input');
+                const kIn = document.getElementById('procurement-kimono-input');
+                if(dIn) dIn.value = "";
+                if(kIn) kIn.value = "";
+                
+                renderAdminOverview();
+            } else {
+                showNotification("No record to delete for this date.");
+            }
+        }
+
+        function handleControllerLogSave(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('control-date').value;
+            const countVal = document.getElementById('control-count').value;
+            const kimonoVal = document.getElementById('control-kimono-count').value;
+            const noteVal = document.getElementById('control-note').value;
+            const originalId = document.getElementById('control-original-id').value;
+
+            if(!dateVal || (!countVal && !kimonoVal)) {
+                showNotification("Please select date and at least one count.");
+                return;
+            }
+
+            const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            
+            if (originalId) {
+                const idx = logs.findIndex(l => l.id == originalId); 
+                if (idx !== -1) logs.splice(idx, 1);
+            }
+
+            const existingIndex = logs.findIndex(l => l.date === dateVal);
+            if (existingIndex !== -1) {
+                logs.splice(existingIndex, 1);
+            }
+
+            logs.unshift({
+                id: originalId ? Number(originalId) : Date.now(), 
+                date: dateVal,
+                dressCount: Number(countVal) || 0,
+                kimonoCount: Number(kimonoVal) || 0,
+                note: noteVal
+            });
+            
+            logs.sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(logs));
+            showNotification("Stock record saved safely.");
+            document.getElementById('add-control-modal').remove();
+            renderAdminOverview();
+        }
+
+        function handleDeleteControllerLog(id) {
+            if(!confirm("Delete this stock record?")) return;
+            const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            const newLogs = logs.filter(l => l.id !== id);
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(newLogs));
+            renderAdminOverview();
+            showNotification("Record deleted.");
+        }
+
+        function showControllerModal(editLogId = null) {
+            let logToEdit = null;
+            if (editLogId) {
+                const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+                logToEdit = logs.find(l => l.id === editLogId);
+            }
+
+             const now = new Date();
+             const y = now.getFullYear();
+             const m = String(now.getMonth() + 1).padStart(2, '0');
+             const d = String(now.getDate()).padStart(2, '0');
+             const todayStr = `${y}-${m}-${d}`;
+             
+             const defaultDate = logToEdit ? logToEdit.date : todayStr;
+             const defaultDress = logToEdit ? (logToEdit.dressCount !== undefined ? logToEdit.dressCount : (logToEdit.count||'')) : '';
+             const defaultKimono = logToEdit ? (logToEdit.kimonoCount || '') : '';
+             const defaultNote = logToEdit ? (logToEdit.note || '') : '';
+             const originalId = logToEdit ? logToEdit.id : '';
+
+             const modalHTML = `
+                <div id="add-control-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-control-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">${editLogId ? 'Edit Stock Record' : 'Record Physical Stock'}</h2>
+                        <p class="text-sm text-slate-500 mb-4">Safe storage for daily stock counts (Controller's Record).</p>
+                        
+                        <form onsubmit="window.handleControllerLogSave(event)" class="space-y-3">
+                            <input type="hidden" id="control-original-id" value="${originalId}">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Date</label>
+                                <input type="date" id="control-date" value="${defaultDate}" class="w-full p-2 rounded-lg border border-slate-300">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[10px] font-bold text-indigo-600 uppercase">Dresses + 2Pcs</label>
+                                    <input type="number" id="control-count" value="${defaultDress}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-indigo-50">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-pink-600 uppercase">Kimonos</label>
+                                    <input type="number" id="control-kimono-count" value="${defaultKimono}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-pink-50">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Note (Optional)</label>
+                                <input type="text" id="control-note" value="${defaultNote}" placeholder="e.g. Checked by John" class="w-full p-2 rounded-lg border border-slate-300">
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 mt-2">
+                                ${editLogId ? 'Update Record' : 'Save Record'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function handleFactoryReset() {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('trinah_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            window.location.reload();
+        }
+
+        // --- Account Recovery Functions ---
+        
+        function renderRecoveryScreen() {
+            appElement.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                ${renderIcon('key-round', {class:'w-8 h-8'})}
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-800">Account Recovery</h1>
+                            <p class="text-sm text-slate-500">Enter your registered phone number to identify your account.</p>
+                        </div>
+
+                        <form id="recovery-form" onsubmit="window.handleRecoveryStep1(event)" class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PHONE NUMBER</label>
+                                <input type="text" id="rec-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                            </div>
+                            <div id="recovery-error" class="text-center text-sm text-red-500 hidden"></div>
+                            
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Verify Account</button>
+                            <button type="button" onclick="renderAuthScreen()" class="w-full py-3 text-slate-500 font-bold hover:text-slate-700">Back to Login</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            refreshIcons();
+        }
+
+        function handleRecoveryStep1(e) {
+            e.preventDefault();
+            const phone = document.getElementById('rec-phone').value.trim();
+            const errDiv = document.getElementById('recovery-error');
+            
+            if(!phone) {
+                errDiv.textContent = "Please enter a phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const user = users.find(u => u.phone === phone);
+
+            if (!user) {
+                errDiv.textContent = "No account found with this phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const form = document.getElementById('recovery-form');
+            
+            if (user.role === 'admin') {
+                form.innerHTML = `
+                    <div class="bg-indigo-50 text-indigo-800 p-4 rounded-xl text-sm mb-4 border border-indigo-100">
+                        <p class="font-bold">Admin Account Found</p>
+                        <p>To reset the Admin password, please enter the System Setup PIN.</p>
+                    </div>
+                    <input type="hidden" id="reset-phone" value="${phone}">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">SYSTEM PIN</label>
+                            <input type="password" id="reset-pin" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="Enter PIN">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">NEW PASSWORD</label>
+                            <input type="password" id="new-pass" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                        </div>
+                        <button type="button" onclick="window.handleRecoveryStep2('admin')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Update Password</button>
+                    </div>
+                `;
+            } else {
+                form.innerHTML = `
+                    <div class="bg-amber-50 text-amber-800 p-6 rounded-xl text-sm mb-6 border border-amber-200 text-center">
+                        <div class="mx-auto w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-2">
+                            ${renderIcon('shield-alert', {class:'w-5 h-5'})}
+                        </div>
+                        <p class="font-bold text-lg mb-2">Action Required</p>
+                        <p class="mb-2">For security reasons, Staff passwords cannot be reset here.</p>
+                        <p>Please contact the <strong>Administrator</strong> to reset your password.</p>
+                    </div>
+                    <button type="button" onclick="renderAuthScreen()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Back to Login</button>
+                `;
+            }
+            refreshIcons();
+        }
+
+        function handleRecoveryStep2(role) {
+            const phone = document.getElementById('reset-phone').value;
+            const newPass = document.getElementById('new-pass').value.trim();
+            const enteredPin = role === 'admin' ? document.getElementById('reset-pin').value.trim() : null;
+
+            if (role === 'admin' && enteredPin !== SYSTEM_PIN) {
+                showNotification("Invalid System PIN. Cannot reset.");
+                return;
+            }
+
+            if (!newPass) {
+                showNotification("Please enter a valid password.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const index = users.findIndex(u => u.phone === phone);
+            
+            if (index !== -1) {
+                users[index].password = newPass;
+                localStorage.setItem(DB_KEY, JSON.stringify(users));
+                
+                showNotification("Password updated successfully!");
+                renderAuthScreen();
+            } else {
+                showNotification("Error updating password.");
+                renderAuthScreen();
+            }
+        }
+
+        function authHandler(e) {
+            e.preventDefault();
+            const phone = document.getElementById('auth-phone').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null; 
+
+            if (!phone || !password) {
+                authError = "Please enter phone and password.";
+                renderAuthScreen();
+                return;
+            }
+
+            authLoading = true;
+            renderAuthScreen();
+
+            setTimeout(() => {
+                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                
+                if (showAdminCreation && users.length === 0) {
+                     if (!name) {
+                        authError = "Admin name required.";
+                        authLoading = false;
+                        renderAuthScreen();
+                        return;
+                    }
+                    const adminUser = {
+                        name: name,
+                        phone: phone,
+                        password: password,
+                        role: 'admin' 
+                    };
+                    users.push(adminUser);
+                    localStorage.setItem(DB_KEY, JSON.stringify(users));
+                    handleLogin(adminUser);
+                    return;
+                }
+
+                const user = users.find(u => u.phone === phone && u.password === password);
+                
+                if (user) {
+                    handleLogin(user);
+                } else {
+                    if (users.length === 0) {
+                         authError = "System not initialized.";
+                    } else {
+                         authError = "Invalid credentials.";
+                    }
+                }
+                
+                authLoading = false;
+                if (!currentUser) renderAuthScreen();
+            }, 800);
+        }
+
+        function verifySystemPin() {
+            const pinInput = document.getElementById('system-pin-input');
+            const pinError = document.getElementById('pin-error');
+            
+            if (pinInput.value.trim() === SYSTEM_PIN) {
+                showAdminCreation = true;
+                renderAuthScreen();
+            } else {
+                pinError.classList.remove('hidden');
+            }
+        }
+
+        // --- Core Logic ---
+
         function handleSubmit() {
             if (!managedUser) return; 
 
-            const isPressure = managedUser.enableReconciliation;
+            // Common inputs
+            const expenseNames = document.getElementsByName('expense_name[]');
+            const expenseAmts = document.getElementsByName('expense_amt[]');
+            
+            // Reconcile/Pressure Mode specific
+            const marketIn = document.getElementById('rec-market');
+            const dispatchedIn = document.getElementById('rec-dispatched');
+            const bpIn = document.getElementById('rec-bp');
+            const sentIn = document.getElementById('rec-sent');
+            
+            // Standard Mode specific
+            const dispatchDressIn = document.getElementById('dispatch-dress');
+            const dispatch2pcIn = document.getElementById('dispatch-2pc');
+            const dispatchKimonoIn = document.getElementById('dispatch-kimono');
+            const salesDressIn = document.getElementById('sales-dress');
+            const sales2pcIn = document.getElementById('sales-2pc');
+            const salesKimonoIn = document.getElementById('sales-kimono');
+
+            const isPressureMode = managedUser.enableReconciliation; // Reusing variable for Pressure Logic
+
+            let expensesList = [];
+            let expenseAmt = 0;
+
+            // Collect Expenses (Shared logic but mainly used in Pressure mode)
+            if (isPressureMode) {
+                for(let i=0; i<expenseNames.length; i++) {
+                    const nm = expenseNames[i].value.trim();
+                    const amt = Number(expenseAmts[i].value) || 0;
+                    if(nm || amt > 0) {
+                        expensesList.push({ name: nm || 'Expense', amount: amt });
+                        expenseAmt += amt;
+                    }
+                }
+            }
+
             const now = new Date();
             const jsDay = now.getDay(); 
             const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
@@ -661,107 +1126,96 @@
             targetDate.setDate(now.getDate() - dayDiff);
             const currentDayName = DAYS[selectedDayIndex];
             const fullDateString = targetDate.toLocaleDateString();
-            
-            // Get Previous State
             const fullHistory = getFullHistory();
-            let prevRemDress = 0, prevRem2pc = 0, prevRemKimono = 0, prevBalanceBF = 0;
 
-            if (fullHistory.length > 0) {
-                const last = fullHistory[fullHistory.length - 1];
-                prevRemDress = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
-                prevRem2pc = last.remTwoPcs || 0;
-                prevRemKimono = last.remKimonos || 0;
-                prevBalanceBF = last.balanceBF || 0;
-            } else {
-                prevRemDress = startingPressure.dresses || 0;
-                prevRem2pc = startingPressure.twoPcs || 0;
-                prevRemKimono = startingPressure.kimonos || 0;
-                prevBalanceBF = 0; // Starts at 0
-            }
+            // PRESSURE MODE CALCULATION
+            if (isPressureMode) {
+                const piecesDispatched = Number(dispatchedIn ? dispatchedIn.value : 0) || 0;
+                const dailyBP = Number(bpIn ? bpIn.value : 0) || 0;
+                const amountSent = Number(sentIn ? sentIn.value : 0) || 0;
+                const marketName = marketIn ? marketIn.value.trim() : 'N/A';
 
-            let record = {};
-
-            if (isPressure) {
-                // --- PRESSURE CALCULATION LOGIC ---
-                const marketName = document.getElementById('pres-market').value.trim();
-                const dispatchedQty = Number(document.getElementById('pres-dispatched').value) || 0;
-                const bp = Number(document.getElementById('pres-bp').value) || 0;
-                const sent = Number(document.getElementById('pres-sent').value) || 0;
-                
-                // Expenses
-                let expenseAmt = 0;
-                let expensesList = [];
-                const expNames = document.getElementsByName('expense_name[]');
-                const expAmts = document.getElementsByName('expense_amt[]');
-                for(let i=0; i<expNames.length; i++) {
-                    const nm = expNames[i].value.trim();
-                    const amt = Number(expAmts[i].value) || 0;
-                    if(nm || amt > 0) {
-                        expensesList.push({ name: nm || 'Expense', amount: amt });
-                        expenseAmt += amt;
-                    }
+                if (piecesDispatched === 0 && amountSent === 0 && expenseAmt === 0 && dailyBP === 0) {
+                     showNotification("Please enter dispatched stock or payment info.");
+                     return;
                 }
 
-                if (!marketName && dispatchedQty === 0 && sent === 0 && expenseAmt === 0) {
-                    showNotification("Please enter at least market, dispatched or sent amount.");
-                    return;
+                // Get Previous Balance BF
+                let prevBalanceBF = 0;
+                if (fullHistory.length > 0) {
+                    const last = fullHistory[fullHistory.length - 1];
+                    prevBalanceBF = Number(last.balanceBF) || 0;
+                } else {
+                    // Could use startingPressure if we wanted, but sticking to 0 for financial start
+                    prevBalanceBF = 0; 
                 }
 
-                // FORMULA: Pressure = (Staff Dispatched * BP + Prev Balance) - (Amount Sent + Expenses)
-                // Note: User prompt says "shows remaining balance as pressure amount/Balance BF"
-                // The "Total Expected" is (Dispatched * BP + Prev Balance)
+                // FORMULA: Pressure = (Dispatched * BP + Previous BF) - (Amount Sent + Expenses)
+                // We also need "Total Expected" for the table: Dispatched * BP + Previous BF
                 
-                const dailyExpected = dispatchedQty * bp;
-                const totalExpected = dailyExpected + prevBalanceBF;
-                const totalDeductions = sent + expenseAmt;
-                const newBalanceBF = totalExpected - totalDeductions;
+                const stockValue = piecesDispatched * dailyBP;
+                const totalExpected = stockValue + prevBalanceBF;
+                const deductions = amountSent + expenseAmt;
+                const newPressure = totalExpected - deductions; // This is the new Balance BF
 
-                record = {
+                const record = {
                     id: Date.now(),
                     date: currentDayName,
                     fullDate: fullDateString,
-                    market: marketName,
-                    dispatchedQty: dispatchedQty,
-                    bp: bp,
+                    marketName: marketName,
+                    dispatched: piecesDispatched,
+                    bp: dailyBP,
                     totalExpected: totalExpected,
-                    amountSent: sent,
-                    balanceBF: newBalanceBF,
+                    amountSent: amountSent,
                     expenseAmount: expenseAmt,
                     expensesList: expensesList,
-                    // Legacy fields to prevent crash in standard views
-                    remDresses: 0, remTwoPcs: 0, remKimonos: 0, profit: 0, 
-                    soldDresses: 0, soldTwoPcs: 0, soldKimonos: 0
+                    balanceBF: newPressure,
+                    // Legacy fields for compatibility (set to 0)
+                    profit: totalExpected, // Storing expected as profit for graph/summary compatibility if needed
+                    sold: 0, 
+                    remaining: 0 
                 };
 
-                // Clear Inputs
-                document.getElementById('pres-market').value = "";
-                document.getElementById('pres-dispatched').value = "";
-                document.getElementById('pres-bp').value = "";
-                document.getElementById('pres-sent').value = "";
-                document.getElementById('expenses-container').innerHTML = "";
+                history.push(record);
+
+                // Clear inputs
+                if(dispatchedIn) dispatchedIn.value = "";
+                if(bpIn) bpIn.value = "";
+                if(sentIn) sentIn.value = "";
+                if(marketIn) marketIn.value = "";
+                const expContainer = document.getElementById('expenses-container');
+                if(expContainer) expContainer.innerHTML = '';
 
             } else {
-                // --- STANDARD LOGIC ---
-                const dispatchDressIn = document.getElementById('dispatch-dress');
-                const dispatch2pcIn = document.getElementById('dispatch-2pc');
-                const dispatchKimonoIn = document.getElementById('dispatch-kimono');
-                const salesDressIn = document.getElementById('sales-dress');
-                const sales2pcIn = document.getElementById('sales-2pc');
-                const salesKimonoIn = document.getElementById('sales-kimono');
-
+                // STANDARD MODE CALCULATION (Original Logic)
                 const dDress = Number(dispatchDressIn ? dispatchDressIn.value : 0) || 0;
                 const d2pc = Number(dispatch2pcIn ? dispatch2pcIn.value : 0) || 0;
                 const dKimono = Number(dispatchKimonoIn ? dispatchKimonoIn.value : 0) || 0;
+
                 const sDress = Number(salesDressIn ? salesDressIn.value : 0) || 0;
                 const s2pc = Number(sales2pcIn ? sales2pcIn.value : 0) || 0;
                 const sKimono = Number(salesKimonoIn ? salesKimonoIn.value : 0) || 0;
 
-                if (dDress===0 && d2pc===0 && dKimono===0 && sDress===0 && s2pc===0 && sKimono===0) {
+                if (dDress === 0 && d2pc === 0 && dKimono === 0 && sDress === 0 && s2pc === 0 && sKimono === 0) {
                     showNotification("Please enter dispatch or sales.");
                     return;
                 }
 
                 const prices = managedUser.prices || {};
+                
+                let prevRemDress = 0, prevRem2pc = 0, prevRemKimono = 0;
+
+                if (fullHistory.length > 0) {
+                    const last = fullHistory[fullHistory.length - 1];
+                    prevRemDress = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
+                    prevRem2pc = last.remTwoPcs || 0;
+                    prevRemKimono = last.remKimonos || 0;
+                } else {
+                    prevRemDress = startingPressure.dresses || 0;
+                    prevRem2pc = startingPressure.twoPcs || 0;
+                    prevRemKimono = startingPressure.kimonos || 0;
+                }
+
                 const newRemDress = prevRemDress + dDress - sDress;
                 const newRem2pc = prevRem2pc + d2pc - s2pc;
                 const newRemKimono = prevRemKimono + dKimono - sKimono;
@@ -771,12 +1225,12 @@
                     return;
                 }
 
-                const profitDress = sDress * ((prices.dressSell||200) - (prices.dressBuy||120));
-                const profit2pc = s2pc * ((prices.twoPcSell||200) - (prices.twoPcBuy||120));
-                const profitKimono = sKimono * ((prices.kimonoSell||300) - (prices.kimonoBuy||150));
+                const profitDress = sDress * (prices.dressSell - prices.dressBuy);
+                const profit2pc = s2pc * (prices.twoPcSell - prices.twoPcBuy);
+                const profitKimono = sKimono * (prices.kimonoSell - prices.kimonoBuy);
                 const totalProfit = profitDress + profit2pc + profitKimono;
 
-                record = {
+                const record = {
                     id: Date.now(),
                     date: currentDayName,
                     fullDate: fullDateString,
@@ -784,23 +1238,74 @@
                     soldDresses: sDress, soldTwoPcs: s2pc, soldKimonos: sKimono,
                     remDresses: newRemDress, remTwoPcs: newRem2pc, remKimonos: newRemKimono,
                     profit: totalProfit,
-                    remaining: newRemDress + newRem2pc + newRemKimono,
-                    balanceBF: 0 // Not used in standard
+                    dispatched: dDress + d2pc + dKimono,
+                    sold: sDress + s2pc + sKimono,
+                    remaining: newRemDress + newRem2pc + newRemKimono
                 };
 
-                // Clear Inputs
-                if(dispatchDressIn) dispatchDressIn.value = "";
-                if(dispatch2pcIn) dispatch2pcIn.value = "";
-                if(dispatchKimonoIn) dispatchKimonoIn.value = "";
-                if(salesDressIn) salesDressIn.value = "";
-                if(sales2pcIn) sales2pcIn.value = "";
-                if(salesKimonoIn) salesKimonoIn.value = "";
+                history.push(record);
+                startingPressure = { dresses: newRemDress, twoPcs: newRem2pc, kimonos: newRemKimono };
+                
+                // Clear Standard Inputs
+                if (dispatchDressIn) dispatchDressIn.value = "";
+                if (dispatch2pcIn) dispatch2pcIn.value = "";
+                if (dispatchKimonoIn) dispatchKimonoIn.value = "";
+                if (salesDressIn) salesDressIn.value = "";
+                if (sales2pcIn) sales2pcIn.value = "";
+                if (salesKimonoIn) salesKimonoIn.value = "";
             }
 
-            history.push(record);
             saveData(managedUser.phone);
+
+            if (currentDayName === "Sunday") {
+                renderWeekCompleteModal();
+                renderIndividualDashboard();
+                return;
+            }
+
+            let notificationMessage = `Saved for ${currentDayName}!`;
+
+            if (selectedDayIndex < mappedDay) {
+                selectedDayIndex = selectedDayIndex + 1;
+                notificationMessage += ` Switched to ${DAYS[selectedDayIndex]}.`;
+            }
+
+            showNotification(notificationMessage);
+            renderIndividualDashboard();
+        }
+
+        function showBalanceModal(dayName, dateStr) {
+            showNotification("Please use the main form to enter expenses.");
+        }
+
+        function handleStartNewWeek() {
+            const modal = document.getElementById('week-complete-modal');
+            if (modal) modal.remove();
+
+            const fullHistory = getFullHistory();
             
-            showNotification(`Saved for ${currentDayName}!`);
+            // Logic for pressure mode carry over
+            let finalPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
+            
+            // Logic for standard mode carry over
+            if (fullHistory.length > 0) {
+                const last = fullHistory[fullHistory.length - 1];
+                finalPressure = {
+                    dresses: last.remDresses || last.remaining || 0,
+                    twoPcs: last.remTwoPcs || 0,
+                    kimonos: last.remKimonos || 0
+                };
+            } else {
+                finalPressure = startingPressure;
+            }
+            
+            archive = [...archive, ...history];
+            history = []; 
+            startingPressure = finalPressure; 
+            selectedDayIndex = 0; 
+            
+            saveData(managedUser.phone);
+            showNotification("New week started!");
             renderIndividualDashboard();
         }
 
@@ -810,17 +1315,47 @@
             const lastEntry = history[history.length - 1]; 
 
             if (!lastEntry) return;
+
             if (isEntryLocked(lastEntry)) {
                 showNotification("Locked: 72 hours passed since entry.");
                 return;
             }
+            
+            // Standard Mode Revert Logic
+            if (!managedUser.enableReconciliation) {
+                const curRemDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
+                const curRemTwoPcs = lastEntry.remTwoPcs || 0;
+                const curRemKimonos = lastEntry.remKimonos || 0;
+                
+                const dispatchedD = lastEntry.dispatchedDresses || 0;
+                const dispatchedT = lastEntry.dispatchedTwoPcs || 0;
+                const dispatchedK = lastEntry.dispatchedKimonos || 0;
+                
+                const soldD = lastEntry.soldDresses !== undefined ? lastEntry.soldDresses : (lastEntry.sold || 0);
+                const soldT = lastEntry.soldTwoPcs || 0;
+                const soldK = lastEntry.soldKimonos || 0;
+                
+                const prevRemDresses = curRemDresses - dispatchedD + soldD;
+                const prevRemTwoPcs = curRemTwoPcs - dispatchedT + soldT;
+                const prevRemKimonos = curRemKimonos - dispatchedK + soldK;
+                
+                startingPressure = {
+                    dresses: prevRemDresses,
+                    twoPcs: prevRemTwoPcs,
+                    kimonos: prevRemKimonos
+                };
+            }
+
             history.pop();
+            
+            const dayIndex = DAYS.indexOf(lastEntry.date);
+            if (dayIndex !== -1) selectedDayIndex = dayIndex;
+
             saveData(managedUser.phone);
             showNotification(`Entry deleted.`);
             renderIndividualDashboard();
         }
 
-        // --- Reports ---
         async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
             if (!managedUser) return;
             if (data.length === 0) {
@@ -830,7 +1365,7 @@
             const loader = document.getElementById('pdf-loader');
             if (loader) loader.style.display = 'flex';
 
-            const isPressure = managedUser.enableReconciliation;
+            const isPressureMode = managedUser.enableReconciliation;
 
             try {
                 const { jsPDF } = window.jspdf;
@@ -842,66 +1377,70 @@
                 doc.setFontSize(14);
                 doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
                 
-                if (isPressure) {
-                    // PRESSURE PDF
+                if (isPressureMode) {
+                    // PRESSURE REPORT FORMAT
                     doc.setFontSize(10);
-                    doc.text("Pressure / Balance Report", 14, 26);
+                    doc.text("Pressure Calculation Statement", 14, 26);
                     
                     const rows = data.map(item => {
-                         const friendlyDate = `${item.date.substring(0,3)}, ${item.fullDate}`;
-                         const market = item.market || '-';
-                         
-                         // Total Expected: (Dispatched * BP) + Prev Balance
-                         // We saved this as totalExpected in history
-                         const expected = item.totalExpected || 0;
-                         const sent = item.amountSent || 0;
-                         const balance = item.balanceBF || 0;
+                         const dateStr = `${item.date.substring(0,3)}, ${item.fullDate}`;
+                         const market = item.marketName || '-';
+                         const totalExpected = item.totalExpected || 0;
+                         const amountSent = item.amountSent || 0;
+                         const balanceBF = item.balanceBF || 0;
+
+                         // Expenses detail for context
+                         let expensesStr = "";
+                         if (item.expensesList && item.expensesList.length > 0) {
+                             expensesStr = "\nExp: " + item.expensesList.map(e => `${e.name} ${e.amount}`).join(', ');
+                         }
                          
                          return [
-                             friendlyDate,
+                             dateStr,
                              market,
-                             formatCurrency(expected),
-                             formatCurrency(sent),
-                             formatCurrency(balance)
+                             totalExpected.toLocaleString(),
+                             `${amountSent.toLocaleString()}${expensesStr}`,
+                             balanceBF.toLocaleString()
                          ];
                     });
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Date', 'Market', 'Total Expected', 'Amount Sent', 'Balance BF']],
+                        head: [['Day & Date', 'Market', 'Total Expected', 'Amount Sent', 'Balance BF']],
                         body: rows,
                         theme: 'grid',
                         headStyles: { fillColor: [30, 58, 138], halign: 'center' },
+                        bodyStyles: { halign: 'center' },
                         columnStyles: {
                             2: { halign: 'right' },
                             3: { halign: 'right' },
-                            4: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] } // Red Balance
+                            4: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] }
                         }
                     });
 
                 } else {
-                    // STANDARD PDF
-                    doc.setFontSize(10);
-                    doc.text(`Stock & Sales Report`, 14, 26);
-                    
+                    // STANDARD REPORT FORMAT
+                    const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
+                    const totalSoldDresses = data.reduce((sum, r) => sum + (Number(r.soldDresses) || 0), 0);
+                    const totalSoldTwoPcs = data.reduce((sum, r) => sum + (Number(r.soldTwoPcs) || 0), 0);
+                    const totalSoldKimonos = data.reduce((sum, r) => sum + (Number(r.soldKimonos) || 0), 0);
+
                     const rows = data.map(item => {
                         const friendlyDate = `${item.date}, ${item.fullDate}`;
                         return [
                             friendlyDate, 
                             `${item.soldDresses || 0} / ${item.soldTwoPcs || 0} / ${item.soldKimonos || 0}`, 
                             `${item.remDresses || 0} / ${item.remTwoPcs || 0} / ${item.remKimonos || 0}`,
-                            formatCurrency(item.profit)
+                            item.profit.toLocaleString()
                         ];
                     });
 
-                    const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
-
                     doc.autoTable({
                         startY: 40,
-                        head: [['Date', `Sold (D/2/K)`, `Stock (D/2/K)`, 'Profit']],
+                        head: [['Date', `Sold (D/2/K)`, `Stock (D/2/K)`, 'Profit (KES)']],
                         body: rows,
                         theme: 'grid',
-                        foot: [['TOTAL', `-`, '-', formatCurrency(totalProfit)]]
+                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs} / ${totalSoldKimonos}`, '-', totalProfit.toLocaleString()]]
                     });
                 }
 
@@ -917,6 +1456,37 @@
         }
 
         // --- Renderers ---
+
+        function renderWeekCompleteModal() {
+            const isPressure = managedUser.enableReconciliation;
+            let msg = "";
+            
+            if (isPressure) {
+                const last = history.length > 0 ? history[history.length - 1] : null;
+                const finalBal = last ? last.balanceBF : 0;
+                msg = `Final Pressure/Balance: KES ${finalBal.toLocaleString()}`;
+            } else {
+                const last = history.length > 0 ? history[history.length - 1] : null;
+                const remD = last ? last.remDresses : startingPressure.dresses;
+                msg = `Final Stock: ${remD} Dresses`;
+            }
+            
+            const modalHTML = `
+                <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('week-complete-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative z-10 text-center">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">Week Completed!</h2>
+                        <p class="text-slate-600 mb-4 text-sm">${msg}</p>
+                        <div class="space-y-3">
+                            <button onclick="downloadReport(history, 'Weekly_Completed'); document.getElementById('week-complete-modal').remove();" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Download Report</button>
+                            <button onclick="handleStartNewWeek()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Start New Week</button>
+                            <button onclick="document.getElementById('week-complete-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+        }
 
         function renderHeader() {
             const isAdmin = currentUser && currentUser.role === 'admin';
@@ -934,6 +1504,8 @@
                                 </span>
                             </div>
                         </div>
+
+                        <!-- Desktop Nav -->
                         <nav class="hidden md:flex items-center gap-4">
                             ${isManaging ? `
                                 <button onclick="managedUser=null; renderApp()" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 flex items-center gap-2">
@@ -955,13 +1527,18 @@
 
                             <button onclick="handleLogout()" class="text-sm font-medium text-red-500 hover:text-red-700">Logout</button>
                         </nav>
+                        
+                        <!-- Mobile Menu Button -->
                         <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
                             ${renderIcon('menu', { class: 'w-6 h-6' })}
                         </button>
                     </div>
                 </header>
                 
+                 <!-- Mobile Menu Overlay -->
                 <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden"></div>
+
+                <!-- Mobile Menu Sidebar -->
                 <div id="mobile-menu" class="fixed right-0 top-0 h-full w-72 bg-white shadow-2xl z-50 p-6 flex flex-col gap-6 translate-x-full">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-4">
                         <span class="text-lg font-bold text-slate-800">Menu</span>
@@ -975,6 +1552,7 @@
                                 ${renderIcon('arrow-left', {class:'w-5 h-5'})} Back to Dashboard
                             </button>
                         ` : ''}
+
                         ${isAdmin && !isManaging ? `
                             <button onclick="setView('${VIEW_USERS}'); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
                                 ${renderIcon('users', {class:'w-5 h-5'})} Manage Staff
@@ -986,6 +1564,7 @@
                                 ${renderIcon('clipboard-list', {class:'w-5 h-5'})} Stock Log
                             </button>
                         ` : ''}
+
                         <button onclick="handleLogout()" class="flex items-center gap-3 w-full p-3 rounded-xl bg-red-50 text-red-600 mt-auto">
                             ${renderIcon('log-out', {class:'w-5 h-5'})} Log Out
                         </button>
@@ -1019,34 +1598,88 @@
             
             let totalStock = 0;
             let totalSalesToday = 0;
+            let totalProfitToday = 0;
             let grandTotalDispatchedDresses = 0;
             let grandTotalDispatchedKimonos = 0;
 
             const userCards = users.map(user => {
                 const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
-                const userHistory = JSON.parse(hStr);
-                const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
+                const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
                 
-                // Only count standard sales, Pressure users track balance not unit sales
-                const userSalesToday = user.enableReconciliation ? 0 : todayEntries.reduce((sum, e) => {
-                     return sum + (e.soldDresses||0) + (e.soldTwoPcs||0) + (e.soldKimonos||0);
+                const userHistory = JSON.parse(hStr);
+                const userArchive = JSON.parse(aStr);
+                const allEntries = [...userArchive, ...userHistory];
+                
+                const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
+                const userSalesToday = todayEntries.reduce((sum, e) => {
+                    const legacy = Number(e.sold) || 0;
+                    const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0) + (Number(e.soldKimonos)||0);
+                    return sum + (e.soldDresses !== undefined ? newFormat : legacy);
+                }, 0);
+
+                const userDispatchedTodayDresses = todayEntries.reduce((sum, e) => {
+                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0) + (Number(e.dispatched) || 0);
+                     return sum + val;
                 }, 0);
                 
-                // Determine current status
-                let statusLabel = "";
-                let statusValue = "";
+                const userDispatchedTodayKimonos = todayEntries.reduce((sum, e) => {
+                     return sum + (Number(e.dispatchedKimonos) || 0);
+                }, 0);
                 
-                if (user.enableReconciliation) {
-                    const last = userHistory.length > 0 ? userHistory[userHistory.length - 1] : null;
-                    statusLabel = "Balance BF";
-                    statusValue = formatCurrency(last ? last.balanceBF : 0);
+                const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
+                
+                let currentRemDresses = 0;
+                let currentRemTwoPcs = 0;
+                let currentRemKimonos = 0;
+                
+                // Pressure mode balance
+                let pressureBalance = 0;
+
+                if (allEntries.length > 0) {
+                    const last = allEntries[allEntries.length - 1];
+                    currentRemDresses = last.remDresses || last.remaining || 0;
+                    currentRemTwoPcs = last.remTwoPcs || 0;
+                    currentRemKimonos = last.remKimonos || 0;
+                    pressureBalance = last.balanceBF || 0;
                 } else {
-                    const last = userHistory.length > 0 ? userHistory[userHistory.length - 1] : null;
-                    const stock = last ? (last.remDresses||0)+(last.remTwoPcs||0)+(last.remKimonos||0) : 0;
-                    statusLabel = "Stock";
-                    statusValue = stock;
-                    totalStock += stock;
-                    totalSalesToday += userSalesToday;
+                     try {
+                        const p = JSON.parse(pStr);
+                        if (typeof p === 'number') currentRemDresses = p;
+                        else {
+                            currentRemDresses = p?.dresses || 0;
+                            currentRemTwoPcs = p?.twoPcs || 0;
+                            currentRemKimonos = p?.kimonos || 0;
+                        }
+                    } catch(e) {}
+                }
+
+                totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
+                totalSalesToday += userSalesToday;
+                totalProfitToday += userProfitToday;
+                grandTotalDispatchedDresses += userDispatchedTodayDresses;
+                grandTotalDispatchedKimonos += userDispatchedTodayKimonos;
+
+                let statusBlock = '';
+                if (user.enableReconciliation) {
+                    statusBlock = `
+                        <div class="bg-indigo-50 p-2 rounded-lg col-span-2">
+                            <p class="text-[10px] uppercase font-bold text-indigo-400">Pressure Bal</p>
+                            <p class="font-bold text-indigo-700">${formatCurrency(pressureBalance)}</p>
+                        </div>
+                    `;
+                } else {
+                    statusBlock = `
+                        <div class="bg-orange-50 p-2 rounded-lg">
+                            <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
+                            <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs} / ${currentRemKimonos}</p>
+                            <p class="text-[8px] text-orange-300">D / 2 / K</p>
+                        </div>
+                        <div class="bg-emerald-50 p-2 rounded-lg">
+                            <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Today)</p>
+                            <p class="font-bold text-emerald-700">${userSalesToday}</p>
+                        </div>
+                    `;
                 }
 
                 return `
@@ -1063,24 +1696,37 @@
                             </div>
                             ${renderIcon('chevron-right', {class:'w-4 h-4 text-slate-300 group-hover:text-indigo-500'})}
                         </div>
-                        <div class="bg-indigo-50 p-3 rounded-lg text-center">
-                            <p class="text-[10px] uppercase font-bold text-indigo-400">${statusLabel}</p>
-                            <p class="font-bold text-indigo-700">${statusValue}</p>
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            ${statusBlock}
                         </div>
                     </div>
                 `;
             }).join('');
 
-            // Procurement Logic
+            // Retrieve Data
             const procLogs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-            const procData = procLogs[targetDateLocale] || { dresses: 0, kimonos: 0 };
-            const procDresses = typeof procData === 'number' ? procData : (procData.dresses || 0);
-            const procKimonos = procData.kimonos || 0;
+            const procData = procLogs[targetDateLocale];
+            
+            let procDresses = 0;
+            let procKimonos = 0;
+            if (procData) {
+                if (typeof procData === 'number') { procDresses = procData; } 
+                else { procDresses = procData.dresses || 0; procKimonos = procData.kimonos || 0; }
+            }
 
             const controllerLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            // Find controller log for this specific date
             const controllerLogForDate = controllerLogs.find(l => l.date === dateInputVal);
             const physicalDresses = controllerLogForDate ? (controllerLogForDate.dressCount || controllerLogForDate.count || 0) : 0;
             const physicalKimonos = controllerLogForDate ? (controllerLogForDate.kimonoCount || 0) : 0;
+
+            // Calculations
+            const varianceDresses = procDresses - grandTotalDispatchedDresses; // Expected to be remaining
+            const varianceKimonos = procKimonos - grandTotalDispatchedKimonos; // Expected to be remaining
+
+            // Final Missing Calculation: Variance (System Expected) - Physical Count
+            const finalMissingDresses = varianceDresses - physicalDresses;
+            const finalMissingKimonos = varianceKimonos - physicalKimonos;
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1090,9 +1736,10 @@
                         <p class="text-slate-500">Overview of all active accounts</p>
                     </div>
 
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${renderStatCard("Total Std. Stock", totalStock, "layers", "text-orange-600")}
-                        ${renderStatCard("Total Std. Sales (Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
+                        ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
+                        ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
                     </div>
                     
                     <!-- Procurement Section -->
@@ -1126,9 +1773,83 @@
                                 </div>
                             </div>
                          </div>
-                         <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center justify-center text-slate-400 text-sm">
-                            <p>Comparison metrics available only for standard stock users.</p>
+                         
+                         <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Reconciliation (${targetDateLocale})</div>
+                            
+                            <!-- Dresses Table -->
+                            <div class="grid grid-cols-4 gap-2 text-xs mb-2 border-b border-slate-200 pb-2">
+                                <span class="col-span-1 font-bold text-indigo-600">DRESSES</span>
+                                <span class="text-center">System Exp.</span>
+                                <span class="text-center">Physical</span>
+                                <span class="text-right">Variance</span>
+
+                                <span class="col-span-1 text-slate-500">Bought: ${procDresses}<br>Disp: ${grandTotalDispatchedDresses}</span>
+                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceDresses}</span>
+                                <span class="text-center font-bold text-indigo-700 py-2 bg-indigo-50 rounded border border-indigo-100">${physicalDresses}</span>
+                                <span class="text-right font-bold ${finalMissingDresses > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
+                                    ${finalMissingDresses > 0 ? `${finalMissingDresses} Miss` : (finalMissingDresses < 0 ? `${Math.abs(finalMissingDresses)} Extra` : 'OK')}
+                                </span>
+                            </div>
+
+                            <!-- Kimonos Table -->
+                            <div class="grid grid-cols-4 gap-2 text-xs">
+                                <span class="col-span-1 font-bold text-pink-600">KIMONOS</span>
+                                <span class="text-center">System Exp.</span>
+                                <span class="text-center">Physical</span>
+                                <span class="text-right">Variance</span>
+
+                                <span class="col-span-1 text-slate-500">Bought: ${procKimonos}<br>Disp: ${grandTotalDispatchedKimonos}</span>
+                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceKimonos}</span>
+                                <span class="text-center font-bold text-pink-700 py-2 bg-pink-50 rounded border border-pink-100">${physicalKimonos}</span>
+                                <span class="text-right font-bold ${finalMissingKimonos > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
+                                    ${finalMissingKimonos > 0 ? `${finalMissingKimonos} Miss` : (finalMissingKimonos < 0 ? `${Math.abs(finalMissingKimonos)} Extra` : 'OK')}
+                                </span>
+                            </div>
                          </div>
+                    </div>
+                    
+                    <!-- Stock Controller Section -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                ${renderIcon('notebook', {class:'w-5 h-5 text-slate-600'})} Stock Controller's Log
+                            </h2>
+                            <button onclick="showControllerModal()" class="text-xs bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-bold hover:bg-slate-200">
+                                + Add Physical Count
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-slate-500">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3">Date</th>
+                                        <th class="px-4 py-3">Dresses/2Pcs Count</th>
+                                        <th class="px-4 py-3">Kimonos Count</th>
+                                        <th class="px-4 py-3">Notes</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${controllerLogs.length > 0 ? controllerLogs.slice(0, 5).map(log => `
+                                        <tr class="bg-white border-b hover:bg-slate-50">
+                                            <td class="px-4 py-2 font-medium text-slate-900">${log.date}</td>
+                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.dressCount !== undefined ? log.dressCount : (log.count||0)}</td>
+                                            <td class="px-4 py-2 font-bold text-pink-600">${log.kimonoCount || 0}</td>
+                                            <td class="px-4 py-2">${log.note || '-'}</td>
+                                            <td class="px-4 py-2 text-right flex justify-end gap-2">
+                                                <button onclick="showControllerModal(${log.id})" class="text-indigo-600 hover:text-indigo-800 p-1">
+                                                    ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                </button>
+                                                <button onclick="handleDeleteControllerLog(${log.id})" class="text-red-600 hover:text-red-800 p-1">
+                                                    ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('') : `<tr><td colspan="5" class="px-4 py-4 text-center">No records yet.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <!-- Staff Grid -->
@@ -1161,16 +1882,41 @@
 
             const fullHistory = getFullHistory();
             const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
+            
+            // Standard Stock Variables
+            let curDresses = 0;
+            let cur2pcs = 0;
+            let curKimonos = 0;
+            
+            // Pressure Variable
+            let currentPressure = 0;
+
+            if (lastEntry) {
+                curDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
+                cur2pcs = lastEntry.remTwoPcs || 0;
+                curKimonos = lastEntry.remKimonos || 0;
+                currentPressure = lastEntry.balanceBF || 0;
+            } else {
+                curDresses = startingPressure.dresses || 0;
+                cur2pcs = startingPressure.twoPcs || 0;
+                curKimonos = startingPressure.kimonos || 0;
+                currentPressure = 0;
+            }
+            
             const now = new Date();
             const today = now.toLocaleDateString();
 
-            const isPressure = managedUser.enableReconciliation;
             const filteredData = getFilteredHistory();
+            const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
+            
+            const todaysSales = history
+                .filter(entry => entry.fullDate === today)
+                .reduce((sum, entry) => {
+                    const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0) + (entry.soldKimonos||0);
+                    return sum + (entry.soldDresses !== undefined ? newF : (entry.sold||0));
+                }, 0);
 
-            let balanceDisplay = 0;
-            if (isPressure) {
-                balanceDisplay = lastEntry ? lastEntry.balanceBF : 0;
-            }
+            const isPressureMode = managedUser.enableReconciliation;
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -1186,33 +1932,29 @@
                                 <h2 class="text-lg font-bold text-indigo-900">${managedUser.name}</h2>
                             </div>
                         </div>
-                        <div class="text-right">
-                             ${isPressure ? `<div class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold inline-block mb-1">Pressure Mode</div>` : ''}
+                        <div class="text-right hidden md:block">
+                            <p class="text-xs text-indigo-400 font-bold">MODE</p>
+                            <p class="text-sm font-bold text-indigo-700">${isPressureMode ? 'Pressure Calc' : 'Standard Stock'}</p>
                         </div>
                     </div>
 
-                    ${isPressure ? `
-                        <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex items-center justify-between">
-                             <div>
-                                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Current Balance BF (Pressure)</p>
-                                <p class="text-3xl font-bold text-red-600">${formatCurrency(balanceDisplay)}</p>
-                            </div>
-                            <div class="p-3 bg-red-50 rounded-full text-red-500">
-                                ${renderIcon('trending-down', {class:'w-8 h-8'})}
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            ${renderStatCard("Stock", (lastEntry ? lastEntry.remaining : 0), "layers", "text-indigo-600")}
-                            ${renderStatCard("Profit", formatCurrency(filteredData.reduce((s,e)=>s+e.profit,0)), "dollar-sign", "text-emerald-600")}
-                        </div>
-                    `}
+                    <div class="grid grid-cols-2 ${isPressureMode ? 'md:grid-cols-2' : 'md:grid-cols-4'} gap-4">
+                        ${isPressureMode ? 
+                            renderStatCard(`Current Pressure (Bal BF)`, formatCurrency(currentPressure), "activity", "text-indigo-600") +
+                            renderStatCard("Total Remitted (Period)", formatCurrency(filteredData.reduce((s,e)=>s+(e.amountSent||0),0)), "send", "text-emerald-600")
+                            :
+                            renderStatCard(`Dresses`, curDresses, "shirt", "text-indigo-600") + 
+                            renderStatCard(`2pcs`, cur2pcs, "layers", "text-purple-600") +
+                            renderStatCard(`Kimono`, curKimonos, "scissors", "text-pink-600") +
+                            renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")
+                        }
+                    </div>
 
                     <div class="grid md:grid-cols-3 gap-6">
                         <div class="md:col-span-1 space-y-6">
                             <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
                                 <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} Daily Entry
+                                    ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
                                 </h2>
                                 
                                 <div class="grid grid-cols-4 gap-2 mb-4">
@@ -1234,81 +1976,109 @@
                                 </div>
 
                                 <div class="space-y-4">
-                                    ${isPressure ? `
+                                    ${isPressureMode ? `
                                         <!-- PRESSURE MODE FORM -->
-                                        <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-                                            <div class="space-y-3">
+                                        <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100 space-y-3">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Market Name</label>
+                                                <input type="text" id="rec-market" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="e.g. Kamukunji">
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <label class="text-[10px] font-bold text-slate-500 uppercase">Market Name</label>
-                                                    <input type="text" id="pres-market" placeholder="e.g. Town Market" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                                </div>
-                                                <div class="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <label class="text-[10px] font-bold text-slate-500 uppercase">Pieces Disp.</label>
-                                                        <input type="number" id="pres-dispatched" placeholder="Qty" class="w-full p-2 text-sm rounded-lg border border-slate-300 font-bold text-indigo-700">
-                                                    </div>
-                                                    <div>
-                                                        <label class="text-[10px] font-bold text-slate-500 uppercase">BP (Price)</label>
-                                                        <input type="number" id="pres-bp" placeholder="Value" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                                    </div>
+                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">Pieces Dispatched</label>
+                                                    <input type="number" id="rec-dispatched" class="w-full p-2 text-sm rounded-lg border border-indigo-200 font-bold" placeholder="0">
                                                 </div>
                                                 <div>
-                                                    <label class="text-[10px] font-bold text-slate-400 mb-1 block uppercase">Expenses</label>
-                                                    <div id="expenses-container" class="space-y-2 mb-2"></div>
-                                                    <button onclick="addExpenseRow()" class="text-xs bg-white border border-slate-200 text-slate-600 px-3 py-2 rounded-lg font-bold w-full hover:bg-slate-50">
-                                                        + Add Expense
-                                                    </button>
-                                                </div>
-                                                <div>
-                                                    <label class="text-[10px] font-bold text-slate-500 uppercase">Amount Sent</label>
-                                                    <input type="number" id="pres-sent" placeholder="Amount" class="w-full p-2 text-sm rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 font-bold">
+                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">BP (Unit Price)</label>
+                                                    <input type="number" id="rec-bp" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Price">
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-3">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-emerald-600 uppercase">Amount Sent</label>
+                                                <input type="number" id="rec-sent" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50 font-bold" placeholder="Amount remitted">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-400 mb-1 block">Expenses List</label>
+                                                <div id="expenses-container" class="space-y-2 mb-2"></div>
+                                                <button onclick="addExpenseRow()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded-lg font-bold w-full">
+                                                    + Add Expense
+                                                </button>
+                                            </div>
+                                        </div>
+
                                     ` : `
-                                        <!-- STANDARD FORM -->
+                                        <!-- STANDARD STOCK MODE FORM -->
                                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                             <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses</p>
                                             <div class="grid grid-cols-2 gap-2">
-                                                <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Dispatch">
-                                                <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Sold">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
                                             </div>
                                         </div>
+
                                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                             <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces</p>
                                             <div class="grid grid-cols-2 gap-2">
-                                                <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Dispatch">
-                                                <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Sold">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
                                             </div>
                                         </div>
+                                        
                                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                             <p class="text-[10px] font-bold text-pink-400 mb-2 uppercase">Kimonos</p>
                                             <div class="grid grid-cols-2 gap-2">
-                                                <input type="number" id="dispatch-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Dispatch">
-                                                <input type="number" id="sales-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Sold">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
                                             </div>
                                         </div>
                                     `}
                                     
                                     <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
-                                        Save Calculation
+                                        Save Entry
                                     </button>
                                 </div>
                             </div>
 
                             ${lastEntry ? `
-                            <div class="bg-white rounded-2xl shadow p-4 border border-slate-100 text-center">
-                                <p class="text-xs font-bold text-slate-400 mb-2">LAST ENTRY: ${lastEntry.date}</p>
-                                <button onclick="handleDeleteLast()" class="text-red-600 text-sm font-bold hover:underline">
-                                    Delete Last Entry
+                            <div class="bg-white rounded-2xl shadow p-4 border border-slate-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-slate-400">LAST ENTRY</span>
+                                    <span class="text-xs font-bold text-slate-600">${lastEntry.date} (${lastEntry.fullDate})</span>
+                                </div>
+                                <button onclick="handleDeleteLast()" class="w-full py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 flex items-center justify-center gap-2">
+                                    ${renderIcon('trash-2', {class:'w-4 h-4'})} Delete Last
                                 </button>
                             </div>` : ''}
                         </div>
 
                         <div class="md:col-span-2">
                             <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 h-full">
-                                <div class="flex justify-between items-center mb-6">
-                                    <h2 class="text-lg font-bold text-slate-800">History Log</h2>
+                                <div class="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h2 class="text-lg font-bold text-slate-800">History Log</h2>
+                                        <p class="text-sm text-slate-500">Viewing: ${selectedReport}</p>
+                                    </div>
                                     <div class="flex bg-slate-100 p-1 rounded-lg">
                                         ${REPORT_TYPES.map(type => `
                                             <button onclick="selectedReport='${type}'; renderIndividualDashboard();" 
@@ -1322,37 +2092,55 @@
                                 <div class="overflow-y-auto max-h-[400px]">
                                     <table class="w-full text-sm text-left">
                                         <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
-                                            <tr>
-                                                <th class="px-4 py-3 rounded-l-lg">Date</th>
-                                                ${isPressure ? `
+                                            ${isPressureMode ? `
+                                                <tr>
+                                                    <th class="px-4 py-3 rounded-l-lg">Day & Date</th>
                                                     <th class="px-4 py-3">Market</th>
-                                                    <th class="px-4 py-3 text-right">Expected</th>
-                                                    <th class="px-4 py-3 text-right">Sent</th>
-                                                    <th class="px-4 py-3 text-right rounded-r-lg">Bal BF</th>
-                                                ` : `
-                                                    <th class="px-4 py-3">Sold (Mix)</th>
-                                                    <th class="px-4 py-3">Stock</th>
+                                                    <th class="px-4 py-3 text-right">Total Expected</th>
+                                                    <th class="px-4 py-3 text-right">Amt Sent</th>
+                                                    <th class="px-4 py-3 text-right rounded-r-lg">Balance BF</th>
+                                                </tr>
+                                            ` : `
+                                                <tr>
+                                                    <th class="px-4 py-3 rounded-l-lg">Date</th>
+                                                    <th class="px-4 py-3">Sold (D/2/K)</th>
+                                                    <th class="px-4 py-3">Stock (D/2/K)</th>
                                                     <th class="px-4 py-3 rounded-r-lg">Profit</th>
-                                                `}
-                                            </tr>
+                                                </tr>
+                                            `}
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
-                                            ${filteredData.length > 0 ? filteredData.map(d => `
-                                                <tr class="hover:bg-slate-50">
-                                                    <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate}</td>
-                                                    ${isPressure ? `
-                                                        <td class="px-4 py-3 text-slate-600">${d.market || '-'}</td>
-                                                        <td class="px-4 py-3 text-right text-slate-600">${formatCurrency(d.totalExpected)}</td>
-                                                        <td class="px-4 py-3 text-right text-emerald-600 font-bold">${formatCurrency(d.amountSent)}</td>
-                                                        <td class="px-4 py-3 text-right text-red-600 font-bold">${formatCurrency(d.balanceBF)}</td>
-                                                    ` : `
-                                                        <td class="px-4 py-3 text-emerald-600 font-bold">${d.soldDresses}/${d.soldTwoPcs}/${d.soldKimonos}</td>
-                                                        <td class="px-4 py-3 text-orange-600 font-bold">${d.remDresses}/${d.remTwoPcs}/${d.remKimonos}</td>
-                                                        <td class="px-4 py-3 text-slate-600">${formatCurrency(d.profit)}</td>
-                                                    `}
+                                            ${filteredData.length > 0 ? filteredData.map(d => {
+                                                if (isPressureMode) {
+                                                    return `
+                                                        <tr class="hover:bg-slate-50">
+                                                            <td class="px-4 py-3 font-medium text-slate-900">${d.date.substring(0,3)}, ${d.fullDate}</td>
+                                                            <td class="px-4 py-3 text-slate-600">${d.marketName || '-'}</td>
+                                                            <td class="px-4 py-3 text-right font-bold text-indigo-600">${formatCurrency(d.totalExpected || 0)}</td>
+                                                            <td class="px-4 py-3 text-right text-emerald-600">${formatCurrency(d.amountSent || 0)}</td>
+                                                            <td class="px-4 py-3 text-right font-bold text-red-600">${formatCurrency(d.balanceBF || 0)}</td>
+                                                        </tr>
+                                                    `;
+                                                } else {
+                                                    return `
+                                                        <tr class="hover:bg-slate-50">
+                                                            <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate} <span class="text-slate-400 text-xs block">${d.date.substring(0,3)}</span></td>
+                                                            <td class="px-4 py-3 text-emerald-600 font-bold">
+                                                                ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0} / ${d.soldKimonos || 0}
+                                                            </td>
+                                                            <td class="px-4 py-3 text-orange-600 font-bold">
+                                                                ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0} / ${d.remKimonos || 0}
+                                                            </td>
+                                                            <td class="px-4 py-3 text-slate-600">${formatCurrency(d.profit)}</td>
+                                                        </tr>
+                                                    `;
+                                                }
+                                            }).reverse().join('') : `
+                                                <tr>
+                                                    <td colspan="${isPressureMode ? 5 : 4}" class="text-center py-8 text-slate-400">
+                                                        No records found for ${selectedReport} view.
+                                                    </td>
                                                 </tr>
-                                            `).reverse().join('') : `
-                                                <tr><td colspan="5" class="text-center py-8 text-slate-400">No records found.</td></tr>
                                             `}
                                         </tbody>
                                     </table>
@@ -1405,6 +2193,17 @@
                             <h1 class="text-2xl font-bold text-slate-800">Trinah Designs</h1>
                             <p class="text-sm text-slate-500">${showAdminCreation ? 'Create Main Admin Account' : 'Authorized Access Only'}</p>
                         </div>
+
+                        ${showAdminCreation ? `
+                            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-sm mb-6 flex items-start gap-2">
+                                ${renderIcon('unlock', {class:'w-4 h-4 mt-1'})}
+                                <div>
+                                    <strong>System Unlocked!</strong><br>
+                                    Please set up your Admin credentials below.
+                                </div>
+                            </div>
+                        ` : ''}
+
                         <form onsubmit="window.authHandler(event)" class="space-y-4">
                             ${showAdminCreation ? `
                             <div>
@@ -1464,7 +2263,7 @@
                         <h2 class="text-lg font-bold text-slate-800 mb-4">Existing Staff</h2>
                         <div class="space-y-3">
                             ${storedUsers.map(user => {
-                                const mode = user.enableReconciliation ? 'Pressure Mode' : 'Standard Mode';
+                                const isPress = user.enableReconciliation;
                                 return `
                                     <div class="p-4 rounded-xl border border-slate-200">
                                         <div class="flex justify-between items-start mb-2">
@@ -1487,8 +2286,8 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded">
-                                            ${mode}
+                                        <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded flex gap-4">
+                                            <span><strong>Type:</strong> ${isPress ? 'Pressure Calc' : 'Standard Stock'}</span>
                                         </div>
                                     </div>
                                 `;
@@ -1499,82 +2298,6 @@
                 </main>
             `;
             refreshIcons();
-        }
-
-        // --- Other (Reuse existing, shortened for brevity) ---
-        function showReportsModal() {
-             const now = new Date();
-             const y = now.getFullYear();
-             const m = String(now.getMonth() + 1).padStart(2, '0');
-             const d = String(now.getDate()).padStart(2, '0');
-             const todayStr = `${y}-${m}-${d}`;
-
-             const modalHTML = `
-                <div id="reports-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reports-modal').remove()"></div>
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
-                        <h2 class="text-xl font-bold text-slate-800 mb-2">Master Reports</h2>
-                        <p class="text-sm text-slate-500 mb-6">Select the type of report to generate for ALL users.</p>
-                        
-                        <div class="space-y-3">
-                            <div class="text-left bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Date for Daily Report</label>
-                                <input type="date" id="report-date-picker" value="${todayStr}" 
-                                    class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
-                            </div>
-
-                            <button onclick="const d = document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d); document.getElementById('reports-modal').remove()" 
-                                class="w-full py-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 border border-emerald-100">
-                                ${renderIcon('calendar', {class:'w-5 h-5'})} Daily Master Report
-                            </button>
-                            <button onclick="downloadMasterReport('Overall'); document.getElementById('reports-modal').remove()" 
-                                class="w-full py-4 bg-indigo-50 text-indigo-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 border border-indigo-100">
-                                ${renderIcon('bar-chart-2', {class:'w-5 h-5'})} Overall Master Report
-                            </button>
-                            
-                            <button onclick="document.getElementById('reports-modal').remove()" class="w-full py-3 text-slate-400 font-medium text-sm mt-2">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            modalContainer.innerHTML = modalHTML;
-            refreshIcons();
-        }
-
-        function showResetModal() {
-            const modalHTML = `
-                <div id="reset-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reset-modal').remove()"></div>
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
-                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            ${renderIcon('alert-triangle', {class:'w-6 h-6'})}
-                        </div>
-                        <h2 class="text-xl font-bold text-slate-800 mb-2">System Factory Reset</h2>
-                        <p class="text-sm text-slate-500 mb-6">
-                            Are you sure? This will <strong class="text-red-600">permanently delete ALL accounts, records, and history</strong>. This cannot be undone.
-                        </p>
-                        
-                        <div class="space-y-3">
-                            <button onclick="window.handleFactoryReset()" class="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200">Yes, Delete Everything</button>
-                            <button onclick="document.getElementById('reset-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            modalContainer.innerHTML = modalHTML;
-            refreshIcons();
-        }
-
-        function handleFactoryReset() {
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('trinah_')) {
-                    keysToRemove.push(key);
-                }
-            }
-            keysToRemove.forEach(k => localStorage.removeItem(k));
-            window.location.reload();
         }
 
         function renderApp() {
@@ -1590,115 +2313,49 @@
             refreshIcons();
         }
 
-        // --- Controller Log / Procurement Handlers (Minimal) ---
-        function handleProcurementDateChange(dateStr) {
-            if (!dateStr) return;
-            const [y, m, d] = dateStr.split('-').map(Number);
-            selectedProcurementDate = new Date(y, m - 1, d);
-            renderAdminOverview();
-        }
-        function handleProcurementSave() {
-            const dressVal = document.getElementById('procurement-dress-input').value;
-            const kimonoVal = document.getElementById('procurement-kimono-input').value;
-            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-            const targetDateKey = selectedProcurementDate.toLocaleDateString();
-            logs[targetDateKey] = { dresses: Number(dressVal) || 0, kimonos: Number(kimonoVal) || 0 };
-            localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
-            showNotification(`Stock saved for ${targetDateKey}!`);
-            renderAdminOverview(); 
-        }
-        function handleDeleteProcurement() {
-            if(!confirm("Are you sure?")) return;
-            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-            const targetDateKey = selectedProcurementDate.toLocaleDateString();
-            delete logs[targetDateKey];
-            localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
-            showNotification("Procurement record deleted.");
-            renderAdminOverview();
-        }
-        function showControllerModal(editLogId=null) {
-            // Implementation preserved but hidden for brevity in this snippet as core request is about Pressure
-             const modalHTML = `
-                <div id="add-control-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-control-modal').remove()"></div>
-                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
-                        <h2 class="text-xl font-bold">Stock Log</h2>
-                        <p class="text-gray-500 mb-4">Stock controller feature is active.</p>
-                        <button onclick="document.getElementById('add-control-modal').remove()" class="w-full py-2 bg-slate-100 rounded-lg">Close</button>
-                    </div>
-                </div>`;
-            modalContainer.innerHTML = modalHTML;
-        }
-
-        // Expose to window
-        window.authHandler = function(e){
-            e.preventDefault();
-            const phone = document.getElementById('auth-phone').value.trim();
-            const password = document.getElementById('auth-password').value.trim();
-            const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null; 
-
-            if (!phone || !password) {
-                authError = "Please enter phone and password.";
-                renderAuthScreen();
-                return;
-            }
-            authLoading = true;
-            renderAuthScreen();
-            setTimeout(() => {
-                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
-                if (showAdminCreation && users.length === 0) {
-                     if (!name) { authError = "Admin name required."; authLoading = false; renderAuthScreen(); return; }
-                    const adminUser = { name, phone, password, role: 'admin' };
-                    users.push(adminUser);
-                    localStorage.setItem(DB_KEY, JSON.stringify(users));
-                    handleLogin(adminUser);
-                    return;
-                }
-                const user = users.find(u => u.phone === phone && u.password === password);
-                if (user) handleLogin(user);
-                else authError = "Invalid credentials.";
-                authLoading = false;
-                if (!currentUser) renderAuthScreen();
-            }, 800);
-        };
-
-        window.verifySystemPin = function() {
-             const pinInput = document.getElementById('system-pin-input');
-             if (pinInput.value.trim() === SYSTEM_PIN) {
-                showAdminCreation = true;
-                renderAuthScreen();
-            } else {
-                document.getElementById('pin-error').classList.remove('hidden');
-            }
-        };
-
-        window.renderRecoveryScreen = function() {
-            appElement.innerHTML = `<div class="p-8 text-center"><h1 class="text-xl font-bold">Recovery</h1><p>Contact Admin.</p><button onclick="renderAuthScreen()" class="mt-4 p-2 bg-slate-200 rounded">Back</button></div>`;
-        };
-
+        // --- Init ---
+        window.toggleAuthMode = () => {}; 
+        window.authHandler = authHandler;
+        window.handleSwitchUser = handleSwitchUser;
         window.handleLogout = handleLogout;
         window.downloadReport = downloadReport;
         window.downloadMasterReport = downloadMasterReport;
         window.handleSubmit = handleSubmit;
         window.handleDeleteLast = handleDeleteLast;
+        window.handleStartNewWeek = handleStartNewWeek;
+        window.handleAddStaff = handleAddStaff;
         window.showAddStaffModal = showAddStaffModal;
-        window.handleSaveStaff = handleSaveStaff;
-        window.handleDeleteStaff = handleDeleteStaff;
         window.showReportsModal = showReportsModal;
         window.showResetModal = showResetModal;
         window.handleFactoryReset = handleFactoryReset;
         window.manageUser = manageUser;
         window.setView = setView;
+        
+        window.handleSaveStaff = handleSaveStaff;
+        window.handleDeleteStaff = handleDeleteStaff;
         window.handleProcurementSave = handleProcurementSave;
         window.handleDeleteProcurement = handleDeleteProcurement;
         window.handleProcurementDateChange = handleProcurementDateChange;
+        window.showBalanceModal = showBalanceModal;
         window.addExpenseRow = addExpenseRow; 
-        window.showControllerModal = showControllerModal;
+        
+        window.renderRecoveryScreen = renderRecoveryScreen;
+        window.handleRecoveryStep1 = handleRecoveryStep1;
+        window.handleRecoveryStep2 = handleRecoveryStep2;
+        window.verifySystemPin = verifySystemPin;
 
+        window.showControllerModal = showControllerModal;
+        window.handleControllerLogSave = handleControllerLogSave;
+        window.handleDeleteControllerLog = handleDeleteControllerLog;
+        
         window.onload = function() {
             const sessionUser = localStorage.getItem(SESSION_KEY);
             if (sessionUser) {
-                try { handleLogin(JSON.parse(sessionUser)); } catch(e) { renderAuthScreen(); }
+                try {
+                    handleLogin(JSON.parse(sessionUser));
+                } catch(e) {
+                    renderAuthScreen();
+                }
             } else {
                 renderAuthScreen();
             }
