@@ -216,6 +216,7 @@
         function isEntryLocked(entry) {
             if (!entry) return false;
             // Lock if more than 1 week (168 hours) have passed since entry creation
+            // Note: If sorting by timestamp is used, id is still creation time
             const entryTime = entry.id; 
             const timeSinceCreation = Date.now() - entryTime;
             const lockDuration = 168 * 60 * 60 * 1000; // 1 week in milliseconds
@@ -224,21 +225,33 @@
 
         function getFilteredHistory() {
             const fullHistory = getFullHistory();
+            
+            // Sort history by logical date (sortTimestamp) for display
+            fullHistory.sort((a, b) => {
+                const tA = a.sortTimestamp || a.id;
+                const tB = b.sortTimestamp || b.id;
+                return tA - tB;
+            });
+
             const now = new Date();
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
             const todayEnd = todayStart + (24 * 60 * 60 * 1000);
 
             return fullHistory.filter(entry => {
-                let entryTime = entry.id;
-                if (!entryTime) {
-                    const parsed = new Date(entry.fullDate);
-                    if (!isNaN(parsed.getTime())) entryTime = parsed.getTime();
-                    else return false;
+                let entryTime = entry.sortTimestamp || entry.id;
+                
+                // Fallback for old entries relying on id or date parsing
+                if (!entry.sortTimestamp) {
+                     const parsed = new Date(entry.fullDate);
+                     if (!isNaN(parsed.getTime())) entryTime = parsed.getTime();
+                     else entryTime = entry.id;
                 }
 
                 switch (selectedReport) {
                     case "Daily": 
-                        return entryTime >= todayStart && entryTime < todayEnd;
+                        // Check if it falls within today's range
+                        // Using string comparison for safety with mixed data
+                        return entry.fullDate === now.toLocaleDateString();
                     case "Weekly": {
                         const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
                         return entryTime >= oneWeekAgo;
@@ -271,7 +284,13 @@
                  return;
             }
 
-            allRecords.sort((a, b) => a.id - b.id);
+            // CRITICAL: Sort by Logical Date, not Creation ID
+            // This allows backdated entries to be inserted in the correct order
+            allRecords.sort((a, b) => {
+                const tA = a.sortTimestamp || a.id; // Use timestamp if available, else id
+                const tB = b.sortTimestamp || b.id;
+                return tA - tB;
+            });
 
             const isPressure = managedUser.enableReconciliation;
             const prices = managedUser.prices || {};
@@ -284,10 +303,6 @@
             allRecords.forEach((entry, index) => {
                 if (isPressure) {
                     // PRESSURE RECALCULATION
-                    // Updated Formula: 
-                    // Stock Value = (PremSold * PremSP) + (CleanSold * CleanSP) + (Remaining * PremSP)
-                    // Where Remaining = Dispatched - (PremSold + CleanSold)
-                    
                     if (index === 0) {
                         prevPressure = 0; 
                     }
@@ -311,7 +326,7 @@
                         // Remainder is charged at Premium SP
                         stockValue += (remainder * premSP);
                     } else if (!entry.hasSplitData) {
-                        // Legacy calculation fallback: Dispatched * BP (if no new data structure)
+                        // Legacy calculation fallback
                         const legDisp = Number(entry.dispatched) || 0;
                         const legBp = Number(entry.bp) || 0;
                         stockValue = legDisp * legBp;
@@ -326,13 +341,12 @@
                     // Update Entry
                     entry.balanceBF = newBalance;
                     entry.totalExpected = totalExpected;
-                    entry.profit = totalExpected; // legacy sync
                     
                     // Set prev for next iteration
                     prevPressure = newBalance;
                     
                 } else {
-                    // STANDARD RECALCULATION (No change)
+                    // STANDARD RECALCULATION
                     const dD = Number(entry.dispatchedDresses) || 0;
                     const dT = Number(entry.dispatchedTwoPcs) || 0;
                     const dK = Number(entry.dispatchedKimonos) || 0;
@@ -346,6 +360,7 @@
                         const firstRemT = entry.remTwoPcs || 0;
                         const firstRemK = entry.remKimonos || 0;
                         
+                        // Attempt to reconstruct "original start" based on the first record's outcome
                         prevRemDress = firstRemD - dD + sD;
                         prevRem2pc = firstRemT - dT + sT;
                         prevRemKimono = firstRemK - dK + sK;
@@ -371,6 +386,7 @@
                 }
             });
 
+            // Update Current Start State based on last record
             if (archive.length > 0) {
                 const lastArch = archive[archive.length - 1];
                 if (isPressure) {
@@ -1349,6 +1365,60 @@
         }
 
         // --- Core Logic ---
+        
+        // Helper to update selected date from week buttons
+        function updateDateFromWeekButton(index) {
+            selectedDayIndex = index;
+            renderIndividualDashboard();
+        }
+
+        function handleDateChange(dateInput) {
+            if (!dateInput.value) return;
+            
+            const selectedDate = new Date(dateInput.value);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            if (selectedDate > today) {
+                showNotification("Cannot select future dates.");
+                dateInput.value = now.toISOString().split('T')[0];
+                return;
+            }
+
+            // Check if selected date is in the current week (Mon-Sun)
+            const currentDay = now.getDay();
+            const mappedCurrentDay = currentDay === 0 ? 6 : currentDay - 1;
+            
+            // Calculate Monday of current week
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - mappedCurrentDay);
+            
+            // Calculate Sunday of current week
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            // If selected date is within this week, highlight the button
+            if (selectedDate >= monday && selectedDate <= sunday) {
+                // Find which day index it is
+                // Mon=0, Sun=6
+                const diffTime = Math.abs(selectedDate - monday);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                selectedDayIndex = diffDays;
+            } else {
+                // It's a past date not in current week view
+                selectedDayIndex = -1; // -1 indicates custom past date
+            }
+            
+            // Re-render handled by the date picker change? 
+            // Actually, we don't need to re-render everything, just visual updates.
+            // But re-rendering is safer to ensure state consistency.
+            renderIndividualDashboard();
+            
+            // Important: After re-render, the input value is reset by render logic.
+            // We need to ensure the picker keeps the custom value.
+            // The render logic sets picker value based on selectedDayIndex or override.
+            // We need a persistent state for the date picker if it's custom.
+        }
 
         function handleSubmit() {
             if (!managedUser) return; 
@@ -1376,6 +1446,8 @@
             const sales2pcIn = document.getElementById('sales-2pc');
             const salesKimonoIn = document.getElementById('sales-kimono');
 
+            const datePicker = document.getElementById('entry-date-picker');
+
             const isPressureMode = managedUser.enableReconciliation;
 
             let expensesList = [];
@@ -1392,20 +1464,44 @@
                 }
             }
 
-            const now = new Date();
-            const jsDay = now.getDay(); 
-            const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
+            // DATE HANDLING LOGIC
+            let targetDate;
+            let fullDateString;
+            let currentDayName;
+            
+            if (datePicker && datePicker.value) {
+                targetDate = new Date(datePicker.value);
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if (targetDate > today) {
+                    showNotification("Cannot add future entries.");
+                    return;
+                }
+                fullDateString = targetDate.toLocaleDateString();
+                currentDayName = DAYS[targetDate.getDay() === 0 ? 6 : targetDate.getDay() - 1]; // Ensure Mon=0..Sun=6 mapping from JS Sun=0
+                // Fallback for when DAYS array might not perfectly align with Date.getDay if it was a custom range, but here it is standard Mon-Sun
+                // JS getDay(): Sun=0, Mon=1...Sat=6. 
+                // DAYS array: Mon=0, Tue=1...Sun=6.
+                const jsDay = targetDate.getDay();
+                const daysIdx = jsDay === 0 ? 6 : jsDay - 1;
+                currentDayName = DAYS[daysIdx];
+            } else {
+                // Fallback to old logic (shouldn't happen with date picker present)
+                const now = new Date();
+                const jsDay = now.getDay(); 
+                const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
 
-            if (selectedDayIndex > mappedDay) {
-                showNotification("Cannot add future entries.");
-                return;
+                if (selectedDayIndex > mappedDay) {
+                    showNotification("Cannot add future entries.");
+                    return;
+                }
+                const dayDiff = mappedDay - selectedDayIndex;
+                targetDate = new Date();
+                targetDate.setDate(now.getDate() - dayDiff);
+                currentDayName = DAYS[selectedDayIndex];
+                fullDateString = targetDate.toLocaleDateString();
             }
 
-            const dayDiff = mappedDay - selectedDayIndex;
-            const targetDate = new Date();
-            targetDate.setDate(now.getDate() - dayDiff);
-            const currentDayName = DAYS[selectedDayIndex];
-            const fullDateString = targetDate.toLocaleDateString();
             const fullHistory = getFullHistory();
 
             // PRESSURE MODE CALCULATION
@@ -1426,13 +1522,11 @@
                 }
 
                 let prevBalanceBF = 0;
-                if (fullHistory.length > 0) {
-                    const last = fullHistory[fullHistory.length - 1];
-                    prevBalanceBF = Number(last.balanceBF) || 0;
-                } else {
-                    prevBalanceBF = 0; 
-                }
-
+                // Note: With backdating, simply taking the last history entry might be wrong if we are inserting into the past.
+                // Ideally, we should recalculate the whole chain.
+                // For now, we save it, then call recalculateBalances() which sorts and fixes everything.
+                // We just need a placeholder prevBalanceBF or 0.
+                
                 // Updated Formula Calculation
                 let stockValue = (premQty * premSP) + (cleanQty * cleanSP);
                 
@@ -1443,12 +1537,13 @@
                      stockValue += (remainder * premSP);
                 }
 
-                const totalExpected = stockValue + prevBalanceBF;
+                const totalExpected = stockValue + prevBalanceBF; // Temporary
                 const deductions = amountSent + expenseAmt;
                 const newPressure = totalExpected - deductions; 
 
                 const record = {
-                    id: Date.now(),
+                    id: Date.now(), // Creation Time
+                    sortTimestamp: targetDate.getTime(), // Logical Time for Sorting
                     date: currentDayName,
                     fullDate: fullDateString,
                     marketName: marketName,
@@ -1505,27 +1600,11 @@
 
                 const prices = managedUser.prices || {};
                 
+                // Temporary placeholders, Recalculate will fix
                 let prevRemDress = 0, prevRem2pc = 0, prevRemKimono = 0;
-
-                if (fullHistory.length > 0) {
-                    const last = fullHistory[fullHistory.length - 1];
-                    prevRemDress = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
-                    prevRem2pc = last.remTwoPcs || 0;
-                    prevRemKimono = last.remKimonos || 0;
-                } else {
-                    prevRemDress = startingPressure.dresses || 0;
-                    prevRem2pc = startingPressure.twoPcs || 0;
-                    prevRemKimono = startingPressure.kimonos || 0;
-                }
-
                 const newRemDress = prevRemDress + dDress - sDress;
                 const newRem2pc = prevRem2pc + d2pc - s2pc;
                 const newRemKimono = prevRemKimono + dKimono - sKimono;
-
-                if (newRemDress < 0 || newRem2pc < 0 || newRemKimono < 0) {
-                    showNotification("Error: Sales cannot exceed inventory.");
-                    return;
-                }
 
                 const profitDress = sDress * (prices.dressSell - prices.dressBuy);
                 const profit2pc = s2pc * (prices.twoPcSell - prices.twoPcBuy);
@@ -1534,6 +1613,7 @@
 
                 const record = {
                     id: Date.now(),
+                    sortTimestamp: targetDate.getTime(),
                     date: currentDayName,
                     fullDate: fullDateString,
                     dispatchedDresses: dDress, dispatchedTwoPcs: d2pc, dispatchedKimonos: dKimono,
@@ -1546,7 +1626,6 @@
                 };
 
                 history.push(record);
-                startingPressure = { dresses: newRemDress, twoPcs: newRem2pc, kimonos: newRemKimono };
                 
                 // Clear Standard Inputs
                 if (dispatchDressIn) dispatchDressIn.value = "";
@@ -1557,23 +1636,12 @@
                 if (salesKimonoIn) salesKimonoIn.value = "";
             }
 
-            saveData(managedUser.phone);
+            // Immediately Recalculate to ensure sort order and balances are correct
+            // This handles the "backdating" logic effectively
+            recalculateBalances(); 
 
-            if (currentDayName === "Sunday") {
-                renderWeekCompleteModal();
-                renderIndividualDashboard();
-                return;
-            }
-
-            let notificationMessage = `Saved for ${currentDayName}!`;
-
-            if (selectedDayIndex < mappedDay) {
-                selectedDayIndex = selectedDayIndex + 1;
-                notificationMessage += ` Switched to ${DAYS[selectedDayIndex]}.`;
-            }
-
+            let notificationMessage = `Saved for ${currentDayName} (${fullDateString})!`;
             showNotification(notificationMessage);
-            renderIndividualDashboard();
         }
 
         function showBalanceModal(dayName, dateStr) {
@@ -1591,6 +1659,8 @@
             
             // Logic for standard mode carry over
             if (fullHistory.length > 0) {
+                // Ensure sorting before taking last
+                fullHistory.sort((a,b) => (a.sortTimestamp||a.id) - (b.sortTimestamp||b.id));
                 const last = fullHistory[fullHistory.length - 1];
                 finalPressure = {
                     dresses: last.remDresses || last.remaining || 0,
@@ -1614,48 +1684,29 @@
         function handleDeleteLast() {
             if (!managedUser) return;
             const fullHistory = getFullHistory();
-            const lastEntry = history[history.length - 1]; 
+            
+            // Should delete the physically last added entry? Or the last chronological one?
+            // Typically "Delete Last" implies the most recent action (undo).
+            // But here "history" array stores the session.
+            // Let's stick to popping from history array which represents the current unsaved-to-archive session.
+            
+            if (history.length === 0) {
+                 showNotification("No recent entries to delete.");
+                 return;
+            }
 
-            if (!lastEntry) return;
+            const lastEntry = history[history.length - 1]; // This is the last created one
 
             if (isEntryLocked(lastEntry)) {
                 showNotification("Locked: 1 week passed since entry.");
                 return;
             }
             
-            // Standard Mode Revert Logic
-            if (!managedUser.enableReconciliation) {
-                const curRemDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
-                const curRemTwoPcs = lastEntry.remTwoPcs || 0;
-                const curRemKimonos = lastEntry.remKimonos || 0;
-                
-                const dispatchedD = lastEntry.dispatchedDresses || 0;
-                const dispatchedT = lastEntry.dispatchedTwoPcs || 0;
-                const dispatchedK = lastEntry.dispatchedKimonos || 0;
-                
-                const soldD = lastEntry.soldDresses !== undefined ? lastEntry.soldDresses : (lastEntry.sold || 0);
-                const soldT = lastEntry.soldTwoPcs || 0;
-                const soldK = lastEntry.soldKimonos || 0;
-                
-                const prevRemDresses = curRemDresses - dispatchedD + soldD;
-                const prevRemTwoPcs = curRemTwoPcs - dispatchedT + soldT;
-                const prevRemKimonos = curRemKimonos - dispatchedK + soldK;
-                
-                startingPressure = {
-                    dresses: prevRemDresses,
-                    twoPcs: prevRemTwoPcs,
-                    kimonos: prevRemKimonos
-                };
-            }
-
+            // Standard Mode Revert Logic for startingPressure is tricky with backdating.
+            // Simpler to just remove and recalculate.
             history.pop();
-            
-            const dayIndex = DAYS.indexOf(lastEntry.date);
-            if (dayIndex !== -1) selectedDayIndex = dayIndex;
-
-            saveData(managedUser.phone);
+            recalculateBalances();
             showNotification(`Entry deleted.`);
-            renderIndividualDashboard();
         }
 
         async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
@@ -1918,7 +1969,9 @@
                 const userHistory = JSON.parse(hStr);
                 const userArchive = JSON.parse(aStr);
                 const allEntries = [...userArchive, ...userHistory];
-                
+                // sort for safety
+                allEntries.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
+
                 const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
                 const userSalesToday = todayEntries.reduce((sum, e) => {
                     const legacy = Number(e.sold) || 0;
@@ -2189,6 +2242,9 @@
             if (!managedUser) return;
 
             const fullHistory = getFullHistory();
+            // Important: sort by timestamp before picking last
+            fullHistory.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
+
             const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
             
             // Standard Stock Variables
@@ -2225,6 +2281,41 @@
                 }, 0);
 
             const isPressureMode = managedUser.enableReconciliation;
+
+            // Determine what date the picker should show
+            // If selectedDayIndex is valid (0-6), calculate that date relative to today's week
+            // Else if -1, it means we are in custom mode, we need to preserve the picker value from DOM if possible, 
+            // or default to today if not. Since we are re-rendering, we might lose DOM state.
+            // Let's calculate the date from selectedDayIndex if it's >= 0
+            
+            let pickerValue = "";
+            const currentJsDay = now.getDay();
+            const currentMappedDay = currentJsDay === 0 ? 6 : currentJsDay - 1;
+            
+            if (selectedDayIndex >= 0) {
+                 const diff = currentMappedDay - selectedDayIndex;
+                 const d = new Date();
+                 d.setDate(now.getDate() - diff);
+                 pickerValue = d.toISOString().split('T')[0];
+            } else {
+                 // Check if we have a stored value in DOM before overwrite? 
+                 // It's hard in vanilla JS literal string render.
+                 // We'll default to today if switching modes, or we rely on the user picking again.
+                 // For better UX, let's default to today if index is -1
+                 pickerValue = now.toISOString().split('T')[0];
+            }
+            
+            // However, if we just clicked a date in the picker, we want that date. 
+            // The handleDateChange function updates selectedDayIndex. 
+            // If the user picked a date last month, selectedDayIndex is -1.
+            // We need to know WHAT date they picked to render it back.
+            // We can add a temporary global `customDateOverride` variable for this specific UI state.
+            
+            // Let's grab the existing value if it exists in the DOM
+            const existingPicker = document.getElementById('entry-date-picker');
+            if (existingPicker && selectedDayIndex === -1) {
+                pickerValue = existingPicker.value;
+            }
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -2265,22 +2356,38 @@
                                     ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
                                 </h2>
                                 
-                                <div class="grid grid-cols-4 gap-2 mb-4">
-                                    ${DAYS.map((d, i) => {
-                                        const jsDay = now.getDay();
-                                        const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
-                                        const isLocked = i > mappedDay;
-                                        return `
-                                            <button 
-                                                onclick="selectedDayIndex = ${i}; renderIndividualDashboard();"
-                                                ${isLocked ? 'disabled' : ''}
-                                                class="text-[10px] p-2 rounded-lg text-center font-bold transition-all
-                                                ${selectedDayIndex === i ? 'bg-indigo-600 text-white shadow-md' : 
-                                                  (isLocked ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}">
-                                                ${d.substring(0,3)}
-                                            </button>
-                                        `;
-                                    }).join('')}
+                                <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Entry Date</label>
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative flex-1">
+                                            <input type="date" id="entry-date-picker" 
+                                                value="${pickerValue}" 
+                                                max="${now.toISOString().split('T')[0]}"
+                                                onchange="window.handleDateChange(this)"
+                                                class="w-full p-2 pl-9 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white shadow-sm">
+                                            <div class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                                ${renderIcon('calendar', {class:'w-4 h-4'})}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 grid grid-cols-7 gap-1">
+                                        ${DAYS.map((d, i) => {
+                                            const jsDay = now.getDay();
+                                            const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+                                            const isFuture = i > mappedDay;
+                                            return `
+                                                <button 
+                                                    onclick="window.updateDateFromWeekButton(${i})"
+                                                    ${isFuture ? 'disabled' : ''}
+                                                    title="${d}"
+                                                    class="text-[9px] py-1.5 rounded-md text-center font-bold transition-all
+                                                    ${selectedDayIndex === i ? 'bg-indigo-600 text-white shadow-md' : 
+                                                      (isFuture ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600')}">
+                                                    ${d.substring(0,1)}
+                                                </button>
+                                            `;
+                                        }).join('')}
+                                    </div>
                                 </div>
 
                                 <div class="space-y-4">
@@ -2704,6 +2811,10 @@
         window.showEditEntryModal = showEditEntryModal;
         window.handleEditSave = handleEditSave;
         
+        // New exports for date picker logic
+        window.updateDateFromWeekButton = updateDateFromWeekButton;
+        window.handleDateChange = handleDateChange;
+
         window.onload = function() {
             const sessionUser = localStorage.getItem(SESSION_KEY);
             if (sessionUser) {
