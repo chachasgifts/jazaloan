@@ -284,29 +284,37 @@
             allRecords.forEach((entry, index) => {
                 if (isPressure) {
                     // PRESSURE RECALCULATION
-                    // Formula Updated: (PremiumQty * PremiumSP) + (CleanupQty * CleanupSP) + PreviousBF - (Sent + Expenses)
+                    // Updated Formula: 
+                    // Stock Value = (PremSold * PremSP) + (CleanSold * CleanSP) + (Remaining * PremSP)
+                    // Where Remaining = Dispatched - (PremSold + CleanSold)
                     
                     if (index === 0) {
                         prevPressure = 0; 
                     }
 
                     // New Data Structure Support
+                    const dispatched = Number(entry.dispatchedPieces) || 0;
                     const premQty = Number(entry.premiumQty) || 0;
                     const premSP = Number(entry.premiumSP) || 0;
                     const cleanQty = Number(entry.cleanupQty) || 0;
                     const cleanSP = Number(entry.cleanupSP) || 0;
                     
-                    // Legacy Fallback
-                    const dispatched = Number(entry.dispatched) || 0;
-                    const bp = Number(entry.bp) || 0;
-                    
                     let stockValue = 0;
-                    // If we have split data, calculate using that
-                    if (entry.hasSplitData || (premQty > 0 || cleanQty > 0)) {
-                        stockValue = (premQty * premSP) + (cleanQty * cleanSP);
-                    } else {
-                        // Legacy calculation: Dispatched * BP
-                        stockValue = dispatched * bp;
+
+                    // Calculate value of SOLD items
+                    stockValue = (premQty * premSP) + (cleanQty * cleanSP);
+
+                    // Add value of REMAINING items (Dispatched but not sold)
+                    if (dispatched > 0) {
+                        const soldTotal = premQty + cleanQty;
+                        const remainder = dispatched - soldTotal;
+                        // Remainder is charged at Premium SP
+                        stockValue += (remainder * premSP);
+                    } else if (!entry.hasSplitData) {
+                        // Legacy calculation fallback: Dispatched * BP (if no new data structure)
+                        const legDisp = Number(entry.dispatched) || 0;
+                        const legBp = Number(entry.bp) || 0;
+                        stockValue = legDisp * legBp;
                     }
 
                     const sent = Number(entry.amountSent) || 0;
@@ -324,7 +332,7 @@
                     prevPressure = newBalance;
                     
                 } else {
-                    // STANDARD RECALCULATION
+                    // STANDARD RECALCULATION (No change)
                     const dD = Number(entry.dispatchedDresses) || 0;
                     const dT = Number(entry.dispatchedTwoPcs) || 0;
                     const dK = Number(entry.dispatchedKimonos) || 0;
@@ -726,6 +734,7 @@
                 const expensesStr = entry.expensesList ? entry.expensesList.map(e => `${e.name}:${e.amount}`).join(', ') : "";
                 
                 // Determine values (support both new split and legacy single inputs)
+                const dispatchedPieces = entry.dispatchedPieces || 0;
                 const premQty = entry.premiumQty || entry.dispatched || 0;
                 const premSP = entry.premiumSP || entry.bp || 0;
                 const cleanQty = entry.cleanupQty || 0;
@@ -736,6 +745,11 @@
                         <div>
                             <label class="text-[10px] font-bold text-indigo-800 uppercase">Market</label>
                             <input type="text" id="edit-market" value="${entry.marketName || ''}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                        </div>
+
+                         <div>
+                            <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched Total</label>
+                            <input type="number" id="edit-dispatched-pieces" value="${dispatchedPieces}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
                         </div>
                         
                         <div class="p-2 bg-indigo-50 rounded border border-indigo-100">
@@ -821,6 +835,7 @@
 
             if (isPressure) {
                 entry.marketName = document.getElementById('edit-market').value;
+                entry.dispatchedPieces = Number(document.getElementById('edit-dispatched-pieces').value) || 0;
                 entry.premiumQty = Number(document.getElementById('edit-prem-qty').value) || 0;
                 entry.premiumSP = Number(document.getElementById('edit-prem-sp').value) || 0;
                 entry.cleanupQty = Number(document.getElementById('edit-clean-qty').value) || 0;
@@ -1347,6 +1362,7 @@
             const sentIn = document.getElementById('rec-sent');
             
             // New Split Inputs
+            const dispatchedPiecesIn = document.getElementById('rec-dispatched-pieces');
             const premQtyIn = document.getElementById('rec-prem-qty');
             const premSPIn = document.getElementById('rec-prem-sp');
             const cleanQtyIn = document.getElementById('rec-clean-qty');
@@ -1395,6 +1411,7 @@
             // PRESSURE MODE CALCULATION
             if (isPressureMode) {
                 // Get Split Values
+                const dispatchedCount = Number(dispatchedPiecesIn ? dispatchedPiecesIn.value : 0) || 0;
                 const premQty = Number(premQtyIn ? premQtyIn.value : 0) || 0;
                 const premSP = Number(premSPIn ? premSPIn.value : 0) || 0;
                 const cleanQty = Number(cleanQtyIn ? cleanQtyIn.value : 0) || 0;
@@ -1403,7 +1420,7 @@
                 const amountSent = Number(sentIn ? sentIn.value : 0) || 0;
                 const marketName = marketIn ? marketIn.value.trim() : 'N/A';
 
-                if (premQty === 0 && cleanQty === 0 && amountSent === 0 && expenseAmt === 0) {
+                if (dispatchedCount === 0 && premQty === 0 && cleanQty === 0 && amountSent === 0 && expenseAmt === 0) {
                      showNotification("Please enter stock info or payment.");
                      return;
                 }
@@ -1416,8 +1433,16 @@
                     prevBalanceBF = 0; 
                 }
 
-                // Updated Formula: (Prem * SP) + (Clean * SP) + PrevBF - Sent - Exp
-                const stockValue = (premQty * premSP) + (cleanQty * cleanSP);
+                // Updated Formula Calculation
+                let stockValue = (premQty * premSP) + (cleanQty * cleanSP);
+                
+                if (dispatchedCount > 0) {
+                     // Add value for remainder (Dispatched - Sold) at Premium Price
+                     const soldTotal = premQty + cleanQty;
+                     const remainder = dispatchedCount - soldTotal;
+                     stockValue += (remainder * premSP);
+                }
+
                 const totalExpected = stockValue + prevBalanceBF;
                 const deductions = amountSent + expenseAmt;
                 const newPressure = totalExpected - deductions; 
@@ -1429,6 +1454,7 @@
                     marketName: marketName,
                     
                     // New Fields
+                    dispatchedPieces: dispatchedCount,
                     premiumQty: premQty,
                     premiumSP: premSP,
                     cleanupQty: cleanQty,
@@ -1436,7 +1462,7 @@
                     hasSplitData: true,
                     
                     // Legacy fill
-                    dispatched: premQty + cleanQty,
+                    dispatched: dispatchedCount > 0 ? dispatchedCount : (premQty + cleanQty),
                     bp: 0, 
 
                     totalExpected: totalExpected,
@@ -1452,6 +1478,7 @@
                 history.push(record);
 
                 // Clear inputs
+                if(dispatchedPiecesIn) dispatchedPiecesIn.value = "";
                 if(premQtyIn) premQtyIn.value = "";
                 if(premSPIn) premSPIn.value = "";
                 if(cleanQtyIn) cleanQtyIn.value = "";
@@ -1660,7 +1687,10 @@
                     const rows = data.map(item => {
                          const dateStr = `${item.date.substring(0,3)}, ${item.fullDate}`;
                          const market = item.marketName || '-';
-                         const dispatched = item.dispatched || ((item.premiumQty||0) + (item.cleanupQty||0)); // Ensure fallback
+                         
+                         // Prioritize explicit dispatchedPieces, fallback to old sum
+                         const dispatched = item.dispatchedPieces || item.dispatched || ((item.premiumQty||0) + (item.cleanupQty||0));
+                         
                          const totalExpected = item.totalExpected || 0;
                          const amountSent = item.amountSent || 0;
                          const balanceBF = item.balanceBF || 0;
@@ -2261,9 +2291,14 @@
                                                 <label class="text-[10px] font-bold text-indigo-800 uppercase">Market Name</label>
                                                 <input type="text" id="rec-market" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="e.g. Kamukunji">
                                             </div>
+
+                                            <div>
+                                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched Pieces (Total)</label>
+                                                <input type="number" id="rec-dispatched-pieces" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Total pieces given">
+                                            </div>
                                             
                                             <div class="p-3 bg-white rounded-lg border border-indigo-100 mb-2">
-                                                <p class="text-[10px] font-bold text-indigo-800 uppercase mb-2 border-b border-indigo-50 pb-1">Premium Stock</p>
+                                                <p class="text-[10px] font-bold text-indigo-800 uppercase mb-2 border-b border-indigo-50 pb-1">Premium Sold</p>
                                                 <div class="grid grid-cols-2 gap-2">
                                                     <div>
                                                         <label class="text-[9px] text-slate-500 font-bold">Qty</label>
@@ -2277,7 +2312,7 @@
                                             </div>
 
                                             <div class="p-3 bg-white rounded-lg border border-indigo-100">
-                                                <p class="text-[10px] font-bold text-orange-800 uppercase mb-2 border-b border-orange-50 pb-1">Clean-up Stock</p>
+                                                <p class="text-[10px] font-bold text-orange-800 uppercase mb-2 border-b border-orange-50 pb-1">Clean-up Sold</p>
                                                 <div class="grid grid-cols-2 gap-2">
                                                     <div>
                                                         <label class="text-[9px] text-slate-500 font-bold">Qty</label>
@@ -2424,7 +2459,7 @@
                                                 `;
 
                                                 if (isPressureMode) {
-                                                    const dispatchedVal = d.dispatched || ((d.premiumQty||0) + (d.cleanupQty||0));
+                                                    const dispatchedVal = d.dispatchedPieces || d.dispatched || ((d.premiumQty||0) + (d.cleanupQty||0));
                                                     return `
                                                         <tr class="hover:bg-slate-50 group">
                                                             <td class="px-4 py-3 font-medium text-slate-900">${d.date.substring(0,3)}, ${d.fullDate}</td>
