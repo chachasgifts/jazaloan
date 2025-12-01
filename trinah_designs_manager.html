@@ -1660,6 +1660,7 @@
                     const rows = data.map(item => {
                          const dateStr = `${item.date.substring(0,3)}, ${item.fullDate}`;
                          const market = item.marketName || '-';
+                         const dispatched = item.dispatched || ((item.premiumQty||0) + (item.cleanupQty||0)); // Ensure fallback
                          const totalExpected = item.totalExpected || 0;
                          const amountSent = item.amountSent || 0;
                          const balanceBF = item.balanceBF || 0;
@@ -1673,6 +1674,7 @@
                          return [
                              dateStr,
                              market,
+                             dispatched, // Add Dispatched here
                              totalExpected.toLocaleString(),
                              `${amountSent.toLocaleString()}${expensesStr}`,
                              balanceBF.toLocaleString()
@@ -1681,15 +1683,16 @@
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Day & Date', 'Market', 'Total Expected', 'Amount Sent', 'Balance BF']],
+                        head: [['Day & Date', 'Market', 'Dispatched', 'Total Expected', 'Amount Sent', 'Balance BF']], // Update Header
                         body: rows,
                         theme: 'grid',
                         headStyles: { fillColor: [30, 58, 138], halign: 'center' },
                         bodyStyles: { halign: 'center' },
                         columnStyles: {
-                            2: { halign: 'right' },
-                            3: { halign: 'right' },
-                            4: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] }
+                            2: { halign: 'center' }, // Dispatched
+                            3: { halign: 'right' }, // Expected
+                            4: { halign: 'right' }, // Sent
+                            5: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] } // Balance
                         }
                     });
 
@@ -2395,6 +2398,7 @@
                                                 <tr>
                                                     <th class="px-4 py-3 rounded-l-lg">Day & Date</th>
                                                     <th class="px-4 py-3">Market</th>
+                                                    <th class="px-4 py-3 text-center">Dispatched</th>
                                                     <th class="px-4 py-3 text-right">Total Expected</th>
                                                     <th class="px-4 py-3 text-right">Amt Sent</th>
                                                     <th class="px-4 py-3 text-right">Balance BF</th>
@@ -2420,10 +2424,12 @@
                                                 `;
 
                                                 if (isPressureMode) {
+                                                    const dispatchedVal = d.dispatched || ((d.premiumQty||0) + (d.cleanupQty||0));
                                                     return `
                                                         <tr class="hover:bg-slate-50 group">
                                                             <td class="px-4 py-3 font-medium text-slate-900">${d.date.substring(0,3)}, ${d.fullDate}</td>
                                                             <td class="px-4 py-3 text-slate-600">${d.marketName || '-'}</td>
+                                                            <td class="px-4 py-3 text-center font-bold text-slate-700">${dispatchedVal}</td>
                                                             <td class="px-4 py-3 text-right font-bold text-indigo-600">${formatCurrency(d.totalExpected || 0)}</td>
                                                             <td class="px-4 py-3 text-right text-emerald-600">${formatCurrency(d.amountSent || 0)}</td>
                                                             <td class="px-4 py-3 text-right font-bold text-red-600">${formatCurrency(d.balanceBF || 0)}</td>
@@ -2447,7 +2453,7 @@
                                                 }
                                             }).reverse().join('') : `
                                                 <tr>
-                                                    <td colspan="${isPressureMode ? 6 : 5}" class="text-center py-8 text-slate-400">
+                                                    <td colspan="${isPressureMode ? 7 : 5}" class="text-center py-8 text-slate-400">
                                                         No records found for ${selectedReport} view.
                                                     </td>
                                                 </tr>
