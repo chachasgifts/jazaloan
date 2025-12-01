@@ -228,46 +228,32 @@
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
             const todayEnd = todayStart + (24 * 60 * 60 * 1000);
 
-            // Sort by Date for display
-            fullHistory.sort((a, b) => {
-                const dateA = new Date(a.fullDate).getTime();
-                const dateB = new Date(b.fullDate).getTime();
-                if (!isNaN(dateA) && !isNaN(dateB)) {
-                    if (dateA !== dateB) return dateA - dateB;
-                }
-                return a.id - b.id;
-            });
-
             return fullHistory.filter(entry => {
                 let entryTime = entry.id;
-                // If ID is just an index (rare legacy), try parsing date
-                if (!entryTime || entryTime < 100000) {
-                     const parsed = new Date(entry.fullDate).getTime();
-                     if (!isNaN(parsed)) entryTime = parsed;
+                if (!entryTime) {
+                    const parsed = new Date(entry.fullDate);
+                    if (!isNaN(parsed.getTime())) entryTime = parsed.getTime();
+                    else return false;
                 }
-                
-                // Better Filter: Use the actual Date object from fullDate
-                const dateObj = new Date(entry.fullDate);
-                const timeVal = dateObj.getTime();
 
                 switch (selectedReport) {
                     case "Daily": 
-                        return timeVal >= todayStart && timeVal < todayEnd;
+                        return entryTime >= todayStart && entryTime < todayEnd;
                     case "Weekly": {
                         const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
-                        return timeVal >= oneWeekAgo;
+                        return entryTime >= oneWeekAgo;
                     }
                     case "Monthly": {
                         const thirtyDaysAgo = todayStart - (30 * 24 * 60 * 60 * 1000);
-                        return timeVal >= thirtyDaysAgo;
+                        return entryTime >= thirtyDaysAgo;
                     }
                     case "Quarterly": {
                         const ninetyDaysAgo = todayStart - (90 * 24 * 60 * 60 * 1000);
-                        return timeVal >= ninetyDaysAgo;
+                        return entryTime >= ninetyDaysAgo;
                     }
                     case "Yearly": {
                         const oneYearAgo = todayStart - (365 * 24 * 60 * 60 * 1000);
-                        return timeVal >= oneYearAgo;
+                        return entryTime >= oneYearAgo;
                     }
                     default: return true;
                 }
@@ -285,19 +271,7 @@
                  return;
             }
 
-            // CRITICAL UPDATE: Sort by Full Date, then by ID
-            // This allows backdated entries to slot into the correct timeline
-            allRecords.sort((a, b) => {
-                const dateA = new Date(a.fullDate).getTime();
-                const dateB = new Date(b.fullDate).getTime();
-                
-                if (!isNaN(dateA) && !isNaN(dateB)) {
-                    // If dates are different, sort by date
-                    if (dateA !== dateB) return dateA - dateB;
-                }
-                // If dates are same (or invalid), fall back to creation ID
-                return a.id - b.id;
-            });
+            allRecords.sort((a, b) => a.id - b.id);
 
             const isPressure = managedUser.enableReconciliation;
             const prices = managedUser.prices || {};
@@ -1418,31 +1392,20 @@
                 }
             }
 
-            // NEW: Use Date Picker Logic
-            const datePicker = document.getElementById('entry-date-picker');
-            let selectedDateObj = new Date();
-            
-            if (datePicker && datePicker.value) {
-                selectedDateObj = new Date(datePicker.value);
-            }
-
-            // Validation: Prevent future dates
             const now = new Date();
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            const selectedStart = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate()).getTime();
+            const jsDay = now.getDay(); 
+            const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
 
-            if (selectedStart > todayStart) {
+            if (selectedDayIndex > mappedDay) {
                 showNotification("Cannot add future entries.");
                 return;
             }
 
-            // Determine Day Name for legacy display
-            // JS getDay(): Sun=0, Mon=1... DAYS array starts at Mon (index 0)
-            let dayIndex = selectedDateObj.getDay() - 1; 
-            if (dayIndex === -1) dayIndex = 6; // Sunday
-            const currentDayName = DAYS[dayIndex];
-            const fullDateString = selectedDateObj.toLocaleDateString();
-            
+            const dayDiff = mappedDay - selectedDayIndex;
+            const targetDate = new Date();
+            targetDate.setDate(now.getDate() - dayDiff);
+            const currentDayName = DAYS[selectedDayIndex];
+            const fullDateString = targetDate.toLocaleDateString();
             const fullHistory = getFullHistory();
 
             // PRESSURE MODE CALCULATION
@@ -1462,10 +1425,28 @@
                      return;
                 }
 
-                // Balance Logic is handled by recalculateBalances mostly, but we need an initial value
-                // Since we are sorting by date now, this initial calculation is just a placeholder
-                // The true balance will be set when we call recalculateBalances() at the end
+                let prevBalanceBF = 0;
+                if (fullHistory.length > 0) {
+                    const last = fullHistory[fullHistory.length - 1];
+                    prevBalanceBF = Number(last.balanceBF) || 0;
+                } else {
+                    prevBalanceBF = 0; 
+                }
+
+                // Updated Formula Calculation
+                let stockValue = (premQty * premSP) + (cleanQty * cleanSP);
                 
+                if (dispatchedCount > 0) {
+                     // Add value for remainder (Dispatched - Sold) at Premium Price
+                     const soldTotal = premQty + cleanQty;
+                     const remainder = dispatchedCount - soldTotal;
+                     stockValue += (remainder * premSP);
+                }
+
+                const totalExpected = stockValue + prevBalanceBF;
+                const deductions = amountSent + expenseAmt;
+                const newPressure = totalExpected - deductions; 
+
                 const record = {
                     id: Date.now(),
                     date: currentDayName,
@@ -1484,12 +1465,12 @@
                     dispatched: dispatchedCount > 0 ? dispatchedCount : (premQty + cleanQty),
                     bp: 0, 
 
-                    totalExpected: 0, // Placeholder, calculated next
+                    totalExpected: totalExpected,
                     amountSent: amountSent,
                     expenseAmount: expenseAmt,
                     expensesList: expensesList,
-                    balanceBF: 0, // Placeholder
-                    profit: 0, 
+                    balanceBF: newPressure,
+                    profit: totalExpected, 
                     sold: 0, 
                     remaining: 0 
                 };
@@ -1524,21 +1505,48 @@
 
                 const prices = managedUser.prices || {};
                 
-                // Calculations will be finalized in recalculateBalances
+                let prevRemDress = 0, prevRem2pc = 0, prevRemKimono = 0;
+
+                if (fullHistory.length > 0) {
+                    const last = fullHistory[fullHistory.length - 1];
+                    prevRemDress = last.remDresses !== undefined ? last.remDresses : (last.remaining || 0);
+                    prevRem2pc = last.remTwoPcs || 0;
+                    prevRemKimono = last.remKimonos || 0;
+                } else {
+                    prevRemDress = startingPressure.dresses || 0;
+                    prevRem2pc = startingPressure.twoPcs || 0;
+                    prevRemKimono = startingPressure.kimonos || 0;
+                }
+
+                const newRemDress = prevRemDress + dDress - sDress;
+                const newRem2pc = prevRem2pc + d2pc - s2pc;
+                const newRemKimono = prevRemKimono + dKimono - sKimono;
+
+                if (newRemDress < 0 || newRem2pc < 0 || newRemKimono < 0) {
+                    showNotification("Error: Sales cannot exceed inventory.");
+                    return;
+                }
+
+                const profitDress = sDress * (prices.dressSell - prices.dressBuy);
+                const profit2pc = s2pc * (prices.twoPcSell - prices.twoPcBuy);
+                const profitKimono = sKimono * (prices.kimonoSell - prices.kimonoBuy);
+                const totalProfit = profitDress + profit2pc + profitKimono;
+
                 const record = {
                     id: Date.now(),
                     date: currentDayName,
                     fullDate: fullDateString,
                     dispatchedDresses: dDress, dispatchedTwoPcs: d2pc, dispatchedKimonos: dKimono,
                     soldDresses: sDress, soldTwoPcs: s2pc, soldKimonos: sKimono,
-                    remDresses: 0, remTwoPcs: 0, remKimonos: 0, // Recalc will fix
-                    profit: 0,
+                    remDresses: newRemDress, remTwoPcs: newRem2pc, remKimonos: newRemKimono,
+                    profit: totalProfit,
                     dispatched: dDress + d2pc + dKimono,
                     sold: sDress + s2pc + sKimono,
-                    remaining: 0
+                    remaining: newRemDress + newRem2pc + newRemKimono
                 };
 
                 history.push(record);
+                startingPressure = { dresses: newRemDress, twoPcs: newRem2pc, kimonos: newRemKimono };
                 
                 // Clear Standard Inputs
                 if (dispatchDressIn) dispatchDressIn.value = "";
@@ -1549,11 +1557,23 @@
                 if (salesKimonoIn) salesKimonoIn.value = "";
             }
 
-            // Force recalculation immediately to sort and fix balances
-            recalculateBalances();
-            
-            // Visual Update
-            showNotification(`Entry Saved for ${fullDateString}!`);
+            saveData(managedUser.phone);
+
+            if (currentDayName === "Sunday") {
+                renderWeekCompleteModal();
+                renderIndividualDashboard();
+                return;
+            }
+
+            let notificationMessage = `Saved for ${currentDayName}!`;
+
+            if (selectedDayIndex < mappedDay) {
+                selectedDayIndex = selectedDayIndex + 1;
+                notificationMessage += ` Switched to ${DAYS[selectedDayIndex]}.`;
+            }
+
+            showNotification(notificationMessage);
+            renderIndividualDashboard();
         }
 
         function showBalanceModal(dayName, dateStr) {
@@ -1593,15 +1613,7 @@
 
         function handleDeleteLast() {
             if (!managedUser) return;
-            // Sorting ensures we are deleting the last *chronological* entry usually,
-            // but in history array it might be just the last pushed. 
-            // We should delete the last element of history array.
-            
-            if (history.length === 0) {
-                showNotification("No recent entries to delete.");
-                return;
-            }
-
+            const fullHistory = getFullHistory();
             const lastEntry = history[history.length - 1]; 
 
             if (!lastEntry) return;
@@ -1610,12 +1622,40 @@
                 showNotification("Locked: 1 week passed since entry.");
                 return;
             }
+            
+            // Standard Mode Revert Logic
+            if (!managedUser.enableReconciliation) {
+                const curRemDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
+                const curRemTwoPcs = lastEntry.remTwoPcs || 0;
+                const curRemKimonos = lastEntry.remKimonos || 0;
+                
+                const dispatchedD = lastEntry.dispatchedDresses || 0;
+                const dispatchedT = lastEntry.dispatchedTwoPcs || 0;
+                const dispatchedK = lastEntry.dispatchedKimonos || 0;
+                
+                const soldD = lastEntry.soldDresses !== undefined ? lastEntry.soldDresses : (lastEntry.sold || 0);
+                const soldT = lastEntry.soldTwoPcs || 0;
+                const soldK = lastEntry.soldKimonos || 0;
+                
+                const prevRemDresses = curRemDresses - dispatchedD + soldD;
+                const prevRemTwoPcs = curRemTwoPcs - dispatchedT + soldT;
+                const prevRemKimonos = curRemKimonos - dispatchedK + soldK;
+                
+                startingPressure = {
+                    dresses: prevRemDresses,
+                    twoPcs: prevRemTwoPcs,
+                    kimonos: prevRemKimonos
+                };
+            }
 
             history.pop();
             
+            const dayIndex = DAYS.indexOf(lastEntry.date);
+            if (dayIndex !== -1) selectedDayIndex = dayIndex;
+
             saveData(managedUser.phone);
-            recalculateBalances(); // Fix balances after deletion
             showNotification(`Entry deleted.`);
+            renderIndividualDashboard();
         }
 
         async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
@@ -2173,12 +2213,6 @@
             
             const now = new Date();
             const today = now.toLocaleDateString();
-            
-            // Prep Date Picker Value
-            const y = now.getFullYear();
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            const d = String(now.getDate()).padStart(2, '0');
-            const todayVal = `${y}-${m}-${d}`;
 
             const filteredData = getFilteredHistory();
             const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
@@ -2231,15 +2265,22 @@
                                     ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
                                 </h2>
                                 
-                                <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Date for Entry</label>
-                                    <div class="flex items-center gap-2">
-                                        <input type="date" id="entry-date-picker" value="${todayVal}" 
-                                            class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white shadow-sm">
-                                        <div class="p-2 bg-white rounded-lg border border-slate-200 text-slate-400">
-                                            ${renderIcon('calendar', {class:'w-4 h-4'})}
-                                        </div>
-                                    </div>
+                                <div class="grid grid-cols-4 gap-2 mb-4">
+                                    ${DAYS.map((d, i) => {
+                                        const jsDay = now.getDay();
+                                        const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+                                        const isLocked = i > mappedDay;
+                                        return `
+                                            <button 
+                                                onclick="selectedDayIndex = ${i}; renderIndividualDashboard();"
+                                                ${isLocked ? 'disabled' : ''}
+                                                class="text-[10px] p-2 rounded-lg text-center font-bold transition-all
+                                                ${selectedDayIndex === i ? 'bg-indigo-600 text-white shadow-md' : 
+                                                  (isLocked ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')}">
+                                                ${d.substring(0,3)}
+                                            </button>
+                                        `;
+                                    }).join('')}
                                 </div>
 
                                 <div class="space-y-4">
