@@ -751,6 +751,8 @@
                 
                 // Determine values (support both new split and legacy single inputs)
                 const dispatchedPieces = entry.dispatchedPieces || 0;
+                // Added dispatchedKimonos
+                const dispatchedKimonos = entry.dispatchedKimonos || 0;
                 const premQty = entry.premiumQty || entry.dispatched || 0;
                 const premSP = entry.premiumSP || entry.bp || 0;
                 const cleanQty = entry.cleanupQty || 0;
@@ -763,9 +765,15 @@
                             <input type="text" id="edit-market" value="${entry.marketName || ''}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
                         </div>
 
-                         <div>
-                            <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched Total</label>
-                            <input type="number" id="edit-dispatched-pieces" value="${dispatchedPieces}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (D/2PC)</label>
+                                <input type="number" id="edit-dispatched-pieces" value="${dispatchedPieces}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-pink-600 uppercase">Dispatched Kimonos</label>
+                                <input type="number" id="edit-dispatched-kimonos" value="${dispatchedKimonos}" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50">
+                            </div>
                         </div>
                         
                         <div class="p-2 bg-indigo-50 rounded border border-indigo-100">
@@ -852,6 +860,7 @@
             if (isPressure) {
                 entry.marketName = document.getElementById('edit-market').value;
                 entry.dispatchedPieces = Number(document.getElementById('edit-dispatched-pieces').value) || 0;
+                entry.dispatchedKimonos = Number(document.getElementById('edit-dispatched-kimonos').value) || 0;
                 entry.premiumQty = Number(document.getElementById('edit-prem-qty').value) || 0;
                 entry.premiumSP = Number(document.getElementById('edit-prem-sp').value) || 0;
                 entry.cleanupQty = Number(document.getElementById('edit-clean-qty').value) || 0;
@@ -1433,6 +1442,8 @@
             
             // New Split Inputs
             const dispatchedPiecesIn = document.getElementById('rec-dispatched-pieces');
+            // Added rec-dispatched-kimonos
+            const dispatchedKimonosIn = document.getElementById('rec-dispatched-kimonos');
             const premQtyIn = document.getElementById('rec-prem-qty');
             const premSPIn = document.getElementById('rec-prem-sp');
             const cleanQtyIn = document.getElementById('rec-clean-qty');
@@ -1508,6 +1519,9 @@
             if (isPressureMode) {
                 // Get Split Values
                 const dispatchedCount = Number(dispatchedPiecesIn ? dispatchedPiecesIn.value : 0) || 0;
+                // Get Kimonos
+                const dispatchedKimonos = Number(dispatchedKimonosIn ? dispatchedKimonosIn.value : 0) || 0;
+                
                 const premQty = Number(premQtyIn ? premQtyIn.value : 0) || 0;
                 const premSP = Number(premSPIn ? premSPIn.value : 0) || 0;
                 const cleanQty = Number(cleanQtyIn ? cleanQtyIn.value : 0) || 0;
@@ -1516,7 +1530,7 @@
                 const amountSent = Number(sentIn ? sentIn.value : 0) || 0;
                 const marketName = marketIn ? marketIn.value.trim() : 'N/A';
 
-                if (dispatchedCount === 0 && premQty === 0 && cleanQty === 0 && amountSent === 0 && expenseAmt === 0) {
+                if (dispatchedCount === 0 && dispatchedKimonos === 0 && premQty === 0 && cleanQty === 0 && amountSent === 0 && expenseAmt === 0) {
                      showNotification("Please enter stock info or payment.");
                      return;
                 }
@@ -1550,6 +1564,7 @@
                     
                     // New Fields
                     dispatchedPieces: dispatchedCount,
+                    dispatchedKimonos: dispatchedKimonos, // Add Kimonos to record
                     premiumQty: premQty,
                     premiumSP: premSP,
                     cleanupQty: cleanQty,
@@ -1574,6 +1589,7 @@
 
                 // Clear inputs
                 if(dispatchedPiecesIn) dispatchedPiecesIn.value = "";
+                if(dispatchedKimonosIn) dispatchedKimonosIn.value = "";
                 if(premQtyIn) premQtyIn.value = "";
                 if(premSPIn) premSPIn.value = "";
                 if(cleanQtyIn) cleanQtyIn.value = "";
@@ -2399,9 +2415,15 @@
                                                 <input type="text" id="rec-market" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="e.g. Kamukunji">
                                             </div>
 
-                                            <div>
-                                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched Pieces (Total)</label>
-                                                <input type="number" id="rec-dispatched-pieces" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Total pieces given">
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (Total)</label>
+                                                    <input type="number" id="rec-dispatched-pieces" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Dresses/2pc">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-pink-600 uppercase">Dispatched Kimonos</label>
+                                                    <input type="number" id="rec-dispatched-kimonos" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50" placeholder="Kimonos">
+                                                </div>
                                             </div>
                                             
                                             <div class="p-3 bg-white rounded-lg border border-indigo-100 mb-2">
@@ -2567,6 +2589,7 @@
 
                                                 if (isPressureMode) {
                                                     const dispatchedVal = d.dispatchedPieces || d.dispatched || ((d.premiumQty||0) + (d.cleanupQty||0));
+                                                    // Optionally show Kimonos in table if desired, currently sticking to core view
                                                     return `
                                                         <tr class="hover:bg-slate-50 group">
                                                             <td class="px-4 py-3 font-medium text-slate-900">${d.date.substring(0,3)}, ${d.fullDate}</td>
