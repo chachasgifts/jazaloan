@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1963,7 +1962,7 @@
             `;
         }
 
-       function renderAdminOverview() {
+        function renderAdminOverview() {
             const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
             
             const targetDateLocale = selectedProcurementDate.toLocaleDateString();
@@ -1975,8 +1974,6 @@
             let totalStock = 0;
             let totalSalesToday = 0;
             let totalProfitToday = 0;
-            
-            // These variables will hold the calculated totals for the dashboard
             let grandTotalDispatchedDresses = 0;
             let grandTotalDispatchedKimonos = 0;
 
@@ -1992,37 +1989,21 @@
                 allEntries.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
 
                 const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
-                
-                // --- FIXED AGGREGATION LOGIC START ---
-                
-                // Calculate User's Sales Today (Financials)
                 const userSalesToday = todayEntries.reduce((sum, e) => {
                     const legacy = Number(e.sold) || 0;
                     const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0) + (Number(e.soldKimonos)||0);
-                    // For pressure users, they might not track 'sold' count explicitly for stats, but we check anyway
                     return sum + (e.soldDresses !== undefined ? newFormat : legacy);
                 }, 0);
 
-                // Calculate User's Dispatched DRESSES/SUITS Today
                 const userDispatchedTodayDresses = todayEntries.reduce((sum, e) => {
-                     if (user.enableReconciliation) {
-                         // Pressure Mode: Use 'dispatchedPieces' (which represents Dresses + 2Pcs)
-                         // Fallback to 'dispatched' only if pieces is missing and it's not a legacy combined record
-                         return sum + (Number(e.dispatchedPieces) || 0);
-                     } else {
-                         // Standard Mode: Explicitly sum Dresses and 2Pcs
-                         return sum + (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0);
-                     }
+                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0) + (Number(e.dispatched) || 0);
+                     return sum + val;
                 }, 0);
                 
-                // Calculate User's Dispatched KIMONOS Today
                 const userDispatchedTodayKimonos = todayEntries.reduce((sum, e) => {
-                     // Both modes now support explicit 'dispatchedKimonos'
                      return sum + (Number(e.dispatchedKimonos) || 0);
                 }, 0);
                 
-                // --- FIXED AGGREGATION LOGIC END ---
-
                 const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
                 
                 let currentRemDresses = 0;
@@ -2053,8 +2034,6 @@
                 totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
                 totalSalesToday += userSalesToday;
                 totalProfitToday += userProfitToday;
-                
-                // Add to Grand Totals
                 grandTotalDispatchedDresses += userDispatchedTodayDresses;
                 grandTotalDispatchedKimonos += userDispatchedTodayKimonos;
 
@@ -2064,10 +2043,6 @@
                         <div class="bg-indigo-50 p-2 rounded-lg col-span-2">
                             <p class="text-[10px] uppercase font-bold text-indigo-400">Pressure Bal</p>
                             <p class="font-bold text-indigo-700">${formatCurrency(pressureBalance)}</p>
-                            <div class="mt-1 flex gap-2 justify-center text-[9px] text-indigo-400 border-t border-indigo-100 pt-1">
-                                <span>Disp: ${userDispatchedTodayDresses} (D)</span>
-                                <span>${userDispatchedTodayKimonos} (K)</span>
-                            </div>
                         </div>
                     `;
                 } else {
@@ -2144,6 +2119,7 @@
                         ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
                     </div>
                     
+                    <!-- Procurement Section -->
                     <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col md:flex-row gap-6">
                          <div class="flex-1 w-full">
                             <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
@@ -2178,6 +2154,7 @@
                          <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-4 border border-slate-200">
                             <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Reconciliation (${targetDateLocale})</div>
                             
+                            <!-- Dresses Table -->
                             <div class="grid grid-cols-4 gap-2 text-xs mb-2 border-b border-slate-200 pb-2">
                                 <span class="col-span-1 font-bold text-indigo-600">DRESSES</span>
                                 <span class="text-center">System Exp.</span>
@@ -2192,6 +2169,7 @@
                                 </span>
                             </div>
 
+                            <!-- Kimonos Table -->
                             <div class="grid grid-cols-4 gap-2 text-xs">
                                 <span class="col-span-1 font-bold text-pink-600">KIMONOS</span>
                                 <span class="text-center">System Exp.</span>
@@ -2208,6 +2186,7 @@
                          </div>
                     </div>
                     
+                    <!-- Stock Controller Section -->
                     <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -2250,6 +2229,7 @@
                         </div>
                     </div>
 
+                    <!-- Staff Grid -->
                     <div>
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-bold text-slate-700">Staff Accounts</h2>
