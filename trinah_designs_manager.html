@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -215,6 +216,8 @@
 
         function isEntryLocked(entry) {
             if (!entry) return false;
+            // Lock if more than 1 week (168 hours) have passed since entry creation
+            // Note: If sorting by timestamp is used, id is still creation time
             const entryTime = entry.id; 
             const timeSinceCreation = Date.now() - entryTime;
             const lockDuration = 168 * 60 * 60 * 1000; // 1 week in milliseconds
@@ -247,6 +250,8 @@
 
                 switch (selectedReport) {
                     case "Daily": 
+                        // Check if it falls within today's range
+                        // Using string comparison for safety with mixed data
                         return entry.fullDate === now.toLocaleDateString();
                     case "Weekly": {
                         const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
@@ -280,8 +285,10 @@
                  return;
             }
 
+            // CRITICAL: Sort by Logical Date, not Creation ID
+            // This allows backdated entries to be inserted in the correct order
             allRecords.sort((a, b) => {
-                const tA = a.sortTimestamp || a.id;
+                const tA = a.sortTimestamp || a.id; // Use timestamp if available, else id
                 const tB = b.sortTimestamp || b.id;
                 return tA - tB;
             });
@@ -380,6 +387,7 @@
                 }
             });
 
+            // Update Current Start State based on last record
             if (archive.length > 0) {
                 const lastArch = archive[archive.length - 1];
                 if (isPressure) {
@@ -740,7 +748,11 @@
             let formContent = "";
 
             if (isPressure) {
+                const expensesStr = entry.expensesList ? entry.expensesList.map(e => `${e.name}:${e.amount}`).join(', ') : "";
+                
+                // Determine values (support both new split and legacy single inputs)
                 const dispatchedPieces = entry.dispatchedPieces || 0;
+                // Added dispatchedKimonos
                 const dispatchedKimonos = entry.dispatchedKimonos || 0;
                 const premQty = entry.premiumQty || entry.dispatched || 0;
                 const premSP = entry.premiumSP || entry.bp || 0;
@@ -788,6 +800,7 @@
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase">Expense Total (Manual Override)</label>
                             <input type="number" id="edit-expense" value="${entry.expenseAmount || 0}" class="w-full p-2 text-sm rounded-lg border border-slate-200">
+                            <p class="text-[9px] text-slate-400">Editing individual expense items not supported in quick edit. Update total directly.</p>
                         </div>
                     </div>
                 `;
@@ -854,8 +867,9 @@
                 entry.cleanupQty = Number(document.getElementById('edit-clean-qty').value) || 0;
                 entry.cleanupSP = Number(document.getElementById('edit-clean-sp').value) || 0;
                 
+                // For legacy compatibility, we might update these or leave them as sums
                 entry.dispatched = entry.premiumQty + entry.cleanupQty;
-                entry.bp = 0; 
+                entry.bp = 0; // Legacy field not used in new calculation
                 entry.hasSplitData = true;
 
                 entry.amountSent = Number(document.getElementById('edit-sent').value) || 0;
@@ -873,6 +887,8 @@
                 entry.sold = entry.soldDresses + entry.soldTwoPcs + entry.soldKimonos;
             }
 
+            // Since objects in array are references, history/archive are updated.
+            // But we must run recalculate to fix the chain logic (balances).
             document.getElementById('edit-entry-modal').remove();
             recalculateBalances();
         }
@@ -952,6 +968,13 @@
 
             if (!name || !phone || !password) {
                 showNotification("Please fill name, phone and password.");
+                return;
+            }
+
+            // Note: Prices are mandatory for standard mode, but less critical for Pressure mode
+            // We still enforce them for data consistency
+            if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell || !kimonoBuy || !kimonoSell) {
+                showNotification("Please set all default prices.");
                 return;
             }
 
@@ -1353,6 +1376,7 @@
 
         // --- Core Logic ---
         
+        // Helper to update selected date from week buttons
         function updateDateFromWeekButton(index) {
             selectedDayIndex = index;
             renderIndividualDashboard();
@@ -1371,24 +1395,39 @@
                 return;
             }
 
+            // Check if selected date is in the current week (Mon-Sun)
             const currentDay = now.getDay();
             const mappedCurrentDay = currentDay === 0 ? 6 : currentDay - 1;
             
+            // Calculate Monday of current week
             const monday = new Date(today);
             monday.setDate(today.getDate() - mappedCurrentDay);
             
+            // Calculate Sunday of current week
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
 
+            // If selected date is within this week, highlight the button
             if (selectedDate >= monday && selectedDate <= sunday) {
+                // Find which day index it is
+                // Mon=0, Sun=6
                 const diffTime = Math.abs(selectedDate - monday);
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                 selectedDayIndex = diffDays;
             } else {
-                selectedDayIndex = -1; 
+                // It's a past date not in current week view
+                selectedDayIndex = -1; // -1 indicates custom past date
             }
             
+            // Re-render handled by the date picker change? 
+            // Actually, we don't need to re-render everything, just visual updates.
+            // But re-rendering is safer to ensure state consistency.
             renderIndividualDashboard();
+            
+            // Important: After re-render, the input value is reset by render logic.
+            // We need to ensure the picker keeps the custom value.
+            // The render logic sets picker value based on selectedDayIndex or override.
+            // We need a persistent state for the date picker if it's custom.
         }
 
         function handleSubmit() {
@@ -1404,7 +1443,8 @@
             
             // New Split Inputs
             const dispatchedPiecesIn = document.getElementById('rec-dispatched-pieces');
-            const dispatchedKimonosIn = document.getElementById('rec-dispatched-kimonos'); // Kimono Dispatch
+            // Added rec-dispatched-kimonos
+            const dispatchedKimonosIn = document.getElementById('rec-dispatched-kimonos');
             const premQtyIn = document.getElementById('rec-prem-qty');
             const premSPIn = document.getElementById('rec-prem-sp');
             const cleanQtyIn = document.getElementById('rec-clean-qty');
@@ -1450,10 +1490,15 @@
                     return;
                 }
                 fullDateString = targetDate.toLocaleDateString();
+                currentDayName = DAYS[targetDate.getDay() === 0 ? 6 : targetDate.getDay() - 1]; // Ensure Mon=0..Sun=6 mapping from JS Sun=0
+                // Fallback for when DAYS array might not perfectly align with Date.getDay if it was a custom range, but here it is standard Mon-Sun
+                // JS getDay(): Sun=0, Mon=1...Sat=6. 
+                // DAYS array: Mon=0, Tue=1...Sun=6.
                 const jsDay = targetDate.getDay();
                 const daysIdx = jsDay === 0 ? 6 : jsDay - 1;
                 currentDayName = DAYS[daysIdx];
             } else {
+                // Fallback to old logic (shouldn't happen with date picker present)
                 const now = new Date();
                 const jsDay = now.getDay(); 
                 const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
@@ -1469,10 +1514,13 @@
                 fullDateString = targetDate.toLocaleDateString();
             }
 
+            const fullHistory = getFullHistory();
+
             // PRESSURE MODE CALCULATION
             if (isPressureMode) {
                 // Get Split Values
                 const dispatchedCount = Number(dispatchedPiecesIn ? dispatchedPiecesIn.value : 0) || 0;
+                // Get Kimonos
                 const dispatchedKimonos = Number(dispatchedKimonosIn ? dispatchedKimonosIn.value : 0) || 0;
                 
                 const premQty = Number(premQtyIn ? premQtyIn.value : 0) || 0;
@@ -1489,35 +1537,35 @@
                 }
 
                 let prevBalanceBF = 0;
+                // Note: With backdating, simply taking the last history entry might be wrong if we are inserting into the past.
+                // Ideally, we should recalculate the whole chain.
+                // For now, we save it, then call recalculateBalances() which sorts and fixes everything.
+                // We just need a placeholder prevBalanceBF or 0.
                 
                 // Updated Formula Calculation
                 let stockValue = (premQty * premSP) + (cleanQty * cleanSP);
                 
                 if (dispatchedCount > 0) {
+                     // Add value for remainder (Dispatched - Sold) at Premium Price
                      const soldTotal = premQty + cleanQty;
                      const remainder = dispatchedCount - soldTotal;
                      stockValue += (remainder * premSP);
                 }
-                
-                // NOTE: Dispatched Kimonos are recorded for stock variance tracking.
-                // Their value is currently assumed to be covered in Premium Sales or separate deal.
-                // If they need to add to pressure value, logic should be added here.
-                // For now, adhering to user request for "input space" for variance.
 
-                const totalExpected = stockValue + prevBalanceBF; 
+                const totalExpected = stockValue + prevBalanceBF; // Temporary
                 const deductions = amountSent + expenseAmt;
                 const newPressure = totalExpected - deductions; 
 
                 const record = {
-                    id: Date.now(), 
-                    sortTimestamp: targetDate.getTime(), 
+                    id: Date.now(), // Creation Time
+                    sortTimestamp: targetDate.getTime(), // Logical Time for Sorting
                     date: currentDayName,
                     fullDate: fullDateString,
                     marketName: marketName,
                     
                     // New Fields
                     dispatchedPieces: dispatchedCount,
-                    dispatchedKimonos: dispatchedKimonos, 
+                    dispatchedKimonos: dispatchedKimonos, // Add Kimonos to record
                     premiumQty: premQty,
                     premiumSP: premSP,
                     cleanupQty: cleanQty,
@@ -1569,6 +1617,7 @@
 
                 const prices = managedUser.prices || {};
                 
+                // Temporary placeholders, Recalculate will fix
                 let prevRemDress = 0, prevRem2pc = 0, prevRemKimono = 0;
                 const newRemDress = prevRemDress + dDress - sDress;
                 const newRem2pc = prevRem2pc + d2pc - s2pc;
@@ -1604,6 +1653,8 @@
                 if (salesKimonoIn) salesKimonoIn.value = "";
             }
 
+            // Immediately Recalculate to ensure sort order and balances are correct
+            // This handles the "backdating" logic effectively
             recalculateBalances(); 
 
             let notificationMessage = `Saved for ${currentDayName} (${fullDateString})!`;
@@ -1651,18 +1702,25 @@
             if (!managedUser) return;
             const fullHistory = getFullHistory();
             
+            // Should delete the physically last added entry? Or the last chronological one?
+            // Typically "Delete Last" implies the most recent action (undo).
+            // But here "history" array stores the session.
+            // Let's stick to popping from history array which represents the current unsaved-to-archive session.
+            
             if (history.length === 0) {
                  showNotification("No recent entries to delete.");
                  return;
             }
 
-            const lastEntry = history[history.length - 1]; 
+            const lastEntry = history[history.length - 1]; // This is the last created one
 
             if (isEntryLocked(lastEntry)) {
                 showNotification("Locked: 1 week passed since entry.");
                 return;
             }
             
+            // Standard Mode Revert Logic for startingPressure is tricky with backdating.
+            // Simpler to just remove and recalculate.
             history.pop();
             recalculateBalances();
             showNotification(`Entry deleted.`);
@@ -1698,12 +1756,14 @@
                          const dateStr = `${item.date.substring(0,3)}, ${item.fullDate}`;
                          const market = item.marketName || '-';
                          
+                         // Prioritize explicit dispatchedPieces, fallback to old sum
                          const dispatched = item.dispatchedPieces || item.dispatched || ((item.premiumQty||0) + (item.cleanupQty||0));
                          
                          const totalExpected = item.totalExpected || 0;
                          const amountSent = item.amountSent || 0;
                          const balanceBF = item.balanceBF || 0;
 
+                         // Expenses detail for context
                          let expensesStr = "";
                          if (item.expensesList && item.expensesList.length > 0) {
                              expensesStr = "\nExp: " + item.expensesList.map(e => `${e.name} ${e.amount}`).join(', ');
@@ -1712,7 +1772,7 @@
                          return [
                              dateStr,
                              market,
-                             dispatched, 
+                             dispatched, // Add Dispatched here
                              totalExpected.toLocaleString(),
                              `${amountSent.toLocaleString()}${expensesStr}`,
                              balanceBF.toLocaleString()
@@ -1721,7 +1781,7 @@
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Day & Date', 'Market', 'Dispatched', 'Total Expected', 'Amount Sent', 'Balance BF']], 
+                        head: [['Day & Date', 'Market', 'Dispatched', 'Total Expected', 'Amount Sent', 'Balance BF']], // Update Header
                         body: rows,
                         theme: 'grid',
                         headStyles: { fillColor: [30, 58, 138], halign: 'center' },
@@ -1903,7 +1963,7 @@
             `;
         }
 
-        function renderAdminOverview() {
+       function renderAdminOverview() {
             const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
             
             const targetDateLocale = selectedProcurementDate.toLocaleDateString();
@@ -1912,11 +1972,11 @@
             const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
             const dateInputVal = `${y}-${m}-${d}`;
             
-            let totalStockDresses = 0;
-            let totalStockKimonos = 0;
-            
+            let totalStock = 0;
             let totalSalesToday = 0;
             let totalProfitToday = 0;
+            
+            // These variables will hold the calculated totals for the dashboard
             let grandTotalDispatchedDresses = 0;
             let grandTotalDispatchedKimonos = 0;
 
@@ -1932,71 +1992,69 @@
                 allEntries.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
 
                 const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
+                
+                // --- FIXED AGGREGATION LOGIC START ---
+                
+                // Calculate User's Sales Today (Financials)
                 const userSalesToday = todayEntries.reduce((sum, e) => {
                     const legacy = Number(e.sold) || 0;
                     const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0) + (Number(e.soldKimonos)||0);
+                    // For pressure users, they might not track 'sold' count explicitly for stats, but we check anyway
                     return sum + (e.soldDresses !== undefined ? newFormat : legacy);
                 }, 0);
 
-                // --- Dispatch Aggregation for Variance ---
+                // Calculate User's Dispatched DRESSES/SUITS Today
                 const userDispatchedTodayDresses = todayEntries.reduce((sum, e) => {
-                     // For Pressure: dispatchedPieces is Dresses+2pc
-                     // For Standard: dispatchedDresses + dispatchedTwoPcs
-                     const pressureVal = Number(e.dispatchedPieces) || 0;
-                     const standardVal = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0);
-                     // Note: We use one or the other based on user type, but summing works if fields are mutually exclusive per user
-                     return sum + pressureVal + standardVal;
+                     if (user.enableReconciliation) {
+                         // Pressure Mode: Use 'dispatchedPieces' (which represents Dresses + 2Pcs)
+                         // Fallback to 'dispatched' only if pieces is missing and it's not a legacy combined record
+                         return sum + (Number(e.dispatchedPieces) || 0);
+                     } else {
+                         // Standard Mode: Explicitly sum Dresses and 2Pcs
+                         return sum + (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0);
+                     }
                 }, 0);
                 
+                // Calculate User's Dispatched KIMONOS Today
                 const userDispatchedTodayKimonos = todayEntries.reduce((sum, e) => {
+                     // Both modes now support explicit 'dispatchedKimonos'
                      return sum + (Number(e.dispatchedKimonos) || 0);
                 }, 0);
                 
+                // --- FIXED AGGREGATION LOGIC END ---
+
                 const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
                 
-                // --- Total Stock (Remain) Aggregation ---
                 let currentRemDresses = 0;
+                let currentRemTwoPcs = 0;
                 let currentRemKimonos = 0;
                 
                 // Pressure mode balance
                 let pressureBalance = 0;
 
-                if (user.enableReconciliation) {
-                    // For Pressure: Calculate Estimated Remain = Total Dispatched - Total Sold
-                    const totalDispD = allEntries.reduce((s, e) => s + (Number(e.dispatchedPieces)||0), 0);
-                    const totalSoldD = allEntries.reduce((s, e) => s + (Number(e.premiumQty)||0) + (Number(e.cleanupQty)||0), 0);
-                    currentRemDresses = Math.max(0, totalDispD - totalSoldD);
-
-                    const totalDispK = allEntries.reduce((s, e) => s + (Number(e.dispatchedKimonos)||0), 0);
-                    // Assuming no explicit 'Sold Kimonos' field for Pressure yet, so Remain = Dispatched (unless handled in premiumQty)
-                    // If we assume premiumQty handles all sales, we subtracted it from dresses. 
-                    // This is an estimation. 
-                    currentRemKimonos = totalDispK; 
-
-                    if(allEntries.length > 0) pressureBalance = allEntries[allEntries.length-1].balanceBF || 0;
+                if (allEntries.length > 0) {
+                    const last = allEntries[allEntries.length - 1];
+                    currentRemDresses = last.remDresses || last.remaining || 0;
+                    currentRemTwoPcs = last.remTwoPcs || 0;
+                    currentRemKimonos = last.remKimonos || 0;
+                    pressureBalance = last.balanceBF || 0;
                 } else {
-                    // Standard
-                    if (allEntries.length > 0) {
-                        const last = allEntries[allEntries.length - 1];
-                        currentRemDresses = (last.remDresses || last.remaining || 0) + (last.remTwoPcs || 0);
-                        currentRemKimonos = last.remKimonos || 0;
-                    } else {
-                        try {
-                            const p = JSON.parse(pStr);
-                            if (typeof p === 'number') currentRemDresses = p;
-                            else {
-                                currentRemDresses = (p?.dresses || 0) + (p?.twoPcs || 0);
-                                currentRemKimonos = p?.kimonos || 0;
-                            }
-                        } catch(e) {}
-                    }
+                     try {
+                        const p = JSON.parse(pStr);
+                        if (typeof p === 'number') currentRemDresses = p;
+                        else {
+                            currentRemDresses = p?.dresses || 0;
+                            currentRemTwoPcs = p?.twoPcs || 0;
+                            currentRemKimonos = p?.kimonos || 0;
+                        }
+                    } catch(e) {}
                 }
 
-                totalStockDresses += currentRemDresses;
-                totalStockKimonos += currentRemKimonos;
-
+                totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
                 totalSalesToday += userSalesToday;
                 totalProfitToday += userProfitToday;
+                
+                // Add to Grand Totals
                 grandTotalDispatchedDresses += userDispatchedTodayDresses;
                 grandTotalDispatchedKimonos += userDispatchedTodayKimonos;
 
@@ -2006,14 +2064,18 @@
                         <div class="bg-indigo-50 p-2 rounded-lg col-span-2">
                             <p class="text-[10px] uppercase font-bold text-indigo-400">Pressure Bal</p>
                             <p class="font-bold text-indigo-700">${formatCurrency(pressureBalance)}</p>
+                            <div class="mt-1 flex gap-2 justify-center text-[9px] text-indigo-400 border-t border-indigo-100 pt-1">
+                                <span>Disp: ${userDispatchedTodayDresses} (D)</span>
+                                <span>${userDispatchedTodayKimonos} (K)</span>
+                            </div>
                         </div>
                     `;
                 } else {
                     statusBlock = `
                         <div class="bg-orange-50 p-2 rounded-lg">
                             <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
-                            <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemKimonos}</p>
-                            <p class="text-[8px] text-orange-300">D / K</p>
+                            <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs} / ${currentRemKimonos}</p>
+                            <p class="text-[8px] text-orange-300">D / 2 / K</p>
                         </div>
                         <div class="bg-emerald-50 p-2 rounded-lg">
                             <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Today)</p>
@@ -2077,22 +2139,11 @@
                     </div>
 
                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-4">
-                             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Stock (All Time)</p>
-                             <div class="flex justify-between items-center mb-1">
-                                <span class="text-sm font-medium text-slate-600">Dresses/Suits</span>
-                                <span class="text-xl font-bold text-indigo-600">${totalStockDresses}</span>
-                             </div>
-                             <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-slate-600">Kimonos</span>
-                                <span class="text-xl font-bold text-pink-600">${totalStockKimonos}</span>
-                             </div>
-                        </div>
+                        ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
                         ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
                         ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
                     </div>
                     
-                    <!-- Procurement Section -->
                     <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col md:flex-row gap-6">
                          <div class="flex-1 w-full">
                             <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
@@ -2127,7 +2178,6 @@
                          <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-4 border border-slate-200">
                             <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Reconciliation (${targetDateLocale})</div>
                             
-                            <!-- Dresses Table -->
                             <div class="grid grid-cols-4 gap-2 text-xs mb-2 border-b border-slate-200 pb-2">
                                 <span class="col-span-1 font-bold text-indigo-600">DRESSES</span>
                                 <span class="text-center">System Exp.</span>
@@ -2142,7 +2192,6 @@
                                 </span>
                             </div>
 
-                            <!-- Kimonos Table -->
                             <div class="grid grid-cols-4 gap-2 text-xs">
                                 <span class="col-span-1 font-bold text-pink-600">KIMONOS</span>
                                 <span class="text-center">System Exp.</span>
@@ -2159,7 +2208,6 @@
                          </div>
                     </div>
                     
-                    <!-- Stock Controller Section -->
                     <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -2202,7 +2250,6 @@
                         </div>
                     </div>
 
-                    <!-- Staff Grid -->
                     <div>
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-bold text-slate-700">Staff Accounts</h2>
@@ -2231,14 +2278,17 @@
             if (!managedUser) return;
 
             const fullHistory = getFullHistory();
+            // Important: sort by timestamp before picking last
             fullHistory.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
 
             const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
             
+            // Standard Stock Variables
             let curDresses = 0;
             let cur2pcs = 0;
             let curKimonos = 0;
             
+            // Pressure Variable
             let currentPressure = 0;
 
             if (lastEntry) {
@@ -2259,7 +2309,20 @@
             const filteredData = getFilteredHistory();
             const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
             
+            const todaysSales = history
+                .filter(entry => entry.fullDate === today)
+                .reduce((sum, entry) => {
+                    const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0) + (entry.soldKimonos||0);
+                    return sum + (entry.soldDresses !== undefined ? newF : (entry.sold||0));
+                }, 0);
+
             const isPressureMode = managedUser.enableReconciliation;
+
+            // Determine what date the picker should show
+            // If selectedDayIndex is valid (0-6), calculate that date relative to today's week
+            // Else if -1, it means we are in custom mode, we need to preserve the picker value from DOM if possible, 
+            // or default to today if not. Since we are re-rendering, we might lose DOM state.
+            // Let's calculate the date from selectedDayIndex if it's >= 0
             
             let pickerValue = "";
             const currentJsDay = now.getDay();
@@ -2271,9 +2334,20 @@
                  d.setDate(now.getDate() - diff);
                  pickerValue = d.toISOString().split('T')[0];
             } else {
+                 // Check if we have a stored value in DOM before overwrite? 
+                 // It's hard in vanilla JS literal string render.
+                 // We'll default to today if switching modes, or we rely on the user picking again.
+                 // For better UX, let's default to today if index is -1
                  pickerValue = now.toISOString().split('T')[0];
             }
             
+            // However, if we just clicked a date in the picker, we want that date. 
+            // The handleDateChange function updates selectedDayIndex. 
+            // If the user picked a date last month, selectedDayIndex is -1.
+            // We need to know WHAT date they picked to render it back.
+            // We can add a temporary global `customDateOverride` variable for this specific UI state.
+            
+            // Let's grab the existing value if it exists in the DOM
             const existingPicker = document.getElementById('entry-date-picker');
             if (existingPicker && selectedDayIndex === -1) {
                 pickerValue = existingPicker.value;
@@ -2363,12 +2437,12 @@
 
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
-                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (Dresses/2Pcs)</label>
-                                                    <input type="number" id="rec-dispatched-pieces" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Qty">
+                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (Total)</label>
+                                                    <input type="number" id="rec-dispatched-pieces" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Dresses/2pc">
                                                 </div>
                                                 <div>
                                                     <label class="text-[10px] font-bold text-pink-600 uppercase">Dispatched Kimonos</label>
-                                                    <input type="number" id="rec-dispatched-kimonos" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50" placeholder="Qty">
+                                                    <input type="number" id="rec-dispatched-kimonos" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50" placeholder="Kimonos">
                                                 </div>
                                             </div>
                                             
@@ -2535,6 +2609,7 @@
 
                                                 if (isPressureMode) {
                                                     const dispatchedVal = d.dispatchedPieces || d.dispatched || ((d.premiumQty||0) + (d.cleanupQty||0));
+                                                    // Optionally show Kimonos in table if desired, currently sticking to core view
                                                     return `
                                                         <tr class="hover:bg-slate-50 group">
                                                             <td class="px-4 py-3 font-medium text-slate-900">${d.date.substring(0,3)}, ${d.fullDate}</td>
@@ -2774,10 +2849,12 @@
         window.handleControllerLogSave = handleControllerLogSave;
         window.handleDeleteControllerLog = handleDeleteControllerLog;
         
+        // New exports for editing and recalculating
         window.recalculateBalances = recalculateBalances;
         window.showEditEntryModal = showEditEntryModal;
         window.handleEditSave = handleEditSave;
         
+        // New exports for date picker logic
         window.updateDateFromWeekButton = updateDateFromWeekButton;
         window.handleDateChange = handleDateChange;
 
