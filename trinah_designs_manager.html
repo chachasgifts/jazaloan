@@ -1,9 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Updated viewport to prevent unwanted zooming behavior on mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Trinah Designs Admin Manager</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,6 +19,8 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
+            /* Prevent horizontal scroll on mobile */
+            overflow-x: hidden; 
         }
         .modal-overlay {
             background-color: rgba(15, 23, 42, 0.7);
@@ -44,6 +46,13 @@
         #mobile-menu { transition: transform 0.3s ease-in-out; }
         .translate-x-full { transform: translateX(100%); }
         .translate-x-0 { transform: translateX(0); }
+
+        /* CRITICAL UX FIX: Force inputs to 16px on mobile to prevent iOS zoom-on-focus */
+        @media screen and (max-width: 768px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -80,8 +89,9 @@
         // Local Storage Keys
         const DB_KEY = "trinah_users_db";
         const SESSION_KEY = "trinah_active_session";
-        const PROCUREMENT_KEY = "trinah_procurement_log";
-        const CONTROLLER_KEY = "trinah_stock_controller_log"; 
+        // UPDATED KEYS FOR NEW STRUCTURE
+        const PROCUREMENT_KEY = "trinah_procurement_log_v2";
+        const CONTROLLER_KEY = "trinah_stock_controller_log_v2"; 
 
         // View States
         const VIEW_DASHBOARD = 'dashboard';
@@ -415,10 +425,10 @@
             div.className = 'grid grid-cols-5 gap-2 items-center';
             div.innerHTML = `
                 <div class="col-span-3">
-                    <input type="text" name="expense_name[]" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="Expense Name">
+                    <input type="text" name="expense_name[]" class="w-full p-3 text-base rounded-lg border border-slate-300" placeholder="Expense Name">
                 </div>
                 <div class="col-span-1">
-                    <input type="number" name="expense_amt[]" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="Amt">
+                    <input type="number" name="expense_amt[]" class="w-full p-3 text-base rounded-lg border border-slate-300" placeholder="Amt">
                 </div>
                 <div class="col-span-1 text-center">
                     <button type="button" onclick="document.getElementById('${rowId}').remove()" class="p-2 text-red-500 hover:bg-red-50 rounded-lg">
@@ -673,16 +683,16 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="text-xs font-bold text-slate-500 uppercase">Staff Name</label>
-                                    <input id="staff-name" value="${nameVal}" placeholder="Name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                    <input id="staff-name" value="${nameVal}" placeholder="Name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1 text-base">
                                 </div>
                                 <div>
                                     <label class="text-xs font-bold text-slate-500 uppercase">Phone (ID)</label>
-                                    <input id="staff-phone" value="${phoneVal}" placeholder="Phone" ${isEdit ? 'disabled' : ''} class="w-full p-3 rounded-xl ${isEdit ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'} border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                    <input id="staff-phone" value="${phoneVal}" placeholder="Phone" ${isEdit ? 'disabled' : ''} class="w-full p-3 rounded-xl ${isEdit ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'} border border-slate-200 outline-none focus:border-indigo-500 mt-1 text-base">
                                 </div>
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
-                                <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1 text-base">
                             </div>
 
                             <div class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -700,15 +710,15 @@
                                     <div>
                                         <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES</p>
                                         <div class="space-y-2">
-                                            <input id="price-dress-buy" value="${dbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-dress-sell" value="${dsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-buy" value="${dbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-base rounded-lg border border-slate-300">
+                                            <input id="price-dress-sell" value="${dsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-base rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                     <div>
                                         <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES</p>
                                         <div class="space-y-2">
-                                            <input id="price-2pc-buy" value="${tbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-2pc-sell" value="${tsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-buy" value="${tbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-base rounded-lg border border-slate-300">
+                                            <input id="price-2pc-sell" value="${tsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-base rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                 </div>
@@ -716,8 +726,8 @@
                                     <div>
                                         <p class="text-xs font-bold text-pink-600 mb-1">KIMONO</p>
                                         <div class="space-y-2">
-                                            <input id="price-kimono-buy" value="${kbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
-                                            <input id="price-kimono-sell" value="${ksVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-kimono-buy" value="${kbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-base rounded-lg border border-slate-300">
+                                            <input id="price-kimono-sell" value="${ksVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-base rounded-lg border border-slate-300">
                                         </div>
                                     </div>
                                 </div>
@@ -763,43 +773,43 @@
                     <div class="space-y-3">
                         <div>
                             <label class="text-[10px] font-bold text-indigo-800 uppercase">Market</label>
-                            <input type="text" id="edit-market" value="${entry.marketName || ''}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                            <input type="text" id="edit-market" value="${entry.marketName || ''}" class="w-full p-3 text-base rounded-lg border border-indigo-200">
                         </div>
 
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (D/2PC)</label>
-                                <input type="number" id="edit-dispatched-pieces" value="${dispatchedPieces}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                                <input type="number" id="edit-dispatched-pieces" value="${dispatchedPieces}" class="w-full p-3 text-base rounded-lg border border-indigo-200">
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-pink-600 uppercase">Dispatched Kimonos</label>
-                                <input type="number" id="edit-dispatched-kimonos" value="${dispatchedKimonos}" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50">
+                                <input type="number" id="edit-dispatched-kimonos" value="${dispatchedKimonos}" class="w-full p-3 text-base rounded-lg border border-pink-200 bg-pink-50">
                             </div>
                         </div>
                         
                         <div class="p-2 bg-indigo-50 rounded border border-indigo-100">
                              <p class="text-[10px] font-bold text-indigo-800 uppercase mb-1">Premium</p>
                              <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="edit-prem-qty" value="${premQty}" placeholder="Qty" class="w-full p-2 text-sm rounded border border-indigo-200">
-                                <input type="number" id="edit-prem-sp" value="${premSP}" placeholder="SP" class="w-full p-2 text-sm rounded border border-indigo-200">
+                                <input type="number" id="edit-prem-qty" value="${premQty}" placeholder="Qty" class="w-full p-3 text-base rounded border border-indigo-200">
+                                <input type="number" id="edit-prem-sp" value="${premSP}" placeholder="SP" class="w-full p-3 text-base rounded border border-indigo-200">
                              </div>
                         </div>
 
                          <div class="p-2 bg-orange-50 rounded border border-orange-100">
                              <p class="text-[10px] font-bold text-orange-800 uppercase mb-1">Clean-up</p>
                              <div class="grid grid-cols-2 gap-2">
-                                <input type="number" id="edit-clean-qty" value="${cleanQty}" placeholder="Qty" class="w-full p-2 text-sm rounded border border-orange-200">
-                                <input type="number" id="edit-clean-sp" value="${cleanSP}" placeholder="SP" class="w-full p-2 text-sm rounded border border-orange-200">
+                                <input type="number" id="edit-clean-qty" value="${cleanQty}" placeholder="Qty" class="w-full p-3 text-base rounded border border-orange-200">
+                                <input type="number" id="edit-clean-sp" value="${cleanSP}" placeholder="SP" class="w-full p-3 text-base rounded border border-orange-200">
                              </div>
                         </div>
 
                         <div>
                             <label class="text-[10px] font-bold text-emerald-600 uppercase">Amount Sent</label>
-                            <input type="number" id="edit-sent" value="${entry.amountSent || 0}" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50">
+                            <input type="number" id="edit-sent" value="${entry.amountSent || 0}" class="w-full p-3 text-base rounded-lg border border-emerald-200 bg-emerald-50">
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase">Expense Total (Manual Override)</label>
-                            <input type="number" id="edit-expense" value="${entry.expenseAmount || 0}" class="w-full p-2 text-sm rounded-lg border border-slate-200">
+                            <input type="number" id="edit-expense" value="${entry.expenseAmount || 0}" class="w-full p-3 text-base rounded-lg border border-slate-200">
                             <p class="text-[9px] text-slate-400">Editing individual expense items not supported in quick edit. Update total directly.</p>
                         </div>
                     </div>
@@ -809,16 +819,16 @@
                     <div class="space-y-3">
                         <p class="text-xs font-bold text-slate-400 uppercase border-b pb-1">Dispatched Stock</p>
                         <div class="grid grid-cols-3 gap-2">
-                             <input type="number" id="edit-d-dress" value="${entry.dispatchedDresses || 0}" placeholder="Dress" class="p-2 border rounded">
-                             <input type="number" id="edit-d-2pc" value="${entry.dispatchedTwoPcs || 0}" placeholder="2Pc" class="p-2 border rounded">
-                             <input type="number" id="edit-d-kimono" value="${entry.dispatchedKimonos || 0}" placeholder="Kim" class="p-2 border rounded">
+                             <input type="number" id="edit-d-dress" value="${entry.dispatchedDresses || 0}" placeholder="Dress" class="p-3 text-base border rounded">
+                             <input type="number" id="edit-d-2pc" value="${entry.dispatchedTwoPcs || 0}" placeholder="2Pc" class="p-3 text-base border rounded">
+                             <input type="number" id="edit-d-kimono" value="${entry.dispatchedKimonos || 0}" placeholder="Kim" class="p-3 text-base border rounded">
                         </div>
                         
                         <p class="text-xs font-bold text-slate-400 uppercase border-b pb-1 pt-2">Sold Stock</p>
                         <div class="grid grid-cols-3 gap-2">
-                             <input type="number" id="edit-s-dress" value="${entry.soldDresses !== undefined ? entry.soldDresses : (entry.sold||0)}" placeholder="Dress" class="p-2 border rounded">
-                             <input type="number" id="edit-s-2pc" value="${entry.soldTwoPcs || 0}" placeholder="2Pc" class="p-2 border rounded">
-                             <input type="number" id="edit-s-kimono" value="${entry.soldKimonos || 0}" placeholder="Kim" class="p-2 border rounded">
+                             <input type="number" id="edit-s-dress" value="${entry.soldDresses !== undefined ? entry.soldDresses : (entry.sold||0)}" placeholder="Dress" class="p-3 text-base border rounded">
+                             <input type="number" id="edit-s-2pc" value="${entry.soldTwoPcs || 0}" placeholder="2Pc" class="p-3 text-base border rounded">
+                             <input type="number" id="edit-s-kimono" value="${entry.soldKimonos || 0}" placeholder="Kim" class="p-3 text-base border rounded">
                         </div>
                     </div>
                 `;
@@ -911,7 +921,7 @@
                             <div class="text-left bg-slate-50 p-3 rounded-xl border border-slate-100">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Date for Daily Report</label>
                                 <input type="date" id="report-date-picker" value="${todayStr}" 
-                                    class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
+                                    class="w-full p-2 text-base font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
                             </div>
 
                             <button onclick="const d = document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d); document.getElementById('reports-modal').remove()" 
@@ -1032,15 +1042,18 @@
             renderAdminOverview();
         }
 
+        // UPDATED: Save Cotton, Sweater, Kimonos
         function handleProcurementSave() {
-            const dressVal = document.getElementById('procurement-dress-input').value;
+            const cottonVal = document.getElementById('procurement-cotton-input').value;
+            const sweaterVal = document.getElementById('procurement-sweater-input').value;
             const kimonoVal = document.getElementById('procurement-kimono-input').value;
             
             const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
             const targetDateKey = selectedProcurementDate.toLocaleDateString();
             
             logs[targetDateKey] = {
-                dresses: Number(dressVal) || 0,
+                cotton: Number(cottonVal) || 0,
+                sweater: Number(sweaterVal) || 0,
                 kimonos: Number(kimonoVal) || 0
             };
 
@@ -1061,9 +1074,11 @@
                 localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
                 showNotification("Procurement record deleted.");
                 
-                const dIn = document.getElementById('procurement-dress-input');
+                const cIn = document.getElementById('procurement-cotton-input');
+                const sIn = document.getElementById('procurement-sweater-input');
                 const kIn = document.getElementById('procurement-kimono-input');
-                if(dIn) dIn.value = "";
+                if(cIn) cIn.value = "";
+                if(sIn) sIn.value = "";
                 if(kIn) kIn.value = "";
                 
                 renderAdminOverview();
@@ -1072,15 +1087,17 @@
             }
         }
 
+        // UPDATED: Handle 3 Controller fields
         function handleControllerLogSave(e) {
             e.preventDefault();
             const dateVal = document.getElementById('control-date').value;
-            const countVal = document.getElementById('control-count').value;
+            const cottonVal = document.getElementById('control-cotton-count').value;
+            const sweaterVal = document.getElementById('control-sweater-count').value;
             const kimonoVal = document.getElementById('control-kimono-count').value;
             const noteVal = document.getElementById('control-note').value;
             const originalId = document.getElementById('control-original-id').value;
 
-            if(!dateVal || (!countVal && !kimonoVal)) {
+            if(!dateVal || (!cottonVal && !sweaterVal && !kimonoVal)) {
                 showNotification("Please select date and at least one count.");
                 return;
             }
@@ -1100,7 +1117,8 @@
             logs.unshift({
                 id: originalId ? Number(originalId) : Date.now(), 
                 date: dateVal,
-                dressCount: Number(countVal) || 0,
+                cottonCount: Number(cottonVal) || 0,
+                sweaterCount: Number(sweaterVal) || 0,
                 kimonoCount: Number(kimonoVal) || 0,
                 note: noteVal
             });
@@ -1136,7 +1154,8 @@
              const todayStr = `${y}-${m}-${d}`;
              
              const defaultDate = logToEdit ? logToEdit.date : todayStr;
-             const defaultDress = logToEdit ? (logToEdit.dressCount !== undefined ? logToEdit.dressCount : (logToEdit.count||'')) : '';
+             const defaultCotton = logToEdit ? (logToEdit.cottonCount || '') : '';
+             const defaultSweater = logToEdit ? (logToEdit.sweaterCount || '') : '';
              const defaultKimono = logToEdit ? (logToEdit.kimonoCount || '') : '';
              const defaultNote = logToEdit ? (logToEdit.note || '') : '';
              const originalId = logToEdit ? logToEdit.id : '';
@@ -1152,21 +1171,25 @@
                             <input type="hidden" id="control-original-id" value="${originalId}">
                             <div>
                                 <label class="text-[10px] font-bold text-slate-500 uppercase">Date</label>
-                                <input type="date" id="control-date" value="${defaultDate}" class="w-full p-2 rounded-lg border border-slate-300">
+                                <input type="date" id="control-date" value="${defaultDate}" class="w-full p-3 text-base rounded-lg border border-slate-300">
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-3 gap-2">
                                 <div>
-                                    <label class="text-[10px] font-bold text-indigo-600 uppercase">Dresses + 2Pcs</label>
-                                    <input type="number" id="control-count" value="${defaultDress}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-indigo-50">
+                                    <label class="text-[10px] font-bold text-indigo-600 uppercase">Cotton</label>
+                                    <input type="number" id="control-cotton-count" value="${defaultCotton}" placeholder="Qty" class="w-full p-3 text-base rounded-lg border border-slate-300 bg-indigo-50">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-purple-600 uppercase">Sweater</label>
+                                    <input type="number" id="control-sweater-count" value="${defaultSweater}" placeholder="Qty" class="w-full p-3 text-base rounded-lg border border-slate-300 bg-purple-50">
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-pink-600 uppercase">Kimonos</label>
-                                    <input type="number" id="control-kimono-count" value="${defaultKimono}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-pink-50">
+                                    <input type="number" id="control-kimono-count" value="${defaultKimono}" placeholder="Qty" class="w-full p-3 text-base rounded-lg border border-slate-300 bg-pink-50">
                                 </div>
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-slate-500 uppercase">Note (Optional)</label>
-                                <input type="text" id="control-note" value="${defaultNote}" placeholder="e.g. Checked by John" class="w-full p-2 rounded-lg border border-slate-300">
+                                <input type="text" id="control-note" value="${defaultNote}" placeholder="e.g. Checked by John" class="w-full p-3 text-base rounded-lg border border-slate-300">
                             </div>
                             <button type="submit" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 mt-2">
                                 ${editLogId ? 'Update Record' : 'Save Record'}
@@ -1208,7 +1231,7 @@
                         <form id="recovery-form" onsubmit="window.handleRecoveryStep1(event)" class="space-y-4">
                             <div>
                                 <label class="text-xs font-bold text-slate-500">PHONE NUMBER</label>
-                                <input type="text" id="rec-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                                <input type="text" id="rec-phone" class="w-full p-3 text-base rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
                             </div>
                             <div id="recovery-error" class="text-center text-sm text-red-500 hidden"></div>
                             
@@ -1253,11 +1276,11 @@
                     <div class="space-y-4">
                         <div>
                             <label class="text-xs font-bold text-slate-500">SYSTEM PIN</label>
-                            <input type="password" id="reset-pin" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="Enter PIN">
+                            <input type="password" id="reset-pin" class="w-full p-3 text-base rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="Enter PIN">
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-500">NEW PASSWORD</label>
-                            <input type="password" id="new-pass" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                            <input type="password" id="new-pass" class="w-full p-3 text-base rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
                         </div>
                         <button type="button" onclick="window.handleRecoveryStep2('admin')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Update Password</button>
                     </div>
@@ -1419,15 +1442,7 @@
                 selectedDayIndex = -1; // -1 indicates custom past date
             }
             
-            // Re-render handled by the date picker change? 
-            // Actually, we don't need to re-render everything, just visual updates.
-            // But re-rendering is safer to ensure state consistency.
             renderIndividualDashboard();
-            
-            // Important: After re-render, the input value is reset by render logic.
-            // We need to ensure the picker keeps the custom value.
-            // The render logic sets picker value based on selectedDayIndex or override.
-            // We need a persistent state for the date picker if it's custom.
         }
 
         function handleSubmit() {
@@ -1490,15 +1505,11 @@
                     return;
                 }
                 fullDateString = targetDate.toLocaleDateString();
-                currentDayName = DAYS[targetDate.getDay() === 0 ? 6 : targetDate.getDay() - 1]; // Ensure Mon=0..Sun=6 mapping from JS Sun=0
-                // Fallback for when DAYS array might not perfectly align with Date.getDay if it was a custom range, but here it is standard Mon-Sun
-                // JS getDay(): Sun=0, Mon=1...Sat=6. 
-                // DAYS array: Mon=0, Tue=1...Sun=6.
                 const jsDay = targetDate.getDay();
                 const daysIdx = jsDay === 0 ? 6 : jsDay - 1;
                 currentDayName = DAYS[daysIdx];
             } else {
-                // Fallback to old logic (shouldn't happen with date picker present)
+                // Fallback
                 const now = new Date();
                 const jsDay = now.getDay(); 
                 const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
@@ -1537,12 +1548,6 @@
                 }
 
                 let prevBalanceBF = 0;
-                // Note: With backdating, simply taking the last history entry might be wrong if we are inserting into the past.
-                // Ideally, we should recalculate the whole chain.
-                // For now, we save it, then call recalculateBalances() which sorts and fixes everything.
-                // We just need a placeholder prevBalanceBF or 0.
-                
-                // Updated Formula Calculation
                 let stockValue = (premQty * premSP) + (cleanQty * cleanSP);
                 
                 if (dispatchedCount > 0) {
@@ -1702,11 +1707,6 @@
             if (!managedUser) return;
             const fullHistory = getFullHistory();
             
-            // Should delete the physically last added entry? Or the last chronological one?
-            // Typically "Delete Last" implies the most recent action (undo).
-            // But here "history" array stores the session.
-            // Let's stick to popping from history array which represents the current unsaved-to-archive session.
-            
             if (history.length === 0) {
                  showNotification("No recent entries to delete.");
                  return;
@@ -1719,8 +1719,6 @@
                 return;
             }
             
-            // Standard Mode Revert Logic for startingPressure is tricky with backdating.
-            // Simpler to just remove and recalculate.
             history.pop();
             recalculateBalances();
             showNotification(`Entry deleted.`);
@@ -1972,11 +1970,10 @@
             const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
             const dateInputVal = `${y}-${m}-${d}`;
             
-            let totalStock = 0;
+            let totalStockHeldByStaff = 0;
             let totalSalesToday = 0;
             let totalProfitToday = 0;
             
-            // These variables will hold the calculated totals for the dashboard
             let grandTotalDispatchedDresses = 0;
             let grandTotalDispatchedKimonos = 0;
 
@@ -1988,48 +1985,36 @@
                 const userHistory = JSON.parse(hStr);
                 const userArchive = JSON.parse(aStr);
                 const allEntries = [...userArchive, ...userHistory];
-                // sort for safety
                 allEntries.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
 
                 const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
-                
-                // --- FIXED AGGREGATION LOGIC START ---
                 
                 // Calculate User's Sales Today (Financials)
                 const userSalesToday = todayEntries.reduce((sum, e) => {
                     const legacy = Number(e.sold) || 0;
                     const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0) + (Number(e.soldKimonos)||0);
-                    // For pressure users, they might not track 'sold' count explicitly for stats, but we check anyway
                     return sum + (e.soldDresses !== undefined ? newFormat : legacy);
                 }, 0);
 
                 // Calculate User's Dispatched DRESSES/SUITS Today
                 const userDispatchedTodayDresses = todayEntries.reduce((sum, e) => {
                      if (user.enableReconciliation) {
-                         // Pressure Mode: Use 'dispatchedPieces' (which represents Dresses + 2Pcs)
-                         // Fallback to 'dispatched' only if pieces is missing and it's not a legacy combined record
                          return sum + (Number(e.dispatchedPieces) || 0);
                      } else {
-                         // Standard Mode: Explicitly sum Dresses and 2Pcs
                          return sum + (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0);
                      }
                 }, 0);
                 
                 // Calculate User's Dispatched KIMONOS Today
                 const userDispatchedTodayKimonos = todayEntries.reduce((sum, e) => {
-                     // Both modes now support explicit 'dispatchedKimonos'
                      return sum + (Number(e.dispatchedKimonos) || 0);
                 }, 0);
                 
-                // --- FIXED AGGREGATION LOGIC END ---
-
                 const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
                 
                 let currentRemDresses = 0;
                 let currentRemTwoPcs = 0;
                 let currentRemKimonos = 0;
-                
-                // Pressure mode balance
                 let pressureBalance = 0;
 
                 if (allEntries.length > 0) {
@@ -2050,11 +2035,10 @@
                     } catch(e) {}
                 }
 
-                totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
+                totalStockHeldByStaff += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
                 totalSalesToday += userSalesToday;
                 totalProfitToday += userProfitToday;
                 
-                // Add to Grand Totals
                 grandTotalDispatchedDresses += userDispatchedTodayDresses;
                 grandTotalDispatchedKimonos += userDispatchedTodayKimonos;
 
@@ -2105,30 +2089,38 @@
                 `;
             }).join('');
 
-            // Retrieve Data
+            // Retrieve Procurement Data
             const procLogs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-            const procData = procLogs[targetDateLocale];
+            const procData = procLogs[targetDateLocale] || {};
             
-            let procDresses = 0;
-            let procKimonos = 0;
-            if (procData) {
-                if (typeof procData === 'number') { procDresses = procData; } 
-                else { procDresses = procData.dresses || 0; procKimonos = procData.kimonos || 0; }
-            }
+            // New breakdown structure
+            const procCotton = procData.cotton || 0;
+            const procSweater = procData.sweater || 0;
+            const procKimonos = procData.kimonos || 0;
+            
+            // Aggregated for variance against staff (since staff don't split Cotton/Sweater yet)
+            const procTotalDresses = procCotton + procSweater; 
 
+            // Retrieve Controller Data
             const controllerLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
-            // Find controller log for this specific date
             const controllerLogForDate = controllerLogs.find(l => l.date === dateInputVal);
-            const physicalDresses = controllerLogForDate ? (controllerLogForDate.dressCount || controllerLogForDate.count || 0) : 0;
-            const physicalKimonos = controllerLogForDate ? (controllerLogForDate.kimonoCount || 0) : 0;
+            
+            const physCotton = controllerLogForDate ? (controllerLogForDate.cottonCount || 0) : 0;
+            const physSweater = controllerLogForDate ? (controllerLogForDate.sweaterCount || 0) : 0;
+            const physDressesTotal = physCotton + physSweater; // Legacy sum for comparison
+            const physKimonos = controllerLogForDate ? (controllerLogForDate.kimonoCount || 0) : 0;
 
             // Calculations
-            const varianceDresses = procDresses - grandTotalDispatchedDresses; // Expected to be remaining
-            const varianceKimonos = procKimonos - grandTotalDispatchedKimonos; // Expected to be remaining
-
-            // Final Missing Calculation: Variance (System Expected) - Physical Count
-            const finalMissingDresses = varianceDresses - physicalDresses;
-            const finalMissingKimonos = varianceKimonos - physicalKimonos;
+            // Expected in Office = Procurement - Dispatched
+            const expOfficeDresses = Math.max(0, procTotalDresses - grandTotalDispatchedDresses);
+            const expOfficeKimonos = Math.max(0, procKimonos - grandTotalDispatchedKimonos);
+            
+            // Variance = Expected - Physical
+            const varianceDresses = expOfficeDresses - physDressesTotal;
+            const varianceKimonos = expOfficeKimonos - physKimonos;
+            
+            // Total Stock Calculation (Staff Held + Office Stock)
+            const totalStockAllTime = totalStockHeldByStaff + expOfficeDresses + expOfficeKimonos;
 
             appElement.innerHTML = `
                 ${renderHeader()}
@@ -2139,7 +2131,7 @@
                     </div>
 
                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
+                        ${renderStatCard("Total Stock (With Staff + Office)", totalStockAllTime, "layers", "text-orange-600")}
                         ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
                         ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
                     </div>
@@ -2154,16 +2146,20 @@
                             <div class="flex flex-col gap-2">
                                 <input type="date" value="${dateInputVal}" 
                                     onchange="handleProcurementDateChange(this.value)"
-                                    class="p-3 w-full rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700">
+                                    class="p-3 w-full rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700 text-base">
                                 
-                                <div class="grid grid-cols-2 gap-2">
+                                <div class="grid grid-cols-3 gap-2">
                                     <div>
-                                        <label class="text-[10px] font-bold text-indigo-500 uppercase">Dresses/Suits</label>
-                                        <input type="number" id="procurement-dress-input" value="${procDresses || ''}" placeholder="Dresses" class="w-full p-3 rounded-xl bg-indigo-50 border border-indigo-100 outline-none focus:border-indigo-500 font-bold">
+                                        <label class="text-[10px] font-bold text-indigo-500 uppercase">Cotton</label>
+                                        <input type="number" id="procurement-cotton-input" value="${procCotton || ''}" placeholder="Qty" class="w-full p-3 rounded-xl bg-indigo-50 border border-indigo-100 outline-none focus:border-indigo-500 font-bold text-base">
                                     </div>
                                     <div>
-                                        <label class="text-[10px] font-bold text-pink-500 uppercase">Kimonos</label>
-                                        <input type="number" id="procurement-kimono-input" value="${procKimonos || ''}" placeholder="Kimonos" class="w-full p-3 rounded-xl bg-pink-50 border border-pink-100 outline-none focus:border-pink-500 font-bold">
+                                        <label class="text-[10px] font-bold text-purple-500 uppercase">Sweater</label>
+                                        <input type="number" id="procurement-sweater-input" value="${procSweater || ''}" placeholder="Qty" class="w-full p-3 rounded-xl bg-purple-50 border border-purple-100 outline-none focus:border-purple-500 font-bold text-base">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-pink-500 uppercase">Kimono</label>
+                                        <input type="number" id="procurement-kimono-input" value="${procKimonos || ''}" placeholder="Qty" class="w-full p-3 rounded-xl bg-pink-50 border border-pink-100 outline-none focus:border-pink-500 font-bold text-base">
                                     </div>
                                 </div>
                                 <div class="flex gap-2 mt-2">
@@ -2178,32 +2174,59 @@
                          <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-4 border border-slate-200">
                             <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Reconciliation (${targetDateLocale})</div>
                             
-                            <div class="grid grid-cols-4 gap-2 text-xs mb-2 border-b border-slate-200 pb-2">
-                                <span class="col-span-1 font-bold text-indigo-600">DRESSES</span>
-                                <span class="text-center">System Exp.</span>
-                                <span class="text-center">Physical</span>
-                                <span class="text-right">Variance</span>
+                            <!-- DRESSES (COTTON + SWEATER) VARIANCE -->
+                            <div class="grid grid-cols-4 gap-2 text-xs mb-3 border-b border-slate-200 pb-2">
+                                <div class="col-span-1 flex flex-col justify-center">
+                                    <span class="font-bold text-indigo-600">DRESSES</span>
+                                    <span class="text-[9px] text-slate-400">Cotton + Sweater</span>
+                                </div>
+                                
+                                <div class="flex flex-col text-center">
+                                    <span class="text-[9px] text-slate-400 uppercase">Exp. Office</span>
+                                    <span class="font-bold text-slate-700 py-1 bg-white rounded border border-slate-100" title="Procured (${procTotalDresses}) - Dispatched (${grandTotalDispatchedDresses})">
+                                        ${expOfficeDresses}
+                                    </span>
+                                </div>
 
-                                <span class="col-span-1 text-slate-500">Bought: ${procDresses}<br>Disp: ${grandTotalDispatchedDresses}</span>
-                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceDresses}</span>
-                                <span class="text-center font-bold text-indigo-700 py-2 bg-indigo-50 rounded border border-indigo-100">${physicalDresses}</span>
-                                <span class="text-right font-bold ${finalMissingDresses > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
-                                    ${finalMissingDresses > 0 ? `${finalMissingDresses} Miss` : (finalMissingDresses < 0 ? `${Math.abs(finalMissingDresses)} Extra` : 'OK')}
-                                </span>
+                                <div class="flex flex-col text-center">
+                                    <span class="text-[9px] text-slate-400 uppercase">Physical</span>
+                                    <span class="font-bold text-indigo-700 py-1 bg-indigo-50 rounded border border-indigo-100">
+                                        ${physDressesTotal}
+                                    </span>
+                                    <span class="text-[8px] text-indigo-400">C:${physCotton} S:${physSweater}</span>
+                                </div>
+
+                                <div class="flex flex-col text-right">
+                                    <span class="text-[9px] text-slate-400 uppercase">Missing</span>
+                                    <span class="font-bold ${varianceDresses > 0 ? 'text-red-600' : 'text-emerald-600'} py-1">
+                                        ${varianceDresses > 0 ? `${varianceDresses}` : (varianceDresses < 0 ? `+${Math.abs(varianceDresses)}` : 'OK')}
+                                    </span>
+                                </div>
                             </div>
 
+                            <!-- KIMONOS VARIANCE -->
                             <div class="grid grid-cols-4 gap-2 text-xs">
-                                <span class="col-span-1 font-bold text-pink-600">KIMONOS</span>
-                                <span class="text-center">System Exp.</span>
-                                <span class="text-center">Physical</span>
-                                <span class="text-right">Variance</span>
+                                <div class="col-span-1 flex flex-col justify-center">
+                                    <span class="font-bold text-pink-600">KIMONOS</span>
+                                </div>
+                                
+                                <div class="flex flex-col text-center">
+                                    <span class="font-bold text-slate-700 py-1 bg-white rounded border border-slate-100" title="Procured (${procKimonos}) - Dispatched (${grandTotalDispatchedKimonos})">
+                                        ${expOfficeKimonos}
+                                    </span>
+                                </div>
 
-                                <span class="col-span-1 text-slate-500">Bought: ${procKimonos}<br>Disp: ${grandTotalDispatchedKimonos}</span>
-                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceKimonos}</span>
-                                <span class="text-center font-bold text-pink-700 py-2 bg-pink-50 rounded border border-pink-100">${physicalKimonos}</span>
-                                <span class="text-right font-bold ${finalMissingKimonos > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
-                                    ${finalMissingKimonos > 0 ? `${finalMissingKimonos} Miss` : (finalMissingKimonos < 0 ? `${Math.abs(finalMissingKimonos)} Extra` : 'OK')}
-                                </span>
+                                <div class="flex flex-col text-center">
+                                    <span class="font-bold text-pink-700 py-1 bg-pink-50 rounded border border-pink-100">
+                                        ${physKimonos}
+                                    </span>
+                                </div>
+
+                                <div class="flex flex-col text-right">
+                                    <span class="font-bold ${varianceKimonos > 0 ? 'text-red-600' : 'text-emerald-600'} py-1">
+                                        ${varianceKimonos > 0 ? `${varianceKimonos}` : (varianceKimonos < 0 ? `+${Math.abs(varianceKimonos)}` : 'OK')}
+                                    </span>
+                                </div>
                             </div>
                          </div>
                     </div>
@@ -2222,8 +2245,9 @@
                                 <thead class="text-xs text-slate-700 uppercase bg-slate-50">
                                     <tr>
                                         <th class="px-4 py-3">Date</th>
-                                        <th class="px-4 py-3">Dresses/2Pcs Count</th>
-                                        <th class="px-4 py-3">Kimonos Count</th>
+                                        <th class="px-4 py-3">Cotton</th>
+                                        <th class="px-4 py-3">Sweater</th>
+                                        <th class="px-4 py-3">Kimonos</th>
                                         <th class="px-4 py-3">Notes</th>
                                         <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
@@ -2232,7 +2256,8 @@
                                     ${controllerLogs.length > 0 ? controllerLogs.slice(0, 5).map(log => `
                                         <tr class="bg-white border-b hover:bg-slate-50">
                                             <td class="px-4 py-2 font-medium text-slate-900">${log.date}</td>
-                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.dressCount !== undefined ? log.dressCount : (log.count||0)}</td>
+                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.cottonCount || 0}</td>
+                                            <td class="px-4 py-2 font-bold text-purple-600">${log.sweaterCount || 0}</td>
                                             <td class="px-4 py-2 font-bold text-pink-600">${log.kimonoCount || 0}</td>
                                             <td class="px-4 py-2">${log.note || '-'}</td>
                                             <td class="px-4 py-2 text-right flex justify-end gap-2">
@@ -2244,7 +2269,7 @@
                                                 </button>
                                             </td>
                                         </tr>
-                                    `).join('') : `<tr><td colspan="5" class="px-4 py-4 text-center">No records yet.</td></tr>`}
+                                    `).join('') : `<tr><td colspan="6" class="px-4 py-4 text-center">No records yet.</td></tr>`}
                                 </tbody>
                             </table>
                         </div>
@@ -2320,9 +2345,6 @@
 
             // Determine what date the picker should show
             // If selectedDayIndex is valid (0-6), calculate that date relative to today's week
-            // Else if -1, it means we are in custom mode, we need to preserve the picker value from DOM if possible, 
-            // or default to today if not. Since we are re-rendering, we might lose DOM state.
-            // Let's calculate the date from selectedDayIndex if it's >= 0
             
             let pickerValue = "";
             const currentJsDay = now.getDay();
@@ -2334,20 +2356,10 @@
                  d.setDate(now.getDate() - diff);
                  pickerValue = d.toISOString().split('T')[0];
             } else {
-                 // Check if we have a stored value in DOM before overwrite? 
-                 // It's hard in vanilla JS literal string render.
-                 // We'll default to today if switching modes, or we rely on the user picking again.
-                 // For better UX, let's default to today if index is -1
                  pickerValue = now.toISOString().split('T')[0];
             }
             
-            // However, if we just clicked a date in the picker, we want that date. 
-            // The handleDateChange function updates selectedDayIndex. 
-            // If the user picked a date last month, selectedDayIndex is -1.
-            // We need to know WHAT date they picked to render it back.
-            // We can add a temporary global `customDateOverride` variable for this specific UI state.
-            
-            // Let's grab the existing value if it exists in the DOM
+            // Preserve picker if existing
             const existingPicker = document.getElementById('entry-date-picker');
             if (existingPicker && selectedDayIndex === -1) {
                 pickerValue = existingPicker.value;
@@ -2355,7 +2367,7 @@
 
             appElement.innerHTML = `
                 ${renderHeader()}
-                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6 pb-64 md:pb-6">
                     
                     <div class="flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
                         <div class="flex items-center gap-3">
@@ -2400,7 +2412,7 @@
                                                 value="${pickerValue}" 
                                                 max="${now.toISOString().split('T')[0]}"
                                                 onchange="window.handleDateChange(this)"
-                                                class="w-full p-2 pl-9 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white shadow-sm">
+                                                class="w-full p-2 pl-9 text-base font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white shadow-sm">
                                             <div class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                                                 ${renderIcon('calendar', {class:'w-4 h-4'})}
                                             </div>
@@ -2432,17 +2444,17 @@
                                         <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100 space-y-3">
                                             <div>
                                                 <label class="text-[10px] font-bold text-indigo-800 uppercase">Market Name</label>
-                                                <input type="text" id="rec-market" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="e.g. Kamukunji">
+                                                <input type="text" id="rec-market" class="w-full p-3 text-base rounded-lg border border-indigo-200" placeholder="e.g. Kamukunji">
                                             </div>
 
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (Total)</label>
-                                                    <input type="number" id="rec-dispatched-pieces" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Dresses/2pc">
+                                                    <input type="number" id="rec-dispatched-pieces" class="w-full p-3 text-base rounded-lg border border-indigo-200" placeholder="Dresses/2pc">
                                                 </div>
                                                 <div>
                                                     <label class="text-[10px] font-bold text-pink-600 uppercase">Dispatched Kimonos</label>
-                                                    <input type="number" id="rec-dispatched-kimonos" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50" placeholder="Kimonos">
+                                                    <input type="number" id="rec-dispatched-kimonos" class="w-full p-3 text-base rounded-lg border border-pink-200 bg-pink-50" placeholder="Kimonos">
                                                 </div>
                                             </div>
                                             
@@ -2451,11 +2463,11 @@
                                                 <div class="grid grid-cols-2 gap-2">
                                                     <div>
                                                         <label class="text-[9px] text-slate-500 font-bold">Qty</label>
-                                                        <input type="number" id="rec-prem-qty" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                        <input type="number" id="rec-prem-qty" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                     </div>
                                                     <div>
                                                         <label class="text-[9px] text-slate-500 font-bold">SP</label>
-                                                        <input type="number" id="rec-prem-sp" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Price">
+                                                        <input type="number" id="rec-prem-sp" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="Price">
                                                     </div>
                                                 </div>
                                             </div>
@@ -2465,11 +2477,11 @@
                                                 <div class="grid grid-cols-2 gap-2">
                                                     <div>
                                                         <label class="text-[9px] text-slate-500 font-bold">Qty</label>
-                                                        <input type="number" id="rec-clean-qty" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                        <input type="number" id="rec-clean-qty" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                     </div>
                                                     <div>
                                                         <label class="text-[9px] text-slate-500 font-bold">SP</label>
-                                                        <input type="number" id="rec-clean-sp" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Price">
+                                                        <input type="number" id="rec-clean-sp" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="Price">
                                                     </div>
                                                 </div>
                                             </div>
@@ -2479,7 +2491,7 @@
                                         <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-3">
                                             <div>
                                                 <label class="text-[10px] font-bold text-emerald-600 uppercase">Amount Sent</label>
-                                                <input type="number" id="rec-sent" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50 font-bold" placeholder="Amount remitted">
+                                                <input type="number" id="rec-sent" class="w-full p-3 text-base rounded-lg border border-emerald-200 bg-emerald-50 font-bold" placeholder="Amount remitted">
                                             </div>
                                             <div>
                                                 <label class="text-[10px] font-bold text-slate-400 mb-1 block">Expenses List</label>
@@ -2497,11 +2509,11 @@
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
-                                                    <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    <input type="number" id="dispatch-dress" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                 </div>
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Sold</label>
-                                                    <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    <input type="number" id="sales-dress" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                 </div>
                                             </div>
                                         </div>
@@ -2511,11 +2523,11 @@
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
-                                                    <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    <input type="number" id="dispatch-2pc" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                 </div>
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Sold</label>
-                                                    <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    <input type="number" id="sales-2pc" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                 </div>
                                             </div>
                                         </div>
@@ -2525,11 +2537,11 @@
                                             <div class="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
-                                                    <input type="number" id="dispatch-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    <input type="number" id="dispatch-kimono" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                 </div>
                                                 <div>
                                                     <label class="text-[10px] font-bold text-slate-500">Sold</label>
-                                                    <input type="number" id="sales-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    <input type="number" id="sales-kimono" class="w-full p-3 text-base rounded-lg border border-slate-200" placeholder="0">
                                                 </div>
                                             </div>
                                         </div>
@@ -2675,7 +2687,7 @@
                             <p class="text-sm text-slate-500 mb-6">Enter System PIN to create the first Admin account.</p>
 
                             <div class="space-y-4">
-                                <input type="password" id="system-pin-input" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 text-center tracking-widest text-lg" placeholder="PIN">
+                                <input type="password" id="system-pin-input" class="w-full p-3 text-base rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 text-center tracking-widest text-lg" placeholder="PIN">
                                 <p id="pin-error" class="text-red-500 text-xs hidden">Invalid PIN. Try "2580"</p>
                                 <button onclick="verifySystemPin()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition">Unlock System</button>
                             </div>
@@ -2709,16 +2721,16 @@
                             ${showAdminCreation ? `
                             <div>
                                 <label class="text-xs font-bold text-slate-500">ADMIN NAME</label>
-                                <input type="text" id="auth-name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="e.g. Trinah Admin">
+                                <input type="text" id="auth-name" class="w-full p-3 text-base rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="e.g. Trinah Admin">
                             </div>` : ''}
                             
                             <div>
                                 <label class="text-xs font-bold text-slate-500">PHONE</label>
-                                <input type="text" id="auth-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                                <input type="text" id="auth-phone" class="w-full p-3 text-base rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-500">PASSWORD</label>
-                                <input type="password" id="auth-password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                                <input type="password" id="auth-password" class="w-full p-3 text-base rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
                             </div>
                             
                             <div class="flex justify-end pt-1">
