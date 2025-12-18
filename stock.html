@@ -196,15 +196,16 @@
                             <button onclick="setView('customers')" class="nav-item px-4 py-2 text-sm font-medium hover:text-indigo-300">External Sales</button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <div class="hidden sm:flex items-center bg-white/5 border border-white/10 rounded-2xl px-3 py-1.5 focus-within:bg-white/10 transition-colors">
-                            <i class="fas fa-calendar-alt text-indigo-400 mr-2 text-sm"></i>
-                            <input type="date" id="datePicker" class="bg-transparent text-white border-none p-0 focus:ring-0 outline-none text-sm cursor-pointer w-32">
+                    <div class="flex items-center gap-2 sm:gap-4">
+                        <!-- Mobile-Visible Date Picker -->
+                        <div class="flex items-center bg-white/5 border border-white/10 rounded-2xl px-2 sm:px-3 py-1.5 focus-within:bg-white/10 transition-colors">
+                            <i class="fas fa-calendar-alt text-indigo-400 mr-1 sm:mr-2 text-xs sm:text-sm"></i>
+                            <input type="date" id="datePicker" class="bg-transparent text-white border-none p-0 focus:ring-0 outline-none text-xs sm:text-sm cursor-pointer w-24 sm:w-32">
                         </div>
                         <button onclick="preparePrint()" class="hidden sm:flex items-center bg-white text-slate-900 px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-indigo-50 transition-all shadow-xl active:scale-95">
                             <i class="fas fa-file-export mr-2"></i>Export PDF
                         </button>
-                        <button onclick="toggleMobileMenu()" class="lg:hidden text-2xl p-2"><i class="fas fa-bars"></i></button>
+                        <button onclick="toggleMobileMenu()" class="lg:hidden text-xl p-2"><i class="fas fa-bars"></i></button>
                     </div>
                 </div>
             </div>
@@ -216,6 +217,7 @@
                 <button onclick="setView('dashboard')">Dashboard</button>
                 <button onclick="setView('staff')">Staff Dispatch</button>
                 <button onclick="setView('customers')">External Sales</button>
+                <button onclick="preparePrint()" class="text-lg bg-white text-slate-900 px-6 py-2 rounded-xl">Export PDF</button>
                 <button onclick="toggleMobileMenu()" class="text-white/40 text-sm font-medium uppercase tracking-widest">Close Menu</button>
             </div>
         </div>
@@ -242,25 +244,28 @@
                         <div class="glass-card rounded-[2rem] p-8 animate-fade-in stagger-1">
                             <div class="flex items-center justify-between mb-6">
                                 <h2 class="text-xl font-bold">Procurement</h2>
-                                <i class="fas fa-plus text-indigo-500 bg-indigo-50 p-2 rounded-lg no-print"></i>
+                                <i class="fas fa-truck-loading text-indigo-500 bg-indigo-50 p-2 rounded-lg no-print"></i>
                             </div>
                             <div class="space-y-5" id="procurementInputs">
                                 <div class="relative">
                                     <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Cotton Dresses</label>
-                                    <input type="number" onchange="updateDailyStock('cotton', this.value)" id="in-cotton" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                    <input type="number" id="in-cotton" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg" placeholder="0">
                                 </div>
                                 <div class="relative">
                                     <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Sweater Dresses</label>
-                                    <input type="number" onchange="updateDailyStock('sweater', this.value)" id="in-sweater" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                    <input type="number" id="in-sweater" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg" placeholder="0">
                                 </div>
                                 <div class="relative">
                                     <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Mother's Dresses</label>
-                                    <input type="number" onchange="updateDailyStock('mother', this.value)" id="in-mother" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                    <input type="number" id="in-mother" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg" placeholder="0">
                                 </div>
                                 <div class="relative">
                                     <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Kimonos</label>
-                                    <input type="number" onchange="updateDailyStock('kimono', this.value)" id="in-kimono" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                    <input type="number" id="in-kimono" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg" placeholder="0">
                                 </div>
+                                <button onclick="saveProcurementBatch()" id="btnSaveProc" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 mt-4 active:scale-95">
+                                    <i class="fas fa-save"></i> Save Procurement
+                                </button>
                             </div>
                         </div>
 
@@ -277,7 +282,6 @@
                                     </div>
                                     <span class="text-sm font-medium text-white/80 group-hover:text-white transition-colors">Stock verified as correct</span>
                                 </label>
-                                <!-- Textarea with dark text on white background for visibility -->
                                 <textarea id="confirmComment" oninput="saveConfirmation()" placeholder="Any discrepancies or notes..." class="w-full p-4 bg-white rounded-2xl border-none text-slate-800 placeholder:text-slate-400 text-sm h-24 outline-none resize-none font-medium shadow-inner focus:ring-2 focus:ring-indigo-400 transition-all"></textarea>
                             </div>
                         </div>
@@ -498,7 +502,8 @@
 
         function setView(view) {
             ['dashboard', 'staff', 'customers'].forEach(v => {
-                document.getElementById(`${v}View`).classList.add('hidden');
+                const el = document.getElementById(`${v}View`);
+                if(el) el.classList.add('hidden');
             });
             document.getElementById(`${view}View`).classList.remove('hidden');
             document.getElementById('mobileMenu').classList.add('hidden');
@@ -520,9 +525,27 @@
             return summary;
         }
 
-        function updateDailyStock(category, val) {
+        // New Batch Save Function for Procurement
+        function saveProcurementBatch() {
+            const btn = document.getElementById('btnSaveProc');
+            const originalText = btn.innerHTML;
+            
             if (!state.procurement[currentDate]) state.procurement[currentDate] = {};
-            state.procurement[currentDate][category] = Number(val);
+            
+            Object.keys(CATEGORIES).forEach(cat => {
+                const input = document.getElementById(`in-${cat}`);
+                state.procurement[currentDate][cat] = Number(input.value) || 0;
+            });
+
+            // UI Feedback
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Saved Successfully';
+            btn.classList.replace('bg-slate-900', 'bg-emerald-600');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.replace('bg-emerald-600', 'bg-slate-900');
+            }, 2000);
+
             saveState();
         }
 
@@ -611,86 +634,104 @@
 
             const summary = calculateStock();
             const container = document.getElementById('summaryCards');
-            container.innerHTML = '';
-            Object.keys(CATEGORIES).forEach(cat => {
-                const c = CATEGORIES[cat];
-                container.innerHTML += `
-                    <div class="glass-card rounded-3xl p-6 relative overflow-hidden group">
-                        <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-700 no-print"></div>
-                        <p class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 flex items-center">
-                            <span class="category-dot" style="background: ${c.color}"></span> ${c.label}
-                        </p>
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-4xl font-black" style="color: ${c.color}">${summary[cat]}</span>
-                            <span class="text-xs font-bold text-slate-400">PCS</span>
+            if (container) {
+                container.innerHTML = '';
+                Object.keys(CATEGORIES).forEach(cat => {
+                    const c = CATEGORIES[cat];
+                    container.innerHTML += `
+                        <div class="glass-card rounded-3xl p-6 relative overflow-hidden group">
+                            <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-700 no-print"></div>
+                            <p class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                                <span class="category-dot" style="background: ${c.color}"></span> ${c.label}
+                            </p>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-black" style="color: ${c.color}">${summary[cat]}</span>
+                                <span class="text-xs font-bold text-slate-400">PCS</span>
+                            </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
 
             const daily = state.procurement[currentDate] || {};
-            Object.keys(CATEGORIES).forEach(cat => document.getElementById(`in-${cat}`).value = daily[cat] || 0);
-
-            const dailyLog = state.dispatches.filter(d => d.date === currentDate);
-            document.getElementById('activityCount').innerText = `${dailyLog.length} Records`;
-            const listEl = document.getElementById('dispatchList');
-            listEl.innerHTML = dailyLog.length ? '' : '<tr><td colspan="5" class="py-20 text-center text-slate-400 font-medium">No activity for this date</td></tr>';
-            dailyLog.forEach(d => {
-                const isInternal = d.type === 'internal';
-                const c = CATEGORIES[d.category];
-                listEl.innerHTML += `
-                    <tr class="group hover:bg-white/40 transition-colors">
-                        <td class="py-5 px-2">
-                            <div class="font-bold text-slate-800">${d.recipient}</div>
-                        </td>
-                        <td class="py-5 px-2">
-                            <span class="text-[10px] font-black uppercase px-2 py-1 rounded-md ${isInternal ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}">
-                                ${isInternal ? 'Team' : 'Customer'}
-                            </span>
-                        </td>
-                        <td class="py-5 px-2">
-                            <span class="text-xs font-bold px-3 py-1 rounded-full" style="background: ${c.bg}; color: ${c.text}">
-                                ${c.label}
-                            </span>
-                        </td>
-                        <td class="py-5 px-2 font-black text-slate-700">${d.qty}</td>
-                        <td class="py-5 px-2 text-right no-print">
-                            <button onclick="deleteDispatch(${d.id})" class="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
+            Object.keys(CATEGORIES).forEach(cat => {
+                const input = document.getElementById(`in-${cat}`);
+                if (input) input.value = daily[cat] || "";
             });
 
-            document.getElementById('staffSelect').innerHTML = '<option value="">Choose Recipient</option>' + state.staff.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-            document.getElementById('customerSelect').innerHTML = '<option value="">Choose Profile</option>' + state.customers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            const dailyLog = state.dispatches.filter(d => d.date === currentDate);
+            const countEl = document.getElementById('activityCount');
+            if (countEl) countEl.innerText = `${dailyLog.length} Records`;
+            
+            const listEl = document.getElementById('dispatchList');
+            if (listEl) {
+                listEl.innerHTML = dailyLog.length ? '' : '<tr><td colspan="5" class="py-20 text-center text-slate-400 font-medium">No activity for this date</td></tr>';
+                dailyLog.forEach(d => {
+                    const isInternal = d.type === 'internal';
+                    const c = CATEGORIES[d.category];
+                    listEl.innerHTML += `
+                        <tr class="group hover:bg-white/40 transition-colors">
+                            <td class="py-5 px-2">
+                                <div class="font-bold text-slate-800">${d.recipient}</div>
+                            </td>
+                            <td class="py-5 px-2">
+                                <span class="text-[10px] font-black uppercase px-2 py-1 rounded-md ${isInternal ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}">
+                                    ${isInternal ? 'Team' : 'Customer'}
+                                </span>
+                            </td>
+                            <td class="py-5 px-2">
+                                <span class="text-xs font-bold px-3 py-1 rounded-full" style="background: ${c.bg}; color: ${c.text}">
+                                    ${c.label}
+                                </span>
+                            </td>
+                            <td class="py-5 px-2 font-black text-slate-700">${d.qty}</td>
+                            <td class="py-5 px-2 text-right no-print">
+                                <button onclick="deleteDispatch(${d.id})" class="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            const staffSel = document.getElementById('staffSelect');
+            if (staffSel) staffSel.innerHTML = '<option value="">Choose Recipient</option>' + state.staff.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            
+            const custSel = document.getElementById('customerSelect');
+            if (custSel) custSel.innerHTML = '<option value="">Choose Profile</option>' + state.customers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 
             const sList = document.getElementById('staffList');
-            sList.innerHTML = state.staff.map(s => `
-                <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
-                    <span class="font-bold">${s.name}</span>
-                    <button onclick="deleteStaff(${s.id})" class="text-white/20 hover:text-red-400 transition-colors"><i class="fas fa-times"></i></button>
-                </div>
-            `).join('') || '<p class="text-center text-white/20 py-10">No staff members</p>';
+            if (sList) {
+                sList.innerHTML = state.staff.map(s => `
+                    <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                        <span class="font-bold">${s.name}</span>
+                        <button onclick="deleteStaff(${s.id})" class="text-white/20 hover:text-red-400 transition-colors"><i class="fas fa-times"></i></button>
+                    </div>
+                `).join('') || '<p class="text-center text-white/20 py-10">No staff members</p>';
+            }
 
             const custReg = document.getElementById('customerRegistryList');
-            custReg.innerHTML = state.customers.map(c => `
-                <div class="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 group">
-                    <div>
-                        <div class="font-bold text-slate-900">${c.name}</div>
-                        <div class="text-[10px] font-bold text-slate-400">${c.phone || 'NO CONTACT'}</div>
+            if (custReg) {
+                custReg.innerHTML = state.customers.map(c => `
+                    <div class="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 group">
+                        <div>
+                            <div class="font-bold text-slate-900">${c.name}</div>
+                            <div class="text-[10px] font-bold text-slate-400">${c.phone || 'NO CONTACT'}</div>
+                        </div>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editCustomer(${c.id})" class="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg"><i class="fas fa-edit text-sm"></i></button>
+                            <button onclick="deleteCustomer(${c.id})" class="p-2 text-red-300 hover:bg-red-50 rounded-lg"><i class="fas fa-trash text-sm"></i></button>
+                        </div>
                     </div>
-                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="editCustomer(${c.id})" class="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg"><i class="fas fa-edit text-sm"></i></button>
-                        <button onclick="deleteCustomer(${c.id})" class="p-2 text-red-300 hover:bg-red-50 rounded-lg"><i class="fas fa-trash text-sm"></i></button>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-center text-slate-400 py-10 font-medium">Registry Empty</p>';
+                `).join('') || '<p class="text-center text-slate-400 py-10 font-medium">Registry Empty</p>';
+            }
 
             const verify = state.verifications[currentDate] || { checked: false, text: '' };
-            document.getElementById('confirmCheckbox').checked = verify.checked;
-            document.getElementById('confirmComment').value = verify.text;
+            const chk = document.getElementById('confirmCheckbox');
+            const comm = document.getElementById('confirmComment');
+            if (chk) chk.checked = verify.checked;
+            if (comm) comm.value = verify.text;
         }
     </script>
 </body>
