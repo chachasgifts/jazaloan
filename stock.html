@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trina Designs Stock Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --brand-primary: #4f46e5;
+            --brand-secondary: #10b981;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.03), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: #818cf8;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-item:hover::after {
+            width: 100%;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+
+        input, select, textarea {
+            transition: all 0.2s ease;
+            border: 1px solid transparent !important;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            background: white !important;
+            border-color: #818cf8 !important;
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.1) !important;
+        }
+
+        .category-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        /* --- PRINT STYLES --- */
+        #printOnly { display: none; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { 
+                background: white; 
+                color: #000;
+                padding: 0;
+                margin: 0;
+            }
+            main {
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+            .glass-card { 
+                border: 1px solid #e2e8f0 !important; 
+                box-shadow: none !important; 
+                backdrop-filter: none !important;
+                background: white !important;
+                border-radius: 12px !important;
+                break-inside: avoid;
+            }
+            #printOnly { 
+                display: block !important; 
+            }
+            .print-header {
+                border-bottom: 2px solid #1e293b;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+            }
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                border-top: 1px solid #e2e8f0;
+                padding-top: 10px;
+                font-size: 10px;
+                color: #64748b;
+                display: flex;
+                justify-content: space-between;
+            }
+            .watermark {
+                position: fixed;
+                bottom: 50px;
+                right: 50px;
+                opacity: 0.1;
+                font-size: 40px;
+                font-weight: 900;
+                transform: rotate(-15deg);
+                pointer-events: none;
+                z-index: -1;
+            }
+            .ledger-table {
+                width: 100% !important;
+                border-collapse: collapse;
+            }
+            .ledger-table th, .ledger-table td {
+                border-bottom: 1px solid #f1f5f9;
+                padding: 10px 5px;
+            }
+            .grid { display: block !important; }
+            .grid > div { margin-bottom: 20px; width: 100%; }
+            #summaryCards {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 10px !important;
+            }
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-slate-900 antialiased">
+
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Print-Only Header -->
+        <div id="printOnly" class="p-8">
+            <div class="print-header">
+                <div>
+                    <h1 class="text-3xl font-black text-slate-900">STOCK AUDIT REPORT</h1>
+                    <p class="text-sm font-bold text-indigo-600 uppercase tracking-widest">Trina Designs • Operations Division</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs font-bold text-slate-400">REPORT GENERATED</p>
+                    <p class="text-lg font-bold" id="printTimestamp"></p>
+                </div>
+            </div>
+            <div class="watermark">TRINA DESIGNS</div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="bg-slate-900/95 backdrop-blur-md text-white sticky top-0 z-50 no-print border-b border-white/10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-20">
+                    <div class="flex items-center gap-8">
+                        <div class="flex items-center group cursor-pointer" onclick="setView('dashboard')">
+                            <div class="bg-indigo-600 p-2 rounded-xl mr-3 group-hover:rotate-12 transition-transform">
+                                <i class="fas fa-gem text-white"></i>
+                            </div>
+                            <span class="text-xl font-extrabold tracking-tight">TRINA DESIGNS</span>
+                        </div>
+                        <div class="hidden lg:flex items-center space-x-1">
+                            <button onclick="setView('dashboard')" class="nav-item px-4 py-2 text-sm font-medium hover:text-indigo-300">Dashboard</button>
+                            <button onclick="setView('staff')" class="nav-item px-4 py-2 text-sm font-medium hover:text-indigo-300">Staff Dispatch</button>
+                            <button onclick="setView('customers')" class="nav-item px-4 py-2 text-sm font-medium hover:text-indigo-300">External Sales</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="hidden sm:flex items-center bg-white/5 border border-white/10 rounded-2xl px-3 py-1.5 focus-within:bg-white/10 transition-colors">
+                            <i class="fas fa-calendar-alt text-indigo-400 mr-2 text-sm"></i>
+                            <input type="date" id="datePicker" class="bg-transparent text-white border-none p-0 focus:ring-0 outline-none text-sm cursor-pointer w-32">
+                        </div>
+                        <button onclick="preparePrint()" class="hidden sm:flex items-center bg-white text-slate-900 px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-indigo-50 transition-all shadow-xl active:scale-95">
+                            <i class="fas fa-file-export mr-2"></i>Export PDF
+                        </button>
+                        <button onclick="toggleMobileMenu()" class="lg:hidden text-2xl p-2"><i class="fas fa-bars"></i></button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden fixed inset-0 z-40 bg-slate-900/90 backdrop-blur-xl lg:hidden no-print">
+            <div class="flex flex-col items-center justify-center h-full space-y-8 text-2xl font-bold text-white">
+                <button onclick="setView('dashboard')">Dashboard</button>
+                <button onclick="setView('staff')">Staff Dispatch</button>
+                <button onclick="setView('customers')">External Sales</button>
+                <button onclick="toggleMobileMenu()" class="text-white/40 text-sm font-medium uppercase tracking-widest">Close Menu</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-grow px-4 py-8 md:p-10 max-w-7xl mx-auto w-full">
+            
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="animate-fade-in">
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4 border-b border-slate-100 pb-8">
+                    <div>
+                        <span class="text-indigo-600 font-bold tracking-widest text-xs uppercase mb-2 block">System Analytics</span>
+                        <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight" id="currentDateDisplay">Today</h1>
+                        <p class="text-slate-500 mt-1 no-print">Real-time inventory and logistics monitoring.</p>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div id="summaryCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                    <!-- Left: Procurement -->
+                    <div class="lg:col-span-4 space-y-8">
+                        <div class="glass-card rounded-[2rem] p-8 animate-fade-in stagger-1">
+                            <div class="flex items-center justify-between mb-6">
+                                <h2 class="text-xl font-bold">Procurement</h2>
+                                <i class="fas fa-plus text-indigo-500 bg-indigo-50 p-2 rounded-lg no-print"></i>
+                            </div>
+                            <div class="space-y-5" id="procurementInputs">
+                                <div class="relative">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Cotton Dresses</label>
+                                    <input type="number" onchange="updateDailyStock('cotton', this.value)" id="in-cotton" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                </div>
+                                <div class="relative">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Sweater Dresses</label>
+                                    <input type="number" onchange="updateDailyStock('sweater', this.value)" id="in-sweater" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                </div>
+                                <div class="relative">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Mother's Dresses</label>
+                                    <input type="number" onchange="updateDailyStock('mother', this.value)" id="in-mother" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                </div>
+                                <div class="relative">
+                                    <label class="text-[11px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Kimonos</label>
+                                    <input type="number" onchange="updateDailyStock('kimono', this.value)" id="in-kimono" class="w-full mt-1 p-4 bg-slate-50 rounded-2xl font-bold text-lg">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verification -->
+                        <div class="glass-card rounded-[2rem] p-8 bg-indigo-900 text-white animate-fade-in stagger-2">
+                            <h2 class="text-lg font-bold mb-4 flex items-center">
+                                <i class="fas fa-check-double mr-2 text-indigo-400"></i> Day Verification
+                            </h2>
+                            <div class="space-y-4">
+                                <label class="flex items-center group cursor-pointer">
+                                    <input type="checkbox" id="confirmCheckbox" onchange="saveConfirmation()" class="hidden peer">
+                                    <div class="w-6 h-6 border-2 border-white/20 rounded-md flex items-center justify-center mr-3 peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-all">
+                                        <i class="fas fa-check text-xs text-white"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-white/80 group-hover:text-white transition-colors">Stock verified as correct</span>
+                                </label>
+                                <!-- Textarea with dark text on white background for visibility -->
+                                <textarea id="confirmComment" oninput="saveConfirmation()" placeholder="Any discrepancies or notes..." class="w-full p-4 bg-white rounded-2xl border-none text-slate-800 placeholder:text-slate-400 text-sm h-24 outline-none resize-none font-medium shadow-inner focus:ring-2 focus:ring-indigo-400 transition-all"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Activity Ledger -->
+                    <div class="lg:col-span-8 animate-fade-in stagger-3">
+                        <div class="glass-card rounded-[2rem] p-8 min-h-full flex flex-col">
+                            <div class="flex items-center justify-between mb-8">
+                                <h2 class="text-xl font-bold">Activity Ledger</h2>
+                                <div class="flex gap-2 no-print">
+                                    <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold" id="activityCount">0 items</span>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto custom-scroll flex-grow">
+                                <table class="w-full text-left ledger-table">
+                                    <thead>
+                                        <tr class="text-[11px] font-bold uppercase text-slate-400 tracking-widest border-b border-slate-100">
+                                            <th class="pb-4 px-2">Recipient</th>
+                                            <th class="pb-4 px-2">Channel</th>
+                                            <th class="pb-4 px-2">Category</th>
+                                            <th class="pb-4 px-2">Qty</th>
+                                            <th class="pb-4 px-2 text-right no-print"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dispatchList" class="divide-y divide-slate-50"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- Print Notes Section -->
+                            <div class="mt-10 pt-10 border-t border-slate-100 hidden print:block">
+                                <h3 class="text-sm font-black text-slate-800 uppercase mb-4">Official Dispatch Notes</h3>
+                                <div class="p-6 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-600 leading-relaxed italic" id="printNotesDisplay">
+                                    No additional notes recorded for this cycle.
+                                </div>
+                                <div class="mt-10 flex justify-between items-end">
+                                    <div class="border-t-2 border-slate-900 w-48 pt-2">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Authorized Signature</p>
+                                    </div>
+                                    <div class="border-t-2 border-slate-900 w-48 pt-2">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Verification Stamp</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff View -->
+            <div id="staffView" class="hidden animate-fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                    <div class="lg:col-span-7">
+                        <div class="glass-card rounded-[2rem] p-10">
+                            <h2 class="text-3xl font-extrabold text-slate-900 mb-2">Internal Dispatch</h2>
+                            <p class="text-slate-500 mb-10">Record stock issued to your constant team members.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Staff Member</label>
+                                    <select id="staffSelect" class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
+                                        <option value="">Choose Recipient</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Category</label>
+                                    <select id="staffCategorySelect" class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
+                                        <option value="cotton">Cotton Dresses</option>
+                                        <option value="sweater">Sweater Dresses</option>
+                                        <option value="mother">Mother's Dresses</option>
+                                        <option value="kimono">Kimonos</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2 space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Quantity Issued</label>
+                                    <input type="number" id="staffQtyInput" placeholder="Enter amount" class="w-full p-4 bg-slate-50 rounded-2xl text-lg font-bold">
+                                </div>
+                            </div>
+                            
+                            <button onclick="addDispatch('internal')" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-extrabold text-lg hover:bg-indigo-700 hover:shadow-2xl hover:shadow-indigo-200 transition-all active:scale-95">
+                                <i class="fas fa-paper-plane mr-2"></i>Issue to Staff
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-5">
+                        <div class="glass-card rounded-[2rem] p-10 bg-slate-900 text-white h-full">
+                            <h2 class="text-xl font-bold mb-8">Team Registry</h2>
+                            <div class="flex gap-2 mb-8">
+                                <input type="text" id="newStaffName" placeholder="New staff name..." class="flex-grow p-4 bg-white/10 rounded-2xl border-none outline-none text-white placeholder:text-white/30 font-medium">
+                                <button onclick="addStaffMember()" class="bg-indigo-500 hover:bg-indigo-400 px-6 rounded-2xl transition-colors font-bold">Add</button>
+                            </div>
+                            <div id="staffList" class="space-y-3 overflow-y-auto max-h-[400px] pr-2 custom-scroll"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers View -->
+            <div id="customersView" class="hidden animate-fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                    <div class="lg:col-span-7">
+                        <div class="glass-card rounded-[2rem] p-10 border-emerald-100 border-2 shadow-emerald-50 shadow-2xl">
+                            <div class="flex items-center gap-4 mb-2">
+                                <div class="bg-emerald-100 p-2 rounded-xl">
+                                    <i class="fas fa-shopping-basket text-emerald-600"></i>
+                                </div>
+                                <h2 class="text-3xl font-extrabold text-slate-900">External Sale</h2>
+                            </div>
+                            <p class="text-slate-500 mb-10">Record purchases from one-time or repeat external customers.</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Buyer Profile</label>
+                                    <select id="customerSelect" class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none"></select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Category</label>
+                                    <select id="custCategorySelect" class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
+                                        <option value="cotton">Cotton Dresses</option>
+                                        <option value="sweater">Sweater Dresses</option>
+                                        <option value="mother">Mother's Dresses</option>
+                                        <option value="kimono">Kimonos</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-2 space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Quantity Sold</label>
+                                    <input type="number" id="custQtyInput" placeholder="Pieces sold" class="w-full p-4 bg-slate-50 rounded-2xl text-lg font-bold">
+                                </div>
+                            </div>
+                            
+                            <button onclick="addDispatch('external')" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-extrabold text-lg hover:bg-emerald-700 hover:shadow-2xl hover:shadow-emerald-200 transition-all active:scale-95">
+                                <i class="fas fa-cash-register mr-2"></i>Complete Sale
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-5">
+                        <div class="glass-card rounded-[2rem] p-10">
+                            <h2 class="text-xl font-bold mb-6">Customer Database</h2>
+                            <div class="space-y-4 mb-10 p-6 bg-slate-50 rounded-[1.5rem] border border-slate-100">
+                                <input type="hidden" id="editCustomerId">
+                                <div class="space-y-4">
+                                    <input type="text" id="custName" placeholder="Full Name" class="w-full p-4 bg-white rounded-xl shadow-sm outline-none">
+                                    <input type="text" id="custPhone" placeholder="Mobile Contact" class="w-full p-4 bg-white rounded-xl shadow-sm outline-none">
+                                    <button onclick="saveCustomer()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all">Save Customer Profile</button>
+                                </div>
+                            </div>
+                            <div id="customerRegistryList" class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scroll"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        
+        <footer class="p-10 text-center text-slate-400 text-sm no-print">
+            <div class="flex justify-center space-x-6 mb-4">
+                <i class="fab fa-instagram"></i>
+                <i class="fab fa-facebook"></i>
+                <i class="fas fa-envelope"></i>
+            </div>
+            <p class="font-medium">TRINA DESIGNS • PREMIER STOCK ENGINE &copy; 2024</p>
+            <p class="text-[10px] mt-1 opacity-50">DESIGNED FOR EXCELLENCE</p>
+        </footer>
+
+        <!-- Official Print Footer -->
+        <div class="print-footer hidden print:flex">
+            <div>&copy; 2024 Trina Designs Inventory Systems • Confidential Financial Document</div>
+            <div>Made with Trina Designs • Page 1 of 1</div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let currentDate = new Date().toISOString().split('T')[0];
+        let state = {
+            procurement: JSON.parse(localStorage.getItem('trina_proc_v2')) || {},
+            dispatches: JSON.parse(localStorage.getItem('trina_disp_v2')) || [],
+            staff: JSON.parse(localStorage.getItem('trina_staff_v2')) || [],
+            customers: JSON.parse(localStorage.getItem('trina_cust_v2')) || [],
+            verifications: JSON.parse(localStorage.getItem('trina_verify_v2')) || {}
+        };
+
+        const CATEGORIES = {
+            cotton: { label: "Cotton Dresses", color: "#6366f1", bg: "#eef2ff", text: "#4338ca" },
+            sweater: { label: "Sweater Dresses", color: "#ec4899", bg: "#fdf2f8", text: "#be185d" },
+            mother: { label: "Mother's Dresses", color: "#10b981", bg: "#ecfdf5", text: "#047857" },
+            kimono: { label: "Kimonos", color: "#f59e0b", bg: "#fffbeb", text: "#b45309" }
+        };
+
+        window.onload = () => {
+            const dp = document.getElementById('datePicker');
+            dp.value = currentDate;
+            dp.addEventListener('change', (e) => {
+                currentDate = e.target.value;
+                render();
+            });
+            render();
+        };
+
+        function preparePrint() {
+            document.getElementById('printTimestamp').innerText = new Date().toLocaleString();
+            const note = document.getElementById('confirmComment').value;
+            document.getElementById('printNotesDisplay').innerText = note || "Stock verified. No significant discrepancies reported for this entry.";
+            window.print();
+        }
+
+        function saveState() {
+            localStorage.setItem('trina_proc_v2', JSON.stringify(state.procurement));
+            localStorage.setItem('trina_disp_v2', JSON.stringify(state.dispatches));
+            localStorage.setItem('trina_staff_v2', JSON.stringify(state.staff));
+            localStorage.setItem('trina_cust_v2', JSON.stringify(state.customers));
+            localStorage.setItem('trina_verify_v2', JSON.stringify(state.verifications));
+            render();
+        }
+
+        function setView(view) {
+            ['dashboard', 'staff', 'customers'].forEach(v => {
+                document.getElementById(`${v}View`).classList.add('hidden');
+            });
+            document.getElementById(`${view}View`).classList.remove('hidden');
+            document.getElementById('mobileMenu').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        function calculateStock() {
+            const summary = { cotton: 0, sweater: 0, mother: 0, kimono: 0 };
+            Object.values(state.procurement).forEach(day => {
+                Object.keys(CATEGORIES).forEach(cat => summary[cat] += (Number(day[cat]) || 0));
+            });
+            state.dispatches.forEach(d => {
+                if(summary[d.category] !== undefined) summary[d.category] -= (Number(d.qty) || 0);
+            });
+            return summary;
+        }
+
+        function updateDailyStock(category, val) {
+            if (!state.procurement[currentDate]) state.procurement[currentDate] = {};
+            state.procurement[currentDate][category] = Number(val);
+            saveState();
+        }
+
+        function addStaffMember() {
+            const name = document.getElementById('newStaffName').value.trim();
+            if(!name) return;
+            state.staff.push({ id: Date.now(), name });
+            document.getElementById('newStaffName').value = '';
+            saveState();
+        }
+
+        function deleteStaff(id) {
+            state.staff = state.staff.filter(s => s.id !== id);
+            saveState();
+        }
+
+        function addDispatch(type) {
+            let recipient, category, qty;
+            if(type === 'internal') {
+                recipient = document.getElementById('staffSelect').value;
+                category = document.getElementById('staffCategorySelect').value;
+                qty = document.getElementById('staffQtyInput').value;
+            } else {
+                recipient = document.getElementById('customerSelect').value;
+                category = document.getElementById('custCategorySelect').value;
+                qty = document.getElementById('custQtyInput').value;
+            }
+            if(!recipient || !qty || qty <= 0) return;
+            state.dispatches.push({
+                id: Date.now(),
+                date: currentDate,
+                recipient, type, category,
+                qty: Number(qty)
+            });
+            document.getElementById('staffQtyInput').value = '';
+            document.getElementById('custQtyInput').value = '';
+            setView('dashboard');
+            saveState();
+        }
+
+        function deleteDispatch(id) {
+            state.dispatches = state.dispatches.filter(d => d.id !== id);
+            saveState();
+        }
+
+        function saveCustomer() {
+            const id = document.getElementById('editCustomerId').value;
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            if(!name) return;
+            if(id) {
+                const idx = state.customers.findIndex(c => c.id == id);
+                state.customers[idx] = { ...state.customers[idx], name, phone };
+            } else {
+                state.customers.push({ id: Date.now(), name, phone });
+            }
+            document.getElementById('editCustomerId').value = '';
+            document.getElementById('custName').value = '';
+            document.getElementById('custPhone').value = '';
+            saveState();
+        }
+
+        function editCustomer(id) {
+            const c = state.customers.find(c => c.id == id);
+            document.getElementById('editCustomerId').value = c.id;
+            document.getElementById('custName').value = c.name;
+            document.getElementById('custPhone').value = c.phone;
+        }
+
+        function deleteCustomer(id) {
+            state.customers = state.customers.filter(c => c.id != id);
+            saveState();
+        }
+
+        function saveConfirmation() {
+            const checked = document.getElementById('confirmCheckbox').checked;
+            const text = document.getElementById('confirmComment').value;
+            state.verifications[currentDate] = { checked, text };
+            localStorage.setItem('trina_verify_v2', JSON.stringify(state.verifications));
+        }
+
+        function render() {
+            const dateObj = new Date(currentDate);
+            const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            document.getElementById('currentDateDisplay').innerText = dateStr;
+
+            const summary = calculateStock();
+            const container = document.getElementById('summaryCards');
+            container.innerHTML = '';
+            Object.keys(CATEGORIES).forEach(cat => {
+                const c = CATEGORIES[cat];
+                container.innerHTML += `
+                    <div class="glass-card rounded-3xl p-6 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-700 no-print"></div>
+                        <p class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                            <span class="category-dot" style="background: ${c.color}"></span> ${c.label}
+                        </p>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-black" style="color: ${c.color}">${summary[cat]}</span>
+                            <span class="text-xs font-bold text-slate-400">PCS</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const daily = state.procurement[currentDate] || {};
+            Object.keys(CATEGORIES).forEach(cat => document.getElementById(`in-${cat}`).value = daily[cat] || 0);
+
+            const dailyLog = state.dispatches.filter(d => d.date === currentDate);
+            document.getElementById('activityCount').innerText = `${dailyLog.length} Records`;
+            const listEl = document.getElementById('dispatchList');
+            listEl.innerHTML = dailyLog.length ? '' : '<tr><td colspan="5" class="py-20 text-center text-slate-400 font-medium">No activity for this date</td></tr>';
+            dailyLog.forEach(d => {
+                const isInternal = d.type === 'internal';
+                const c = CATEGORIES[d.category];
+                listEl.innerHTML += `
+                    <tr class="group hover:bg-white/40 transition-colors">
+                        <td class="py-5 px-2">
+                            <div class="font-bold text-slate-800">${d.recipient}</div>
+                        </td>
+                        <td class="py-5 px-2">
+                            <span class="text-[10px] font-black uppercase px-2 py-1 rounded-md ${isInternal ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}">
+                                ${isInternal ? 'Team' : 'Customer'}
+                            </span>
+                        </td>
+                        <td class="py-5 px-2">
+                            <span class="text-xs font-bold px-3 py-1 rounded-full" style="background: ${c.bg}; color: ${c.text}">
+                                ${c.label}
+                            </span>
+                        </td>
+                        <td class="py-5 px-2 font-black text-slate-700">${d.qty}</td>
+                        <td class="py-5 px-2 text-right no-print">
+                            <button onclick="deleteDispatch(${d.id})" class="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('staffSelect').innerHTML = '<option value="">Choose Recipient</option>' + state.staff.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            document.getElementById('customerSelect').innerHTML = '<option value="">Choose Profile</option>' + state.customers.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+
+            const sList = document.getElementById('staffList');
+            sList.innerHTML = state.staff.map(s => `
+                <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                    <span class="font-bold">${s.name}</span>
+                    <button onclick="deleteStaff(${s.id})" class="text-white/20 hover:text-red-400 transition-colors"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('') || '<p class="text-center text-white/20 py-10">No staff members</p>';
+
+            const custReg = document.getElementById('customerRegistryList');
+            custReg.innerHTML = state.customers.map(c => `
+                <div class="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 group">
+                    <div>
+                        <div class="font-bold text-slate-900">${c.name}</div>
+                        <div class="text-[10px] font-bold text-slate-400">${c.phone || 'NO CONTACT'}</div>
+                    </div>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="editCustomer(${c.id})" class="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg"><i class="fas fa-edit text-sm"></i></button>
+                        <button onclick="deleteCustomer(${c.id})" class="p-2 text-red-300 hover:bg-red-50 rounded-lg"><i class="fas fa-trash text-sm"></i></button>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-center text-slate-400 py-10 font-medium">Registry Empty</p>';
+
+            const verify = state.verifications[currentDate] || { checked: false, text: '' };
+            document.getElementById('confirmCheckbox').checked = verify.checked;
+            document.getElementById('confirmComment').value = verify.text;
+        }
+    </script>
+</body>
+</html>
