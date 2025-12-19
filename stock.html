@@ -130,6 +130,8 @@
                             <i class="fas fa-file-pdf mr-2 text-red-500"></i>Download PDF
                         </button>
                         <button onclick="toggleMobileMenu()" class="lg:hidden text-xl p-2"><i class="fas fa-bars"></i></button>
+                        <button onclick="resetAllData()"class="hidden sm:flex items-center bg-red-600 text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-red-700 transition-all shadow-xl active:scale-95 no-print">
+                <i class="fas fa-trash mr-2"></i>Reset All </button>
                     </div>
                 </div>
             </div>
@@ -143,6 +145,8 @@
                 <button onclick="setView('customers')">External Sales</button>
                 <button onclick="downloadPDF()" class="text-lg bg-white text-slate-900 px-6 py-2 rounded-xl">Download PDF</button>
                 <button onclick="toggleMobileMenu()" class="text-white/40 text-sm font-medium uppercase tracking-widest">Close Menu</button>
+                <button onclick="resetAllData()"class="hidden sm:flex items-center bg-red-600 text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-red-700 transition-all shadow-xl active:scale-95 no-print">
+                <i class="fas fa-trash mr-2"></i>Reset All </button>
             </div>
         </div>
 
@@ -850,6 +854,39 @@ function addDispatch(type) {
             if (chk) chk.checked = verify.checked;
             if (comm) comm.value = verify.text;
         }
+    function resetAllData() {
+    const confirmReset = confirm(
+        "⚠️ WARNING!\n\nThis will permanently delete:\n" +
+        "- All procurement records\n" +
+        "- All dispatch logs\n" +
+        "- All staff & customers\n" +
+        "- All verifications\n\n" +
+        "This action CANNOT be undone.\n\nProceed?"
+    );
+
+    if (!confirmReset) return;
+
+    // Clear localStorage
+    localStorage.removeItem('trina_proc_v2');
+    localStorage.removeItem('trina_disp_v2');
+    localStorage.removeItem('trina_staff_v2');
+    localStorage.removeItem('trina_cust_v2');
+    localStorage.removeItem('trina_verify_v2');
+
+    // Reset in-memory state
+    state = {
+        procurement: {},
+        dispatches: [],
+        staff: [],
+        customers: [],
+        verifications: {}
+    };
+
+    alert("✅ All data has been successfully reset.");
+
+    render();
+}
+
     </script>
 </body>
 </html>
