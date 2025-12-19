@@ -215,13 +215,18 @@
 
         function isEntryLocked(entry) {
             if (!entry) return false;
-            // Lock if more than 1 week (168 hours) have passed since entry creation
-            // Note: If sorting by timestamp is used, id is still creation time
-            const entryTime = entry.id; 
-            const timeSinceCreation = Date.now() - entryTime;
-            const lockDuration = 168 * 60 * 60 * 1000; // 1 week in milliseconds
-            return timeSinceCreation > lockDuration;
+
+            // Use logical entry date, not creation time
+            const entryDate = entry.sortTimestamp 
+                || (entry.fullDate ? new Date(entry.fullDate).getTime() : entry.id);
+
+            const now = Date.now();
+            const lockDuration = 168 * 60 * 60 * 1000; // 1 week
+
+            // Only lock if entry date is in the past AND older than 1 week
+            return entryDate < now && (now - entryDate) > lockDuration;
         }
+
 
         function getFilteredHistory() {
             const fullHistory = getFullHistory();
@@ -1387,12 +1392,6 @@
             const selectedDate = new Date(dateInput.value);
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            
-            if (selectedDate > today) {
-                showNotification("Cannot select future dates.");
-                dateInput.value = now.toISOString().split('T')[0];
-                return;
-            }
 
             // Check if selected date is in the current week (Mon-Sun)
             const currentDay = now.getDay();
@@ -1484,10 +1483,7 @@
                 targetDate = new Date(datePicker.value);
                 const now = new Date();
                 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                if (targetDate > today) {
-                    showNotification("Cannot add future entries.");
-                    return;
-                }
+                
                 fullDateString = targetDate.toLocaleDateString();
                 currentDayName = DAYS[targetDate.getDay() === 0 ? 6 : targetDate.getDay() - 1]; // Ensure Mon=0..Sun=6 mapping from JS Sun=0
                 // Fallback for when DAYS array might not perfectly align with Date.getDay if it was a custom range, but here it is standard Mon-Sun
@@ -1502,10 +1498,7 @@
                 const jsDay = now.getDay(); 
                 const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
 
-                if (selectedDayIndex > mappedDay) {
-                    showNotification("Cannot add future entries.");
-                    return;
-                }
+                // allow future week entries
                 const dayDiff = mappedDay - selectedDayIndex;
                 targetDate = new Date();
                 targetDate.setDate(now.getDate() - dayDiff);
