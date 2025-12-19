@@ -132,6 +132,10 @@
                         <button onclick="toggleMobileMenu()" class="lg:hidden text-xl p-2"><i class="fas fa-bars"></i></button>
                         <button onclick="resetAllData()"class="hidden sm:flex items-center bg-red-600 text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-red-700 transition-all shadow-xl active:scale-95 no-print">
                 <i class="fas fa-trash mr-2"></i>Reset All </button>
+                        <button onclick="triggerRestore()"
+                            class="hidden sm:flex items-center bg-slate-800 text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-slate-900 transition-all shadow-xl">
+                            <i class="fas fa-upload mr-2"></i>Restore Backup
+                        </button>
                     </div>
                 </div>
             </div>
@@ -149,6 +153,11 @@
                     class="flex items-center bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-lg hover:bg-red-700 transition-all active:scale-95 no-print">
                     <i class="fas fa-trash mr-2"></i>Reset All Data
                 </button>
+                <button onclick="triggerRestore()"
+                    class="flex items-center bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-lg">
+                    <i class="fas fa-upload mr-2"></i>Restore Backup
+                </button>
+
             </div>
         </div>
 
@@ -408,6 +417,30 @@
     </div>
 
     <script>
+        async function deriveKeyFromPin(pin, salt) {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(pin),
+        "PBKDF2",
+        false,
+        ["deriveKey"]
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt,
+            iterations: 100000,
+            hash: "SHA-256"
+        },
+        baseKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+    );
+}
+
         // --- State Management ---
         let currentDate = new Date().toISOString().split('T')[0];
         let state = {
@@ -952,38 +985,63 @@ function addDispatch(type) {
             if (chk) chk.checked = verify.checked;
             if (comm) comm.value = verify.text;
         }
-function resetAllData() {
+async function backupAppDataEncrypted(pin) {
+    const backup = {
+        app: APP_NAMESPACE,
+        createdAt: new Date().toISOString(),
+        data: {}
+    };
 
-    // 🔐 Mobile-only PIN protection
-    if (window.innerWidth < 640) {
-        const pin = prompt("Enter admin PIN to reset:");
-        if (pin !== "1234") {
-            alert("Unauthorized");
-            return;
-        }
-    }
+    Object.entries(STORAGE_KEYS).forEach(([key, storageKey]) => {
+        const raw = localStorage.getItem(storageKey);
+        backup.data[key] = raw ? JSON.parse(raw) : null;
+    });
+
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKeyFromPin(pin, salt);
+
+    const encoded = new TextEncoder().encode(JSON.stringify(backup));
+    const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encoded
+    );
+
+    const payload = {
+        salt: Array.from(salt),
+        iv: Array.from(iv),
+        ciphertext: Array.from(new Uint8Array(encrypted))
+    };
+
+    const blob = new Blob(
+        [JSON.stringify(payload)],
+        { type: "application/octet-stream" }
+    );
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${APP_NAMESPACE}_backup.enc`;
+    a.click();
+}
+async function resetAllData() {
+
+    const pin = prompt("Enter admin PIN to encrypt backup:");
+    if (!pin) return alert("Backup cancelled");
 
     const confirmReset = confirm(
-        "⚠️ WARNING!\n\n" +
-        "This will permanently delete ALL data:\n" +
-        "- Procurement records\n" +
-        "- Dispatch logs\n" +
-        "- Staff & customers\n" +
-        "- Verifications\n\n" +
-        "This action CANNOT be undone.\n\n" +
-        "Proceed?"
+        "⚠️ A PIN-ENCRYPTED BACKUP will be created.\n\n" +
+        "This will permanently delete all app data.\n\nProceed?"
     );
 
     if (!confirmReset) return;
 
-    // 🧹 Clear localStorage
-    localStorage.removeItem('trina_proc_v2');
-    localStorage.removeItem('trina_disp_v2');
-    localStorage.removeItem('trina_staff_v2');
-    localStorage.removeItem('trina_cust_v2');
-    localStorage.removeItem('trina_verify_v2');
+    await backupAppDataEncrypted(pin);
 
-    // 🔄 Reset runtime state
+    Object.values(STORAGE_KEYS).forEach(key => {
+        localStorage.removeItem(key);
+    });
+
     state = {
         procurement: {},
         dispatches: [],
@@ -992,10 +1050,66 @@ function resetAllData() {
         verifications: {}
     };
 
-    alert("✅ All data has been successfully reset.");
-
+    alert("✅ Encrypted backup saved. Data reset complete.");
     render();
 }
+function triggerRestore() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".enc";
+
+    input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+
+        const pin = prompt("Enter PIN to decrypt backup:");
+        if (!pin) return alert("Restore cancelled");
+
+        try {
+            const text = await file.text();
+            const payload = JSON.parse(text);
+
+            const salt = new Uint8Array(payload.salt);
+            const iv = new Uint8Array(payload.iv);
+            const ciphertext = new Uint8Array(payload.ciphertext);
+
+            const key = await deriveKeyFromPin(pin, salt);
+
+            const decrypted = await crypto.subtle.decrypt(
+                { name: "AES-GCM", iv },
+                key,
+                ciphertext
+            );
+
+            const backup = JSON.parse(
+                new TextDecoder().decode(decrypted)
+            );
+
+            if (backup.app !== APP_NAMESPACE) {
+                return alert("❌ This backup is for a different app.");
+            }
+
+            Object.entries(STORAGE_KEYS).forEach(([key, storageKey]) => {
+                if (backup.data[key]) {
+                    localStorage.setItem(
+                        storageKey,
+                        JSON.stringify(backup.data[key])
+                    );
+                }
+            });
+
+            alert("✅ Backup restored successfully.");
+            location.reload();
+
+        } catch (err) {
+            console.error(err);
+            alert("❌ Invalid PIN or corrupted backup.");
+        }
+    };
+
+    input.click();
+}
+
     </script>
 </body>
 </html>
