@@ -240,11 +240,12 @@
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Category</label>
-                                    <select id="staffCategorySelect" class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
+                                    <select id="staffCategorySelect" multiple class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
                                         <option value="cotton">Cotton Dresses</option>
                                         <option value="sweater">Sweater Dresses</option>
                                         <option value="mother">Mother's Dresses</option>
                                         <option value="kimono">Kimonos</option>
+                                        <option value="2pcs">2 Pcs</option>
                                     </select>
                                 </div>
                                 <div class="md:col-span-2 space-y-2">
@@ -289,11 +290,12 @@
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Category</label>
-                                    <select id="custCategorySelect" class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
+                                    <select id="custCategorySelect" multiple class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
                                         <option value="cotton">Cotton Dresses</option>
                                         <option value="sweater">Sweater Dresses</option>
                                         <option value="mother">Mother's Dresses</option>
                                         <option value="kimono">Kimonos</option>
+                                        <option value="2pcs">2 Pcs</option>
                                     </select>
                                 </div>
                                 <div class="md:col-span-2 space-y-2">
@@ -379,11 +381,13 @@
         };
 
         const CATEGORIES = {
-            cotton: { label: "Cotton Dresses", color: "#6366f1", bg: "#eef2ff", text: "#4338ca" },
-            sweater: { label: "Sweater Dresses", color: "#ec4899", bg: "#fdf2f8", text: "#be185d" },
-            mother: { label: "Mother's Dresses", color: "#10b981", bg: "#ecfdf5", text: "#047857" },
-            kimono: { label: "Kimonos", color: "#f59e0b", bg: "#fffbeb", text: "#b45309" }
+             cotton: { label: "Cotton Dresses", color: "#6366f1", bg: "#eef2ff", text: "#4338ca" },
+             sweater: { label: "Sweater Dresses", color: "#ec4899", bg: "#fdf2f8", text: "#be185d" },
+             mother: { label: "Mother's Dresses", color: "#10b981", bg: "#ecfdf5", text: "#047857" },
+            kimono: { label: "Kimonos", color: "#f59e0b", bg: "#fffbeb", text: "#b45309" },
+            "2pcs": { label: "2 Pcs", color:"#0ea5e9", bg:"#e0f2fe", text:"#0369a1"}
         };
+
 
         window.onload = () => {
             const dp = document.getElementById('datePicker');
@@ -556,28 +560,41 @@
         }
 
         function addDispatch(type) {
-            let recipient, category, qty;
-            if(type === 'internal') {
-                recipient = document.getElementById('staffSelect').value;
-                category = document.getElementById('staffCategorySelect').value;
-                qty = document.getElementById('staffQtyInput').value;
-            } else {
-                recipient = document.getElementById('customerSelect').value;
-                category = document.getElementById('custCategorySelect').value;
-                qty = document.getElementById('custQtyInput').value;
-            }
-            if(!recipient || !qty || qty <= 0) return;
-            state.dispatches.push({
-                id: Date.now(),
-                date: currentDate,
-                recipient, type, category,
-                qty: Number(qty)
-            });
-            document.getElementById('staffQtyInput').value = '';
-            document.getElementById('custQtyInput').value = '';
-            setView('dashboard');
-            saveState();
-        }
+    let recipient, categories, qty;
+
+    if (type === 'internal') {
+        recipient = document.getElementById('staffSelect').value;
+        categories = Array.from(
+            document.getElementById('staffCategorySelect').selectedOptions
+        ).map(o => o.value);
+        qty = document.getElementById('staffQtyInput').value;
+    } else {
+        recipient = document.getElementById('customerSelect').value;
+        categories = Array.from(
+            document.getElementById('custCategorySelect').selectedOptions
+        ).map(o => o.value);
+        qty = document.getElementById('custQtyInput').value;
+    }
+
+    if (!recipient || !categories.length || !qty || qty <= 0) return;
+
+    categories.forEach(category => {
+        state.dispatches.push({
+            id: Date.now() + Math.random(),
+            date: currentDate,
+            recipient,
+            type,
+            category,
+            qty: Number(qty)
+        });
+    });
+
+    document.getElementById('staffQtyInput').value = '';
+    document.getElementById('custQtyInput').value = '';
+
+    setView('dashboard');
+    saveState();
+}
 
         function deleteDispatch(id) {
             state.dispatches = state.dispatches.filter(d => d.id !== id);
