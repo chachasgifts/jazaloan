@@ -240,13 +240,23 @@
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Category</label>
-                                    <select id="staffCategorySelect" multiple class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
-                                        <option value="cotton">Cotton Dresses</option>
-                                        <option value="sweater">Sweater Dresses</option>
-                                        <option value="mother">Mother's Dresses</option>
-                                        <option value="kimono">Kimonos</option>
-                                        <option value="2pcs">2 Pcs</option>
-                                    </select>
+                                    <div id="staffCategorySelect" class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl">
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="cotton"> Cotton Dresses
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="sweater"> Sweater Dresses
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="mother"> Mother's Dresses
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="kimono"> Kimonos
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="2pcs"> 2 Pcs
+                                    </label>
+                                </div>
                                 </div>
                                 <div class="md:col-span-2 space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Quantity Issued</label>
@@ -290,13 +300,23 @@
                                 </div>
                                 <div class="space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Category</label>
-                                    <select id="custCategorySelect" multiple class="w-full p-4 bg-slate-50 rounded-2xl font-medium appearance-none">
-                                        <option value="cotton">Cotton Dresses</option>
-                                        <option value="sweater">Sweater Dresses</option>
-                                        <option value="mother">Mother's Dresses</option>
-                                        <option value="kimono">Kimonos</option>
-                                        <option value="2pcs">2 Pcs</option>
-                                    </select>
+                                    <div id="custCategorySelect" class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl">
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="cotton"> Cotton Dresses
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="sweater"> Sweater Dresses
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="mother"> Mother's Dresses
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                        <input type="checkbox" value="kimono"> Kimonos
+                                    </label>
+                                    <label class="flex items-center gap-2 font-medium">
+                                    <input type="checkbox" value="2pcs"> 2 Pcs
+                                    </label>
+                                </div>
                                 </div>
                                 <div class="md:col-span-2 space-y-2">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Quantity Sold</label>
@@ -578,24 +598,32 @@
             saveState();
         }
 
-        function addDispatch(type) {
+        let dispatchLock = false;
+
+function addDispatch(type) {
+    if (dispatchLock) return;
+    dispatchLock = true;
+
     let recipient, categories, qty;
 
     if (type === 'internal') {
         recipient = document.getElementById('staffSelect').value;
         categories = Array.from(
-            document.getElementById('staffCategorySelect').selectedOptions
-        ).map(o => o.value);
+            document.querySelectorAll('#staffCategorySelect input:checked')
+        ).map(cb => cb.value);
         qty = document.getElementById('staffQtyInput').value;
     } else {
         recipient = document.getElementById('customerSelect').value;
         categories = Array.from(
-            document.getElementById('custCategorySelect').selectedOptions
-        ).map(o => o.value);
+            document.querySelectorAll('#custCategorySelect input:checked')
+        ).map(cb => cb.value);
         qty = document.getElementById('custQtyInput').value;
     }
 
-    if (!recipient || !categories.length || !qty || qty <= 0) return;
+    if (!recipient || !categories.length || !qty || qty <= 0) {
+        dispatchLock = false;
+        return;
+    }
 
     categories.forEach(category => {
         state.dispatches.push({
@@ -608,11 +636,19 @@
         });
     });
 
-    document.getElementById('staffQtyInput').value = '';
-    document.getElementById('custQtyInput').value = '';
+    // Clear qty only (keep staff/customer selected)
+    document.getElementById(type === 'internal' ? 'staffQtyInput' : 'custQtyInput').value = '';
 
-    setView('dashboard');
+    // Uncheck categories so user can select new ones
+    document
+        .querySelectorAll(type === 'internal'
+            ? '#staffCategorySelect input'
+            : '#custCategorySelect input')
+        .forEach(cb => cb.checked = false);
+
     saveState();
+
+    setTimeout(() => dispatchLock = false, 600);
 }
 
         function deleteDispatch(id) {
