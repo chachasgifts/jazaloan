@@ -145,8 +145,10 @@
                 <button onclick="setView('customers')">External Sales</button>
                 <button onclick="downloadPDF()" class="text-lg bg-white text-slate-900 px-6 py-2 rounded-xl">Download PDF</button>
                 <button onclick="toggleMobileMenu()" class="text-white/40 text-sm font-medium uppercase tracking-widest">Close Menu</button>
-                <button onclick="resetAllData()"class="hidden sm:flex items-center bg-red-600 text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:bg-red-700 transition-all shadow-xl active:scale-95 no-print">
-                <i class="fas fa-trash mr-2"></i>Reset All </button>
+                <button onclick="resetAllData()"
+                    class="flex items-center bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-lg hover:bg-red-700 transition-all active:scale-95 no-print">
+                    <i class="fas fa-trash mr-2"></i>Reset All Data
+                </button>
             </div>
         </div>
 
@@ -435,96 +437,192 @@
             render();
         };
 
-        async function downloadPDF() {
-            const btn = document.getElementById('downloadBtn');
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
-            btn.disabled = true;
+async function downloadPDF() {
+    const btn = document.getElementById('downloadBtn');
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
+    btn.disabled = true;
 
-            const captureArea = document.getElementById('pdf-capture-area');
-            const dateStr = new Date(currentDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            const summary = calculateStock();
-            const verification = state.verifications[currentDate] || { checked: false, text: '' };
-            const proc = state.procurement[currentDate] || {};
+    const captureArea = document.getElementById('pdf-capture-area');
 
-            // Construct a fancy, single-page Dashboard summary for the PDF
-            captureArea.innerHTML = `
-                <div style="padding: 40px; font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 30px;">
-                        <div>
-                            <h1 style="font-size: 28px; font-weight: 800; margin: 0; color: #0f172a;">STOCK AUDIT REPORT</h1>
-                            <p style="font-size: 12px; font-weight: 700; color: #4f46e5; margin: 5px 0 0 0; letter-spacing: 2px; text-transform: uppercase;">Trina Designs Operations</p>
-                        </div>
-                        <div style="text-align: right;">
-                            <p style="font-size: 10px; font-weight: 700; color: #94a3b8; margin: 0; text-transform: uppercase;">Audit Date</p>
-                            <p style="font-size: 16px; font-weight: 700; margin: 0;">${dateStr}</p>
-                        </div>
+    const dateStr = new Date(currentDate).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    });
+
+    const summary = calculateStock();
+    const verification = state.verifications[currentDate] || { checked: false, text: '' };
+    const proc = state.procurement[currentDate] || {};
+    const dailyLog = state.dispatches.filter(d => d.date === currentDate);
+
+    /* ---------- GROUP LEDGER ---------- */
+    const groupedLedger = {};
+
+    dailyLog.forEach(d => {
+        const key = d.recipient + '|' + d.type;
+        if (!groupedLedger[key]) {
+            groupedLedger[key] = {
+                recipient: d.recipient,
+                type: d.type,
+                cotton: 0,
+                sweater: 0,
+                mother: 0,
+                kimono: 0,
+                "2pcs": 0
+            };
+        }
+        groupedLedger[key][d.category] += Number(d.qty) || 0;
+    });
+
+    /* ---------- BUILD LEDGER ROWS ---------- */
+    let ledgerRows = '';
+
+    if (Object.keys(groupedLedger).length === 0) {
+        ledgerRows = `
+            <tr>
+                <td colspan="7" style="padding:20px; text-align:center; color:#94a3b8; font-style:italic;">
+                    No activity recorded for this date.
+                </td>
+            </tr>
+        `;
+    } else {
+        Object.values(groupedLedger).forEach(row => {
+            ledgerRows += `
+                <tr style="border-top:1px solid #f1f5f9;">
+                    <td style="padding:10px; font-weight:700;">${row.recipient}</td>
+                    <td style="padding:10px; text-align:center; font-weight:700;">
+                        ${row.type === 'internal' ? 'Team' : 'Customer'}
+                    </td>
+                    <td style="padding:10px; text-align:center;">${row.cotton || '-'}</td>
+                    <td style="padding:10px; text-align:center;">${row.sweater || '-'}</td>
+                    <td style="padding:10px; text-align:center;">${row.mother || '-'}</td>
+                    <td style="padding:10px; text-align:center;">${row.kimono || '-'}</td>
+                    <td style="padding:10px; text-align:center;">${row["2pcs"] || '-'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    /* ---------- BUILD PDF HTML ---------- */
+    captureArea.innerHTML = `
+        <div style="padding:40px; font-family:'Plus Jakarta Sans', sans-serif; color:#1e293b;">
+
+            <!-- HEADER -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #f1f5f9; padding-bottom:20px; margin-bottom:30px;">
+                <div>
+                    <h1 style="font-size:28px; font-weight:800; margin:0; color:#0f172a;">STOCK AUDIT REPORT</h1>
+                    <p style="font-size:12px; font-weight:700; color:#4f46e5; margin-top:5px; letter-spacing:2px; text-transform:uppercase;">
+                        Trina Designs Operations
+                    </p>
+                </div>
+                <div style="text-align:right;">
+                    <p style="font-size:10px; font-weight:700; color:#94a3b8; margin:0; text-transform:uppercase;">Audit Date</p>
+                    <p style="font-size:16px; font-weight:700; margin:0;">${dateStr}</p>
+                </div>
+            </div>
+
+            <!-- INVENTORY SUMMARY -->
+            <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:15px; letter-spacing:1px;">
+                Live Inventory Levels
+            </h2>
+
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:40px;">
+                ${Object.keys(CATEGORIES).map(cat => `
+                    <div style="background:#f8fafc; border:1px solid #f1f5f9; padding:15px; border-radius:12px;">
+                        <p style="font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase; margin-bottom:8px;">
+                            ${CATEGORIES[cat].label}
+                        </p>
+                        <p style="font-size:24px; font-weight:900; color:${CATEGORIES[cat].color}; margin:0;">
+                            ${summary[cat]} <span style="font-size:10px; color:#cbd5e1;">PCS</span>
+                        </p>
                     </div>
+                `).join('')}
+            </div>
 
-                    <h2 style="font-size: 14px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 15px; letter-spacing: 1px;">Live Inventory Levels</h2>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px;">
+            <!-- PROCUREMENT + VERIFICATION -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-bottom:40px;">
+                <div>
+                    <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:15px;">
+                        Procurement Inflow
+                    </h2>
+                    <div style="border:1px solid #f1f5f9; border-radius:16px; padding:15px;">
                         ${Object.keys(CATEGORIES).map(cat => `
-                            <div style="background: #f8fafc; border: 1px solid #f1f5f9; padding: 15px; border-radius: 12px;">
-                                <p style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin: 0 0 8px 0;">${CATEGORIES[cat].label}</p>
-                                <p style="font-size: 24px; font-weight: 900; color: ${CATEGORIES[cat].color}; margin: 0;">${summary[cat]} <span style="font-size: 10px; color: #cbd5e1;">PCS</span></p>
+                            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f8fafc;">
+                                <span style="font-size:11px; font-weight:600;">${CATEGORIES[cat].label}</span>
+                                <span style="font-size:12px; font-weight:800;">+${proc[cat] || 0} items</span>
                             </div>
                         `).join('')}
                     </div>
+                </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                        <div>
-                            <h2 style="font-size: 14px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 15px; letter-spacing: 1px;">Procurement Inflow</h2>
-                            <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 16px; padding: 15px;">
-                                ${Object.keys(CATEGORIES).map(cat => `
-                                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f8fafc;">
-                                        <span style="font-size: 11px; font-weight: 600; color: #475569;">${CATEGORIES[cat].label}</span>
-                                        <span style="font-size: 12px; font-weight: 800; color: #1e293b;">+${proc[cat] || 0} items</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h2 style="font-size: 14px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 15px; letter-spacing: 1px;">Audit & Verification</h2>
-                            <div style="background: ${verification.checked ? '#f0fdf4' : '#fef2f2'}; border: 1px solid ${verification.checked ? '#dcfce7' : '#fee2e2'}; border-radius: 16px; padding: 20px;">
-                                <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${verification.checked ? '#22c55e' : '#ef4444'}; margin-right: 8px;"></div>
-                                    <span style="font-size: 12px; font-weight: 800; color: ${verification.checked ? '#166534' : '#991b1b'};">
-                                        ${verification.checked ? 'STOCK VERIFIED AS ACCURATE' : 'PENDING VERIFICATION'}
-                                    </span>
-                                </div>
-                                <p style="font-size: 12px; color: #475569; line-height: 1.6; font-style: italic; margin: 0;">
-                                    "${verification.text || 'No discrepancies or additional notes were recorded for this cycle.'}"
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 50px; border-top: 1px solid #f1f5f9; padding-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                        <p style="font-size: 9px; color: #94a3b8; font-weight: 600;">GENERATED VIA TRINA DESIGNS STOCK ENGINE • ${new Date().toLocaleString()}</p>
-                        <div style="width: 120px; height: 2px; background: #1e293b;"></div>
+                <div>
+                    <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:15px;">
+                        Audit & Verification
+                    </h2>
+                    <div style="background:${verification.checked ? '#f0fdf4' : '#fef2f2'}; border:1px solid ${verification.checked ? '#dcfce7' : '#fee2e2'}; border-radius:16px; padding:20px;">
+                        <strong style="font-size:12px;">
+                            ${verification.checked ? 'STOCK VERIFIED AS ACCURATE' : 'PENDING VERIFICATION'}
+                        </strong>
+                        <p style="font-size:12px; margin-top:10px; font-style:italic;">
+                            "${verification.text || 'No discrepancies or additional notes were recorded for this cycle.'}"
+                        </p>
                     </div>
                 </div>
-            `;
+            </div>
 
-            const opt = {
-                margin: 0,
-                filename: `Stock_Audit_${currentDate}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
+            <!-- ACTIVITY LEDGER -->
+            <h2 style="font-size:14px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:15px;">
+                Activity Ledger
+            </h2>
 
-            try {
-                await html2pdf().set(opt).from(captureArea).save();
-            } catch (err) {
-                console.error("PDF generation failed:", err);
-            } finally {
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-                captureArea.innerHTML = ''; // Clean up
-            }
-        }
+            <table style="width:100%; border-collapse:collapse; font-size:11px; border:1px solid #f1f5f9;">
+                <thead style="background:#f8fafc;">
+                    <tr>
+                        <th style="padding:10px; text-align:left;">Recipient</th>
+                        <th style="padding:10px;">Channel</th>
+                        <th style="padding:10px;">Cotton</th>
+                        <th style="padding:10px;">Sweater</th>
+                        <th style="padding:10px;">Mothers</th>
+                        <th style="padding:10px;">Kimonos</th>
+                        <th style="padding:10px;">2 Pcs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${ledgerRows}
+                </tbody>
+            </table>
+
+            <!-- FOOTER -->
+            <div style="margin-top:40px; border-top:1px solid #f1f5f9; padding-top:15px; display:flex; justify-content:space-between;">
+                <p style="font-size:9px; color:#94a3b8;">
+                    GENERATED VIA TRINA DESIGNS STOCK ENGINE • ${new Date().toLocaleString()}
+                </p>
+                <div style="width:120px; height:2px; background:#1e293b;"></div>
+            </div>
+
+        </div>
+    `;
+
+    const opt = {
+        margin: 0,
+        filename: `Stock_Audit_${currentDate}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    try {
+        await html2pdf().set(opt).from(captureArea).save();
+    } catch (err) {
+        console.error('PDF generation failed:', err);
+    } finally {
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+        captureArea.innerHTML = '';
+    }
+}
+
 
         function saveState() {
             localStorage.setItem('trina_proc_v2', JSON.stringify(state.procurement));
@@ -854,26 +952,38 @@ function addDispatch(type) {
             if (chk) chk.checked = verify.checked;
             if (comm) comm.value = verify.text;
         }
-    function resetAllData() {
+function resetAllData() {
+
+    // 🔐 Mobile-only PIN protection
+    if (window.innerWidth < 640) {
+        const pin = prompt("Enter admin PIN to reset:");
+        if (pin !== "1234") {
+            alert("Unauthorized");
+            return;
+        }
+    }
+
     const confirmReset = confirm(
-        "⚠️ WARNING!\n\nThis will permanently delete:\n" +
-        "- All procurement records\n" +
-        "- All dispatch logs\n" +
-        "- All staff & customers\n" +
-        "- All verifications\n\n" +
-        "This action CANNOT be undone.\n\nProceed?"
+        "⚠️ WARNING!\n\n" +
+        "This will permanently delete ALL data:\n" +
+        "- Procurement records\n" +
+        "- Dispatch logs\n" +
+        "- Staff & customers\n" +
+        "- Verifications\n\n" +
+        "This action CANNOT be undone.\n\n" +
+        "Proceed?"
     );
 
     if (!confirmReset) return;
 
-    // Clear localStorage
+    // 🧹 Clear localStorage
     localStorage.removeItem('trina_proc_v2');
     localStorage.removeItem('trina_disp_v2');
     localStorage.removeItem('trina_staff_v2');
     localStorage.removeItem('trina_cust_v2');
     localStorage.removeItem('trina_verify_v2');
 
-    // Reset in-memory state
+    // 🔄 Reset runtime state
     state = {
         procurement: {},
         dispatches: [],
@@ -886,7 +996,6 @@ function addDispatch(type) {
 
     render();
 }
-
     </script>
 </body>
 </html>
