@@ -208,13 +208,16 @@
                             <div class="overflow-x-auto custom-scroll flex-grow">
                                 <table class="w-full text-left ledger-table">
                                     <thead>
-                                        <tr class="text-[11px] font-bold uppercase text-slate-400 tracking-widest border-b border-slate-100">
-                                            <th class="pb-4 px-2">Recipient</th>
-                                            <th class="pb-4 px-2">Channel</th>
-                                            <th class="pb-4 px-2">Category</th>
-                                            <th class="pb-4 px-2">Qty</th>
-                                            <th class="pb-4 px-2 text-right no-print"></th>
-                                        </tr>
+                                    <tr class="text-[11px] font-bold uppercase text-slate-400 tracking-widest border-b border-slate-100 whitespace-nowrap">
+                                        <th class="pb-4 px-3">Recipient</th>
+                                        <th class="pb-4 px-3">Channel</th>
+                                        <th class="pb-4 px-3">Cotton D</th>
+                                        <th class="pb-4 px-3">Sweater D</th>
+                                        <th class="pb-4 px-3">Mothers</th>
+                                        <th class="pb-4 px-3">Kimonos</th>
+                                        <th class="pb-4 px-3">2 Pcs</th>
+                                        <th class="pb-4 px-3 text-right no-print"></th>
+                                    </tr>
                                     </thead>
                                     <tbody id="dispatchList" class="divide-y divide-slate-50"></tbody>
                                 </table>
@@ -754,27 +757,53 @@ function addDispatch(type) {
             const listEl = document.getElementById('dispatchList');
             if (listEl) {
                 listEl.innerHTML = dailyLog.length ? '' : '<tr><td colspan="5" class="py-20 text-center text-slate-400 font-medium">No activity for this date</td></tr>';
+                // --- GROUP dispatches by recipient + channel ---
+                const grouped = {};
+
                 dailyLog.forEach(d => {
-                    const isInternal = d.type === 'internal';
-                    const c = CATEGORIES[d.category];
+                    const key = `${d.recipient}|${d.type}`;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            recipient: d.recipient,
+                            type: d.type,
+                            cotton: 0,
+                            sweater: 0,
+                            mother: 0,
+                            kimono: 0,
+                            "2pcs": 0,
+                            ids: []
+                        };
+                    }
+                    grouped[key][d.category] += Number(d.qty) || 0;
+                    grouped[key].ids.push(d.id);
+                });
+
+                // --- Render grouped rows ---
+                listEl.innerHTML = Object.keys(grouped).length
+                    ? ''
+                    : '<tr><td colspan="8" class="py-20 text-center text-slate-400 font-medium">No activity for this date</td></tr>';
+
+                Object.values(grouped).forEach(row => {
                     listEl.innerHTML += `
-                        <tr class="group hover:bg-white/40 transition-colors">
-                            <td class="py-5 px-2">
-                                <div class="font-bold text-slate-800">${d.recipient}</div>
-                            </td>
-                            <td class="py-5 px-2">
-                                <span class="text-[10px] font-black uppercase px-2 py-1 rounded-md ${isInternal ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}">
-                                    ${isInternal ? 'Team' : 'Customer'}
+                        <tr class="whitespace-nowrap hover:bg-white/40 transition-colors">
+                            <td class="py-4 px-3 font-bold">${row.recipient}</td>
+                            <td class="py-4 px-3">
+                                <span class="text-[10px] font-black uppercase px-2 py-1 rounded-md ${
+                                    row.type === 'internal'
+                                        ? 'bg-indigo-50 text-indigo-600'
+                                        : 'bg-emerald-50 text-emerald-600'
+                                }">
+                                    ${row.type === 'internal' ? 'Team' : 'Customer'}
                                 </span>
                             </td>
-                            <td class="py-5 px-2">
-                                <span class="text-xs font-bold px-3 py-1 rounded-full" style="background: ${c.bg}; color: ${c.text}">
-                                    ${c.label}
-                                </span>
-                            </td>
-                            <td class="py-5 px-2 font-black text-slate-700">${d.qty}</td>
-                            <td class="py-5 px-2 text-right no-print">
-                                <button onclick="deleteDispatch(${d.id})" class="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-all">
+                            <td class="py-4 px-3 font-bold">${row.cotton || '-'}</td>
+                            <td class="py-4 px-3 font-bold">${row.sweater || '-'}</td>
+                            <td class="py-4 px-3 font-bold">${row.mother || '-'}</td>
+                            <td class="py-4 px-3 font-bold">${row.kimono || '-'}</td>
+                            <td class="py-4 px-3 font-bold">${row["2pcs"] || '-'}</td>
+                            <td class="py-4 px-3 text-right no-print">
+                                <button onclick="row.ids.forEach(id => deleteDispatch(id))"
+                                    class="text-slate-300 hover:text-red-500 transition">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </td>
