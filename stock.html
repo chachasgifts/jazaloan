@@ -408,7 +408,6 @@
     </div>
 
     <script>
-        
         // --- State Management ---
         let currentDate = new Date().toISOString().split('T')[0];
         let state = {
@@ -953,35 +952,6 @@ function addDispatch(type) {
             if (chk) chk.checked = verify.checked;
             if (comm) comm.value = verify.text;
         }
-function backupAppData() {
-    const backup = {
-        app: APP_NAMESPACE,
-        createdAt: new Date().toISOString(),
-        data: {}
-    };
-
-    Object.entries(STORAGE_KEYS).forEach(([key, storageKey]) => {
-        const raw = localStorage.getItem(storageKey);
-        backup.data[key] = raw ? JSON.parse(raw) : null;
-    });
-
-    const blob = new Blob(
-        [JSON.stringify(backup, null, 2)],
-        { type: "application/json" }
-    );
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = `${APP_NAMESPACE}_backup_${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
 function resetAllData() {
 
     // 🔐 Mobile-only PIN protection
@@ -995,24 +965,23 @@ function resetAllData() {
 
     const confirmReset = confirm(
         "⚠️ WARNING!\n\n" +
-        "Before deleting, a BACKUP will be downloaded.\n\n" +
-        "This will permanently delete:\n" +
+        "This will permanently delete ALL data:\n" +
         "- Procurement records\n" +
         "- Dispatch logs\n" +
         "- Staff & customers\n" +
         "- Verifications\n\n" +
+        "This action CANNOT be undone.\n\n" +
         "Proceed?"
     );
 
     if (!confirmReset) return;
 
-    // 📦 BACKUP FIRST
-    backupAppData();
-
-    // 🧹 Clear ONLY this app's data
-    Object.values(STORAGE_KEYS).forEach(key => {
-        localStorage.removeItem(key);
-    });
+    // 🧹 Clear localStorage
+    localStorage.removeItem('trina_proc_v2');
+    localStorage.removeItem('trina_disp_v2');
+    localStorage.removeItem('trina_staff_v2');
+    localStorage.removeItem('trina_cust_v2');
+    localStorage.removeItem('trina_verify_v2');
 
     // 🔄 Reset runtime state
     state = {
@@ -1023,11 +992,10 @@ function resetAllData() {
         verifications: {}
     };
 
-    alert("✅ Backup saved. All data has been successfully reset.");
+    alert("✅ All data has been successfully reset.");
 
     render();
 }
-
     </script>
 </body>
 </html>
