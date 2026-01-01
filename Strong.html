@@ -313,6 +313,7 @@
         <section id="diary" class="page-section">
     <h2 class="text-3xl font-bold mb-6">Daily Diary</h2>
 
+    <div id="diary-input-area">
     <div class="glass-card p-6 mb-6">
         <label class="text-sm opacity-70">Select Date</label>
         <input
@@ -337,6 +338,8 @@
             Save Entry
         </button>
     </div>
+</div>
+
 
     <div class="glass-card p-6">
         <h3 class="font-bold mb-3">Today’s Overview</h3>
@@ -894,6 +897,10 @@ function saveDiaryEntry() {
 
     diaryData[date] = text;
     localStorage.setItem("ascend_diary", JSON.stringify(diaryData));
+
+    // Hide input area after saving
+    document.getElementById("diary-input-area").style.display = "none";
+
     renderTodayDiary();
 }
 
@@ -937,6 +944,11 @@ function getKenyaHoliday(date) {
 
     return holidays[key] || null;
 }
+document.addEventListener("change", (e) => {
+    if (e.target.id === "diary-date") {
+        document.getElementById("diary-input-area").style.display = "block";
+    }
+});
 
         // Init everything
         window.onload = () => {
@@ -949,6 +961,8 @@ function getKenyaHoliday(date) {
     renderAnnualGoal();
     recalculateRoadmap();
     renderTodayDiary();
+    document.getElementById("diary-input-area").style.display = "block";
+
 };
 
     </script>
