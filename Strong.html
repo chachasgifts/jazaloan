@@ -1,401 +1,956 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>💪 90-Day Fitness Quest</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ascend 2026 | Wealth & Wellness</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #6366f1;
+            --bg-body: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
 
-  <style>
-    :root {
-      --primary: #ffb700;
-      --secondary: #ff7b00;
-      --bg: #fff9f3;
-      --text: #222;
-      --card: #fff;
-      --shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    [data-theme="dark"] {
-      --bg: #111;
-      --text: #fff;
-      --card: #222;
-      --shadow: 0 4px 12px rgba(0,0,0,0.4);
-    }
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      text-align: center;
-      transition: background 0.4s ease, color 0.4s ease;
-    }
+        .light-mode {
+            --bg-body: #f1f5f9;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text-main: #0f172a;
+            --text-dim: #475569;
+            --border-color: rgba(0, 0, 0, 0.1);
+        }
 
-    header {
-      background: linear-gradient(90deg, var(--secondary), var(--primary));
-      color: #fff;
-      padding: 1.2rem;
-      position: relative;
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
 
-    .nav {
-      cursor: pointer;
-      font-size: 1.8rem;
-      position: absolute;
-      left: 1rem;
-    }
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            transition: all 0.3s ease;
+        }
 
-    #themeToggle {
-      cursor: pointer;
-      position: absolute;
-      right: 1rem;
-      font-size: 1.6rem;
-      background: transparent;
-      border: none;
-      color: #fff;
-    }
+        /* Nav & Mobile Menu */
+        #mobile-menu {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(100%);
+        }
+        #mobile-menu.active {
+            transform: translateX(0);
+        }
 
-    #logoButton {
-      cursor: pointer;
-      font-size: 1.8rem;
-      background: transparent;
-      border: none;
-      color: #fff;
-      margin-left: 0.5rem;
-      transition: transform 0.2s ease;
-    }
-    #logoButton:hover { transform: scale(1.2); }
+        /* Exercise Animations */
+        .exercise-box {
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .sidebar {
-      height: 100%;
-      width: 0;
-      position: fixed;
-      top: 0;
-      left: 0;
-      background: var(--card);
-      box-shadow: var(--shadow);
-      overflow-x: hidden;
-      transition: 0.3s;
-      padding-top: 60px;
-      z-index: 2;
-    }
+        @keyframes squat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(40px) scaleY(0.8); }
+        }
+        .anim-squat { animation: squat 2s infinite ease-in-out; }
 
-    .sidebar a {
-      display: block;
-      padding: 12px 24px;
-      color: var(--text);
-      text-decoration: none;
-      font-size: 1.1rem;
-      transition: 0.2s;
-    }
+        @keyframes pushup {
+            0%, 100% { transform: scaleX(1) translateY(0); }
+            50% { transform: scaleX(1.1) translateY(20px); }
+        }
+        .anim-pushup { animation: pushup 1.5s infinite ease-in-out; }
 
-    .sidebar a:hover { background: var(--primary); color: #fff; }
+        @keyframes crunch {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(-30deg); }
+        }
+        .anim-crunch { animation: crunch 1.2s infinite ease-in-out; transform-origin: bottom right; }
 
-    .sidebar button#themeToggleMobile {
-      display: none;
-      margin: 1rem 1.5rem;
-      font-size: 1.2rem;
-      cursor: pointer;
-      background: none;
-      border: none;
-      color: var(--text);
-      text-align: left;
-    }
+        /* Progress Bar */
+        .progress-ring {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
 
-    .closebtn {
-      position: absolute;
-      top: 0;
-      right: 20px;
-      font-size: 36px;
-      cursor: pointer;
-    }
+        /* Hide sections */
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.4s ease-out; }
 
-    .section {
-      display: none;
-      padding: 1.5rem;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.4s ease;
-    }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    .active-section { display: block; opacity: 1; transform: translateY(0); }
+        .hamburger span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background: currentColor;
+            margin: 5px 0;
+            transition: 0.3s;
+        }
 
-    .slide-in { animation: slideIn 0.5s forwards; }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+        /* Notes styling */
+        .note-area {
+            background: rgba(15, 23, 42, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            resize: none;
+            transition: all 0.3s ease;
+            color: inherit;
+        }
+        .note-area:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(15, 23, 42, 0.2);
+        }
 
-    .profile, .settings-card {
-      background: var(--card);
-      border-radius: 1rem;
-      margin: 1rem auto;
-      padding: 1rem;
-      max-width: 420px;
-      box-shadow: var(--shadow);
-      transition: background 0.4s ease, color 0.4s ease;
-    }
+        /* Custom Blur Effect */
+        .blur-amount {
+            filter: blur(5px);
+            user-select: none;
+            pointer-events: none;
+        }
 
-    input, select, textarea {
-      width: 85%;
-      padding: 0.6rem;
-      border: 1px solid #ccc;
-      border-radius: 0.5rem;
-      margin-bottom: 0.6rem;
-      font-family: inherit;
-      background: var(--card);
-      color: var(--text);
-    }
+        .reward-badge {
+            animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
 
-    button {
-      background: linear-gradient(90deg, var(--secondary), var(--primary));
-      border: none;
-      border-radius: 0.5rem;
-      padding: 0.7rem 1.2rem;
-      cursor: pointer;
-      font-weight: bold;
-      color: #fff;
-      transition: 0.3s;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-    }
-
-    button:hover { transform: scale(1.05); opacity: 0.95; }
-
-    ul.checklist { list-style: none; padding: 0; }
-
-    ul.checklist li {
-      margin: 0.5rem 0;
-      text-align: left;
-      background: var(--card);
-      padding: 0.7rem;
-      border-radius: 0.6rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: var(--shadow);
-    }
-
-    footer {
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      color: #fff;
-      padding: 1.5rem 0;
-      text-align: center;
-      margin-top: 2rem;
-      box-shadow: var(--shadow);
-    }
-
-    footer .footer-links {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1rem;
-      margin-top: 0.8rem;
-    }
-
-    footer a { color: #fff; text-decoration: none; font-weight: 600; }
-    footer a:hover { text-decoration: underline; }
-
-    .motivation-emoji {
-      font-size: 1.6rem;
-      animation: pulse 1.2s infinite alternate;
-    }
-
-    @keyframes pulse {
-      from { transform: scale(1); opacity: 0.8; }
-      to { transform: scale(1.3); opacity: 1; }
-    }
-
-    /* 🌟 Styled preview cards for previous and next day */
-    .day-snippet {
-      margin: 1rem auto;
-      max-width: 500px;
-      background: var(--card);
-      border-radius: 0.8rem;
-      box-shadow: var(--shadow);
-      text-align: left;
-      padding: 1rem 1.2rem;
-      transition: transform 0.3s ease, background 0.3s ease;
-      position: relative;
-      animation: fadeInCard 0.5s ease;
-    }
-
-    .day-snippet h4 {
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-      font-size: 1.1rem;
-      font-weight: 600;
-      background: linear-gradient(90deg, var(--secondary), var(--primary));
-      color: #fff;
-      padding: 0.4rem 0.8rem;
-      border-radius: 0.5rem;
-      display: inline-block;
-    }
-
-    .day-snippet ul {
-      list-style: none;
-      margin: 0.5rem 0 0;
-      padding: 0;
-    }
-
-    .day-snippet li {
-      padding: 0.4rem 0.6rem;
-      border-radius: 0.4rem;
-      margin-bottom: 0.3rem;
-      font-size: 0.95rem;
-    }
-
-    /* Dimmed previous day */
-    #prevDay {
-      opacity: 0.6;
-      background: rgba(150,150,150,0.15);
-    }
-    #prevDay li {
-      background: rgba(150,150,150,0.2);
-    }
-
-    /* Soft glowing next day */
-    #nextDay {
-      box-shadow: 0 0 12px rgba(255,183,0,0.4);
-      background: rgba(255,183,0,0.05);
-    }
-    #nextDay li {
-      background: rgba(255,183,0,0.15);
-    }
-
-    .day-snippet:hover { transform: scale(1.02); }
-
-    @keyframes fadeInCard {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 768px) {
-      #themeToggle { display: none; }
-      .sidebar button#themeToggleMobile { display: block; }
-    }
-
-    @media (min-width: 768px) {
-      .profile, .settings-card { max-width: 600px; }
-    }
-  </style>
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
+<body class="pb-20 md:pb-0">
 
-<body>
-  <header>
-    <span class="nav" onclick="openNav()">☰</span>
-    <h1>💪 90-Day Fitness Quest</h1>
-    <button id="logoButton" title="Go to Login" onclick="logoutUser()">🏋️</button>
-    <button id="themeToggle">🌙</button>
-  </header>
+    <!-- Nav -->
+    <nav class="fixed top-0 w-full z-50 bg-slate-900/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex justify-between items-center transition-colors duration-300">
+        <div class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+            ASCEND <span class="text-sm font-light text-slate-400 ml-1">2026</span>
+        </div>
+        
+        <div class="flex items-center space-x-6">
+            <div class="hidden md:flex space-x-8 text-sm font-medium">
+                <a href="#" onclick="showPage('dashboard')" class="hover:text-indigo-400 transition">Dashboard</a>
+                <a href="#" onclick="showPage('fasting')" class="hover:text-indigo-400 transition">Fasting</a>
+                <a href="#" onclick="showPage('workout')" class="hover:text-indigo-400 transition">Coach</a>
+                <a href="#" onclick="showPage('reading')" class="hover:text-indigo-400 transition">Library</a>
+                <a href="#" onclick="showPage('diary')" class="hover:text-indigo-400 transition">Diary</a>                                                                     
+            </div>
 
-  <div id="sidebar" class="sidebar">
-    <span class="closebtn" onclick="closeNav()">×</span>
-    <a href="#" onclick="showSection('home')">🏠 Home</a>
-    <a href="#" onclick="showSection('profile')">👤 Profile</a>
-    <a href="#" onclick="showSection('rewards')">🎁 Rewards</a>
-    <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
-    <button id="themeToggleMobile">🌙 Toggle Theme</button>
-  </div>
+            <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-slate-700/50 transition-colors" title="Toggle Light/Dark Mode">
+                <i id="theme-icon" class="fas fa-moon text-indigo-400 text-lg"></i>
+            </button>
 
-  <div id="setup" class="section active-section slide-in">
-    <div class="profile">
-      <div style="display:flex;justify-content:center;gap:1rem;margin-bottom:1rem;">
-        <button onclick="showSignup()">🆕 Sign Up</button>
-        <button onclick="showLogin()">🔑 Log In</button>
-      </div>
+            <button class="md:hidden hamburger" onclick="toggleMenu()">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
 
-      <h2 id="setupUserTitle" style="margin:0.8rem 0;">👋 Welcome</h2>
-      <p class="motivation-emoji">🔥 Let’s get stronger!</p>
-
-      <div id="signupForm">
-        <select id="goalInput" style="margin-bottom:1rem;">
-          <option value="Muscle Gain">💪 Muscle Gain</option>
-          <option value="Focus Exercises">🧘 Focus & OMAD</option>
-        </select><br>
-        <input id="signupUsername" placeholder="Choose a username"><br>
-        <button onclick="saveSetup()">Start My Journey 🚀</button>
-      </div>
-
-      <div id="loginForm" style="display:none;">
-        <input id="loginUsername" placeholder="Enter your username"><br>
-        <button onclick="loginUser()">Continue ➡️</button>
-      </div>
-
-      <p id="setupMessage" style="margin-top:15px; color:var(--secondary); font-weight:600;"></p>
-    </div>
-  </div>
-
-  <div id="home" class="section">
-    <h2>📅 Your Daily Quest</h2>
-    <p id="todayDate"></p>
-    <h3 id="motivation" style="color:var(--secondary);"></h3>
-
-    <ul id="dailyChecklist" class="checklist"></ul>
-
-    <!-- 🌟 Added preview cards for previous and next day -->
-    <div id="prevDay" class="day-snippet"></div>
-    <div id="nextDay" class="day-snippet"></div>
-
-    <p id="rewardCountdown" style="margin-top:10px;color:var(--primary);font-weight:600;"></p>
-
-    <button onclick="completeDay()">✅ Complete Day</button>
-    <p id="homeStatus" style="margin-top:10px;color:var(--secondary);"></p>
-  </div>
-
-  <div id="profile" class="section">
-    <h2>👤 Profile</h2>
-    <p><strong>Name:</strong> <span id="profileName"></span></p>
-    <p><strong>Goal:</strong> <span id="profileGoal"></span></p>
-    <p><strong>Week:</strong> <span id="profileWeek"></span></p>
-    <p><strong>Points:</strong> <span id="profilePoints"></span></p>
-  </div>
-
-  <div id="rewards" class="section">
-    <h2>🎁 Rewards</h2>
-    <ul id="rewardsList"></ul>
-    <p id="nextRewardInfo" style="margin-top:10px;color:var(--secondary);font-weight:600;"></p>
-  </div>
-
-  <div id="settings" class="section">
-    <h2>⚙️ Settings</h2>
-
-    <div class="settings-card">
-      <h3>🎯 Change Goal</h3>
-      <select id="goalSelect" onchange="changeGoal(this.value)">
-        <option value="Muscle Gain">Muscle Gain</option>
-        <option value="Focus Exercises">Focus Exercises</option>
-      </select>
+    <!-- Mobile Slide-out Menu -->
+    <div id="mobile-menu" class="fixed inset-0 bg-slate-900 z-[60] flex flex-col items-center justify-center space-y-8 text-2xl font-bold text-white">
+        <button class="absolute top-6 right-6 text-4xl" onclick="toggleMenu()">&times;</button>
+        <a href="#" onclick="showPage('dashboard'); toggleMenu()">Dashboard</a>
+        <a href="#" onclick="showPage('fasting'); toggleMenu()">Fasting Tracker</a>
+        <a href="#" onclick="showPage('workout'); toggleMenu()">Fitness Coach</a>
+        <a href="#" onclick="showPage('reading'); toggleMenu()">Reading Plan</a>
+        <a href="#" onclick="showPage('diary'); toggleMenu()">Diary</a>
     </div>
 
-    <div class="settings-card">
-      <h3>📝 Daily Journal</h3>
-      <textarea id="journalInput" rows="5" placeholder="Write your thoughts..."></textarea>
-      <button onclick="saveJournal()">💾 Save Entry</button>
-      <button onclick="clearJournal()">🧹 Clear Journal</button>
-      <h4 style="margin-top:1rem;">📚 Your Entries</h4>
-      <div id="journalEntries" style="max-height:200px; overflow-y:auto; background:var(--card); border-radius:0.5rem; padding:0.5rem;"></div>
+    <!-- Main Content Area -->
+    <main class="pt-24 px-4 max-w-6xl mx-auto mb-12">
+        
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="page-section active">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Goal Card -->
+                <div class="md:col-span-2 glass-card p-8 relative overflow-hidden">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-slate-500 text-sm uppercase tracking-widest font-semibold">Annual Goal</h2>
+                            <div class="flex items-center gap-3">
+                            <p id="annual-goal-display" class="text-4xl font-bold mt-1"></p>
+                            <button onclick="editAnnualGoal()" class="text-xs text-indigo-400 underline">
+                                Edit
+                            </button>
+                        </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-indigo-400 font-mono">Current: Ksh 8,333</p>
+                            <p class="text-xs text-slate-500 italic">Target monthly: Ksh 8,333</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-800 h-4 rounded-full overflow-hidden mb-4">
+                        <div id="annual-progress-bar" class="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full w-[8.3%] shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-700"></div>
+                    </div>
+                    <p id="progress-text" class="text-sm opacity-70">Current Progress: 8.3% of total goal reached.</p>
+                </div>
+
+                <!-- Daily Bible Verse -->
+                <div class="glass-card p-6 bg-gradient-to-br from-indigo-600/10 to-transparent border-indigo-500/20 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-indigo-400 font-bold mb-3 flex items-center">
+                            <i class="fas fa-scroll mr-2"></i> Daily Bread
+                        </h3>
+                        <p id="daily-verse-text" class="text-sm italic leading-relaxed opacity-90 mb-4 font-serif">
+                            "The plans of the diligent lead to profit as surely as haste leads to poverty."
+                        </p>
+                    </div>
+                    <p id="daily-verse-ref" class="text-xs font-bold text-indigo-400 text-right">— Proverbs 21:5</p>
+                </div>
+            </div>
+
+            <!-- Savings Roadmap -->
+            <div class="flex justify-between items-end mt-12 mb-6">
+                <h3 class="text-xl font-bold">Your 12-Month Financial Roadmap (Ksh)</h3>
+                <span class="text-xs opacity-50">Rewards unlock on achievement</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="monthly-grid"></div>
+        </section>
+
+        <!-- FASTING TRACKER -->
+        <section id="fasting" class="page-section">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass-card p-10 text-center">
+                    <h2 class="text-xl font-bold mb-8">Fasting Protocol: <span id="current-plan-name" class="text-indigo-400">16:8</span></h2>
+                    <div class="relative inline-block mb-8">
+                        <svg width="240" height="240">
+                            <circle cx="120" cy="120" r="110" stroke="currentColor" stroke-width="12" fill="transparent" class="text-slate-200 dark:text-slate-800" />
+                            <circle id="fasting-progress" cx="120" cy="120" r="110" stroke="#6366f1" stroke-width="12" fill="transparent" 
+                                    stroke-dasharray="691" stroke-dashoffset="691" class="progress-ring" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="timer-display" class="text-4xl font-mono font-bold">16:00:00</span>
+                            <span class="text-xs opacity-50 mt-1 uppercase">Remaining</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-center space-x-4 mb-8">
+                        <button onclick="startFast()" id="start-btn" class="bg-indigo-600 text-white hover:bg-indigo-500 px-8 py-3 rounded-full font-bold transition shadow-lg shadow-indigo-500/20">Start Fast</button>
+                        <button onclick="resetFast()" class="bg-slate-500/20 hover:bg-slate-500/30 px-8 py-3 rounded-full font-bold transition">Reset</button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 text-[11px] font-bold uppercase tracking-tighter">
+                        <button onclick="setPlan('16:8')" class="p-3 border border-indigo-500/20 rounded-xl hover:bg-indigo-500/10">16:8</button>
+                        <button onclick="setPlan('18:6')" class="p-3 border border-indigo-500/20 rounded-xl hover:bg-indigo-500/10">18:6</button>
+                        <button onclick="setPlan('24:0')" class="p-3 border border-indigo-500/20 rounded-xl hover:bg-indigo-500/10">OMAD (24h)</button>
+                        <button onclick="setPlan('48:0')" class="p-3 border border-indigo-500/20 rounded-xl hover:bg-indigo-500/10">48h Reset</button>
+                        <button onclick="setPlan('504:0')" class="p-3 border border-indigo-500/20 rounded-xl hover:bg-indigo-500/10 col-span-1">21 Day Challenge</button>
+                        <button onclick="setPlan('168:0')" class="p-3 border border-indigo-500/20 rounded-xl hover:bg-indigo-500/10 col-span-1">7 Day Water Fast</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h3 class="text-xl font-bold mb-4">Metabolic Milestones</h3>
+                    <div id="milestones-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </section>
+
+<!-- COACH / WORKOUT -->
+<section id="workout" class="page-section">
+    <h2 class="text-3xl font-bold mb-6">Personal Coach AI</h2>
+
+    <div class="glass-card p-8 max-w-xl mx-auto text-center">
+        <p class="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-2">
+            Current Week
+        </p>
+
+        <h3 id="coach-week" class="text-2xl font-bold mb-6"></h3>
+
+        <div class="space-y-6">
+            <div>
+                <h4 class="font-bold text-lg mb-1">Squats</h4>
+                <p id="coach-squats" class="text-sm opacity-80"></p>
+            </div>
+
+            <div>
+                <h4 class="font-bold text-lg mb-1">Push-ups</h4>
+                <p id="coach-pushups" class="text-sm opacity-80"></p>
+            </div>
+        </div>
+
+        <div class="mt-8 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+            <p class="text-[11px] uppercase tracking-widest text-indigo-400 font-bold mb-1">
+                Weekly Focus
+            </p>
+            <p id="coach-tip" class="text-sm italic opacity-80"></p>
+        </div>
+
+        <!-- Reward / Completion -->
+        <div id="coach-reward"></div>
+    </div>
+</section>
+
+
+        <!-- READING PLAN -->
+        <section id="reading" class="page-section">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">2026 Reading Syllabus</h2>
+                    <p class="opacity-60">Strategic Intelligence & Financial Psychology</p>
+                </div>
+                <div class="mt-4 md:mt-0 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-xs text-indigo-400 font-bold">
+                    Progress: <span id="books-read-count">0</span> / 12 Books Done
+                </div>
+            </div>
+            <div class="space-y-6" id="books-list"></div>
+        </section>
+
+        <!-- Diary -->
+        <section id="diary" class="page-section">
+    <h2 class="text-3xl font-bold mb-6">Daily Diary</h2>
+
+    <div class="glass-card p-6 mb-6">
+        <label class="text-sm opacity-70">Select Date</label>
+        <input
+            type="date"
+            id="diary-date"
+            class="mt-2 w-full p-3 rounded-xl bg-transparent border border-indigo-500/20"
+        />
     </div>
 
-    <div class="settings-card danger">
-      <h3>🚨 Danger Zone</h3>
-      <button onclick="resetProgress()" style="background:red;">❌ Reset Progress</button>
-    </div>
-  </div>
+    <div class="glass-card p-6 mb-6">
+        <label class="text-sm font-bold">Plans / Tasks</label>
+        <textarea
+            id="diary-entry"
+            class="note-area w-full h-40 mt-3 p-4 rounded-xl"
+            placeholder="What do you plan to do today?"
+        ></textarea>
 
-  <footer>
-    <p>✔️ Stay consistent | 💎 Earn points | 🎁 Unlock rewards</p>
-    <div class="footer-links">
-      <a href="#" onclick="showSection('settings')">⚙️ Settings</a>
-      <a href="#" onclick="showSection('rewards')">🎁 Rewards</a>
-      <a href="#" onclick="showSection('home')">🏠 Home</a>
-      <a href="#" onclick="showSection('profile')">👤 Profile</a>
+        <button
+            onclick="saveDiaryEntry()"
+            class="mt-4 bg-indigo-600 hover:bg-indigo-500 px-6 py-3 rounded-full font-bold"
+        >
+            Save Entry
+        </button>
     </div>
-    <p style="margin-top:0.8rem;">Made with ❤️ by JazaLoan Team</p>
-  </footer>
 
-  <script src="script.js"></script>
+    <div class="glass-card p-6">
+        <h3 class="font-bold mb-3">Today’s Overview</h3>
+        <div id="today-diary"></div>
+    </div>
+</section>
+
+    </main>
+
+    <script>
+        // THEME LOGIC
+        let isDarkMode = true;
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('light-mode');
+            const icon = document.getElementById('theme-icon');
+            icon.className = isDarkMode ? 'fas fa-moon text-indigo-400 text-lg' : 'fas fa-sun text-yellow-500 text-lg';
+            localStorage.setItem('ascend_theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        if (localStorage.getItem('ascend_theme') === 'light') toggleTheme();
+
+        // REWARD SYSTEM
+        const rewardOptions = [
+            { name: "Swimming Session", icon: "fa-swimming-pool", color: "text-cyan-400" },
+            { name: "Hiking Trip", icon: "fa-mountain", color: "text-emerald-400" },
+            { name: "Nyama Choma Feast", icon: "fa-fire-alt", color: "text-orange-500" }
+        ];
+
+        // BIBLE VERSES LIBRARY
+        const bibleVerses = [
+            { v: "The plans of the diligent lead to profit as surely as haste leads to poverty.", r: "Proverbs 21:5" },
+            { v: "Wealth gained hastily will dwindle, but whoever gathers little by little will increase it.", r: "Proverbs 13:11" },
+            { v: "For God has not given us a spirit of fear, but of power and of love and of a sound mind.", r: "2 Timothy 1:7" },
+            { v: "Suppose one of you wants to build a tower. Won’t you first sit down and estimate the cost?", r: "Luke 14:28" },
+            { v: "Whatever you do, work at it with all your heart, as working for the Lord.", r: "Colossians 3:23" },
+            { v: "Dishonest money dwindles away, but whoever gathers money little by little makes it grow.", r: "Proverbs 13:11" },
+            { v: "The hand of the diligent will rule, while the slothful will be put to forced labor.", r: "Proverbs 12:24" },
+            { v: "Lazy hands make for poverty, but diligent hands bring wealth.", r: "Proverbs 10:4" },
+            { v: "A slack hand causes poverty, but the hand of the diligent makes rich.", r: "Proverbs 10:4" },
+            { v: "Let your eyes look directly forward, and your gaze be straight before you.", r: "Proverbs 4:25" },
+            { v: "The soul of the sluggard craves and gets nothing, while the soul of the diligent is richly supplied.", r: "Proverbs 13:4" },
+            { v: "In all toil there is profit, but mere talk tends only to poverty.", r: "Proverbs 14:23" },
+            { v: "Be diligent to know the state of your flocks, and attend to your herds.", r: "Proverbs 27:23" },
+            { v: "Steady plodding brings prosperity; hasty speculation brings poverty.", r: "Proverbs 21:5 (LB)" },
+            { v: "Commit your work to the Lord, and your plans will be established.", r: "Proverbs 16:3" },
+            { v: "Do you see a man skillful in his work? He will stand before kings.", r: "Proverbs 22:29" },
+            { v: "No discipline seems pleasant at the time, but later on it produces a harvest of righteousness.", r: "Hebrews 12:11" },
+            { v: "For which of you, desiring to build a tower, does not first sit down and count the cost?", r: "Luke 14:28" },
+            { v: "The borrower is slave to the lender.", r: "Proverbs 22:7" },
+            { v: "Go to the ant, O sluggard; consider her ways, and be wise.", r: "Proverbs 6:6" },
+            { v: "He who is faithful in a very little is faithful also in much.", r: "Luke 16:10" },
+            { v: "A good man leaves an inheritance to his children's children.", r: "Proverbs 13:22" },
+            { v: "Blessed is the man who walks not in the counsel of the wicked.", r: "Psalm 1:1" },
+            { v: "The rich rules over the poor, and the borrower is the slave of the lender.", r: "Proverbs 22:7" },
+            { v: "Every prudent man acts with knowledge, but a fool flaunts his folly.", r: "Proverbs 13:16" },
+            { v: "But remember the Lord your God, for it is he who gives you the ability to produce wealth.", r: "Deuteronomy 8:18" },
+            { v: "The blessing of the Lord makes rich, and he adds no sorrow with it.", r: "Proverbs 10:22" },
+            { v: "Good planning and hard work lead to prosperity.", r: "Proverbs 21:5" },
+            { v: "Let us not become weary in doing good, for at the proper time we will reap a harvest.", r: "Galatians 6:9" },
+            { v: "Keep your lives free from the love of money and be content with what you have.", r: "Hebrews 13:5" }
+        ];
+
+        function updateDailyVerse() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const selection = bibleVerses[dayOfYear % bibleVerses.length];
+            document.getElementById('daily-verse-text').innerText = `"${selection.v}"`;
+            document.getElementById('daily-verse-ref').innerText = `— ${selection.r}`;
+        }
+
+        // PAGE NAVIGATION
+        function showPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function toggleMenu() {
+            document.getElementById('mobile-menu').classList.toggle('active');
+        }
+let annualGoal =
+    parseInt(localStorage.getItem("ascend_annual_goal")) || 100000;
+
+function renderAnnualGoal() {
+    document.getElementById("annual-goal-display").innerText =
+        `Ksh ${annualGoal.toLocaleString()}`;
+}
+
+function editAnnualGoal() {
+    const input = prompt("Set your Annual Savings Goal (Ksh):", annualGoal);
+    const value = parseInt(input);
+
+    if (!isNaN(value) && value > 0) {
+        annualGoal = value;
+        localStorage.setItem("ascend_annual_goal", annualGoal);
+        recalculateRoadmap();
+    }
+}
+
+        // FINANCIAL ROADMAP DATA
+        const roadmapBase = [
+            { name: "Jan", target: 8333, tip: "Setup auto-transfers to a Kenyan MMF immediately." },
+            { name: "Feb", target: 8333, tip: "Review M-Pesa statements. Track the 'small' transactions." },
+            { name: "Mar", target: 8333, tip: "Look into Treasury Bills or NSE for long-term growth." },
+            { name: "Apr", target: 8333, tip: "Spring cleaning: Sell items on Jiji or Marketplace." },
+            { name: "May", target: 8333, tip: "Side hustle focus: Can you add Ksh 7,000/mo income?" },
+            { name: "Jun", target: 8333, tip: "Half-year audit. Goal check: Ksh 50k reached?" },
+            { name: "Jul", target: 8333, tip: "Cold season budget: More home-cooked meals." },
+            { name: "Aug", target: 8333, tip: "Bulk buy essentials from wholesalers like Kamukunji." },
+            { name: "Sep", target: 8333, tip: "No-spend month challenge. Avoid impulse KES drift." },
+            { name: "Oct", target: 8333, tip: "Prep for Dec holidays now. Set strict travel limits." },
+            { name: "Nov", target: 8333, tip: "Black Friday: If it's not a need, it's a loss." },
+            { name: "Dec", target: 8337, tip: "Final push. Ksh 100K target celebration." }
+        ];
+
+        let roadmapData = JSON.parse(localStorage.getItem('ascend_roadmap_2026')) || roadmapBase.map(m => ({
+            ...m, attained: null, note: "", reward: null
+        }));
+
+        const currentMonthIndex = new Date().getMonth();
+
+        function saveRoadmap() {
+            localStorage.setItem('ascend_roadmap_2026', JSON.stringify(roadmapData));
+            updateAnnualProgress();
+        }
+        function recalculateRoadmap() {
+        const monthly = Math.floor(annualGoal / 12);
+        let remainder = annualGoal - monthly * 11;
+
+        roadmapData.forEach((m, i) => {
+            m.target = i === 11 ? remainder : monthly;
+        });
+
+        saveRoadmap();
+        renderAnnualGoal();
+        renderRoadmap();
+    }
+        function updateAnnualProgress() {
+            const attainedCount = roadmapData.filter(m => m.attained === true).length;
+            const progress = (attainedCount / 12) * 100;
+            const bar = document.getElementById('annual-progress-bar');
+            const text = document.getElementById('progress-text');
+            if(bar) bar.style.width = `${progress}%`;
+            if(text) text.innerText = `Current Progress: ${progress.toFixed(1)}% of total goal reached.`;
+        }
+
+        function setGoalStatus(index, status) {
+            roadmapData[index].attained = status;
+            // Select reward if achieved
+            if (status === true && !roadmapData[index].reward) {
+                const randomReward = rewardOptions[Math.floor(Math.random() * rewardOptions.length)];
+                roadmapData[index].reward = randomReward;
+            } else if (status === false) {
+                roadmapData[index].reward = null; // Remove reward if marked as failed
+            }
+            saveRoadmap();
+            renderRoadmap();
+        }
+
+        function updateRoadmapNote(index, note) {
+            roadmapData[index].note = note;
+            saveRoadmap();
+        }
+
+        function renderRoadmap() {
+            const grid = document.getElementById('monthly-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            roadmapData.forEach((m, i) => {
+                const isFuture = i > currentMonthIndex;
+                const isCurrent = i === currentMonthIndex;
+                const card = document.createElement('div');
+                
+                let borderClass = "border-indigo-500/10";
+                if (isCurrent) borderClass = "border-indigo-500 shadow-lg shadow-indigo-500/10";
+                
+                card.className = `glass-card p-6 flex flex-col h-full border ${borderClass} ${isFuture ? 'opacity-60' : ''}`;
+                
+                let rewardHtml = "";
+                if (m.reward && m.attained === true) {
+                    rewardHtml = `
+                        <div class="reward-badge mt-4 p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center space-x-3">
+                            <i class="fas ${m.reward.icon} ${m.reward.color} text-xl"></i>
+                            <div>
+                                <p class="text-[9px] uppercase font-black tracking-widest text-indigo-400">Reward Unlocked</p>
+                                <p class="text-xs font-bold">${m.reward.name}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-[10px] ${isCurrent ? 'text-indigo-400' : 'opacity-50'} uppercase font-black tracking-tighter">${m.name}</span>
+                            <p class="text-xl font-bold mt-1 ${isFuture ? 'blur-amount' : ''}">Ksh ${m.target.toLocaleString()}</p>
+                        </div>
+                        ${!isFuture ? `
+                            <div class="flex space-x-1">
+                                <button onclick="setGoalStatus(${i}, true)" class="w-8 h-8 rounded-full border flex items-center justify-center transition ${m.attained === true ? 'bg-green-500 border-green-500 text-white' : 'border-indigo-500/20 text-slate-500 hover:text-green-400'}">
+                                    <i class="fas fa-check text-[10px]"></i>
+                                </button>
+                                <button onclick="setGoalStatus(${i}, false)" class="w-8 h-8 rounded-full border flex items-center justify-center transition ${m.attained === false ? 'bg-red-500 border-red-500 text-white' : 'border-indigo-500/20 text-slate-500 hover:text-red-400'}">
+                                    <i class="fas fa-times text-[10px]"></i>
+                                </button>
+                            </div>
+                        ` : '<i class="fas fa-lock opacity-20"></i>'}
+                    </div>
+                    <div class="mb-4 flex-grow">
+                        <p class="text-[11px] opacity-70 italic leading-snug ${isFuture ? 'blur-amount' : ''}">
+                            ${m.tip}
+                        </p>
+                        ${rewardHtml}
+                    </div>
+                    ${!isFuture ? `
+                        <div class="mt-auto">
+                            <label class="text-[9px] uppercase font-bold text-slate-500 block mb-1">EOM Review</label>
+                            <textarea 
+                                oninput="updateRoadmapNote(${i}, this.value)"
+                                class="note-area w-full p-3 rounded-xl text-[11px] h-20"
+                                placeholder="What needs to change?"
+                            >${m.note}</textarea>
+                        </div>
+                    ` : ''}
+                `;
+                grid.appendChild(card);
+            });
+        }
+// PERSONAL COACH – YEARLY PROGRESSION
+const trainingProgram = Array.from({ length: 52 }, (_, i) => {
+    const week = i + 1;
+
+    return {
+        week,
+        squats: {
+            sets: 4,
+            reps: 20 + Math.floor(i * 1.5),
+            variation: week < 13 ? "Tempo Squats (3s down)" :
+                       week < 26 ? "Paused Squats (2s bottom)" :
+                       week < 39 ? "Explosive Squats" :
+                                   "Pistol Squat Progression"
+        },
+        pushups: {
+            sets: 4,
+            reps: 15 + Math.floor(i * 1.2),
+            variation: week < 13 ? "Tempo Push-ups" :
+                       week < 26 ? "Decline Push-ups" :
+                       week < 39 ? "Archer Push-ups" :
+                                   "Pseudo Planche Push-ups"
+        },
+        tip:
+            week < 13
+                ? "Control the negative. Strength is built in slow reps."
+                : week < 26
+                ? "Quality beats quantity. Own every rep."
+                : week < 39
+                ? "Explode with intent. Power follows control."
+                : "Hard reps build mental armor. Stay strict."
+    };
+});
+const coachState =
+    JSON.parse(localStorage.getItem("ascend_coach_state")) || {
+        completedWeeks: [],
+        streak: 0
+    };
+
+        // FASTING LOGIC
+        let fastInterval;
+        let totalSeconds = 16 * 3600;
+        let remainingSeconds = totalSeconds;
+        let isRunning = false;
+const milestones = [
+    {
+        h: 4,
+        label: "Post-Absorptive Phase",
+        text: "Blood glucose begins stabilizing as insulin levels gradually decline."
+    },
+    {
+        h: 12,
+        label: "Glycogen Depletion",
+        text: "Liver glycogen stores are significantly reduced; fat oxidation increases."
+    },
+    {
+        h: 16,
+        label: "Metabolic Switching",
+        text: "The body shifts more heavily toward fat and ketone utilization."
+    },
+    {
+        h: 24,
+        label: "Early Ketogenesis",
+        text: "Ketone production rises; insulin remains low and stable."
+    },
+    {
+        h: 48,
+        label: "Cellular Stress Adaptation",
+        text: "Cells activate repair pathways associated with nutrient scarcity."
+    },
+    {
+        h: 72,
+        label: "Deep Energy Conservation",
+        text: "Metabolism prioritizes efficiency; recovery and supervision recommended."
+    }
+];
+
+        function setPlan(plan) {
+            let hours;
+            if (plan === '21-Day OMAD') hours = 24 * 21;
+            else if (plan === '168:0') hours = 168;
+            else if (plan.includes(':')) hours = parseInt(plan.split(':')[0]);
+            else hours = 16;
+            
+            totalSeconds = hours * 3600;
+            remainingSeconds = totalSeconds;
+            document.getElementById('current-plan-name').innerText = plan === '168:0' ? '7-Day Water Fast' : plan;
+            updateTimerDisplay();
+            resetFast();
+        }
+
+        function updateTimerDisplay() {
+            const h = Math.floor(remainingSeconds / 3600);
+            const m = Math.floor((remainingSeconds % 3600) / 60);
+            const s = remainingSeconds % 60;
+            document.getElementById('timer-display').innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            const offset = 691 - (691 * (remainingSeconds / totalSeconds));
+            document.getElementById('fasting-progress').style.strokeDashoffset = offset;
+            updateMilestonesUI((totalSeconds - remainingSeconds) / 3600);
+        }
+
+        function updateMilestonesUI(elapsed) {
+            const container = document.getElementById('milestones-list');
+            if (!container) return;
+            container.innerHTML = '';
+            milestones.forEach(m => {
+                const isActive = elapsed >= m.h;
+                container.innerHTML += `
+                    <div class="glass-card p-4 flex items-center space-x-4 transition ${isActive ? 'border-indigo-500/50 opacity-100' : 'opacity-40'}">
+                        <div class="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center font-bold text-indigo-400 text-xs">${m.h}h</div>
+                        <div>
+                            <h4 class="font-bold text-sm ${isActive ? 'text-indigo-500' : ''}">${m.label}</h4>
+                            <p class="text-[10px] opacity-60">${m.text}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function startFast() {
+            if (isRunning) {
+                clearInterval(fastInterval);
+                document.getElementById('start-btn').innerText = "Resume Fast";
+            } else {
+                fastInterval = setInterval(() => {
+                    if (remainingSeconds > 0) { remainingSeconds--; updateTimerDisplay(); }
+                    else clearInterval(fastInterval);
+                }, 1000);
+                document.getElementById('start-btn').innerText = "Pause Fast";
+            }
+            isRunning = !isRunning;
+        }
+
+        function resetFast() {
+            clearInterval(fastInterval);
+            isRunning = false;
+            remainingSeconds = totalSeconds;
+            updateTimerDisplay();
+            document.getElementById('start-btn').innerText = "Start Fast";
+        }
+
+        // READING LIST
+        const initialBooks = [
+            { id: "jan", month: "Jan", title: "Everything is F**ked", author: "Mark Manson" },
+            { id: "feb", month: "Feb", title: "The Almanack of Naval Ravikant", author: "Eric Jorgenson" },
+            { id: "mar", month: "Mar", title: "Psychology of Money", author: "Morgan Housel" },
+            { id: "apr", month: "Apr", title: "Deep Work", author: "Cal Newport" },
+            { id: "may", month: "May", title: "The Courage to Be Disliked", author: "Kishimi/Koga" },
+            { id: "jun", month: "Jun", title: "Zero to One", author: "Peter Thiel" },
+            { id: "jul", month: "Jul", title: "Dopamine Nation", author: "Anna Lembke" },
+            { id: "aug", month: "Aug", title: "Show Your Work!", author: "Austin Kleon" },
+            { id: "sep", month: "Sep", title: "The War of Art", author: "Steven Pressfield" },
+            { id: "oct", month: "Oct", title: "Never Split the Difference", author: "Chris Voss" },
+            { id: "nov", month: "Nov", title: "Can't Hurt Me", author: "David Goggins" },
+            { id: "dec", month: "Dec", title: "Antifragile", author: "Nassim Taleb" }
+        ];
+
+        let libraryData =
+    JSON.parse(localStorage.getItem('ascend_library_2026')) ||
+    initialBooks.map(b => ({
+        ...b,
+        done: false,
+        takeaway: "",
+        monthlyNotes: ""
+    }));
+
+        function renderBooks() {
+            const bookContainer = document.getElementById('books-list');
+            if (!bookContainer) return;
+            bookContainer.innerHTML = '';
+            libraryData.forEach(b => {
+                const bookDiv = document.createElement('div');
+                bookDiv.className = `glass-card p-5 group transition-all duration-300 ${b.done ? 'border-indigo-500/30' : ''}`;
+                bookDiv.innerHTML = `
+    <div class="flex justify-between items-start mb-4">
+        <div class="flex items-center space-x-6">
+            <span class="text-indigo-500 font-mono text-xl w-10">${b.month}</span>
+            <div>
+                <h4 class="font-bold ${b.done ? 'text-indigo-400 line-through' : ''}">
+                    ${b.title}
+                </h4>
+                <p class="text-xs opacity-50">${b.author}</p>
+            </div>
+        </div>
+        <button onclick="toggleBookStatus('${b.id}')">
+            <i class="${b.done ? 'fas fa-check-circle text-green-500' : 'far fa-circle opacity-20'} text-2xl"></i>
+        </button>
+    </div>
+
+    <div class="mt-4 space-y-3 ${b.done ? '' : 'opacity-40 pointer-events-none'}">
+        <div>
+            <label class="text-[10px] uppercase tracking-widest text-indigo-400 font-bold">
+                Main Takeaway
+            </label>
+            <textarea
+                class="note-area w-full p-3 rounded-xl text-[11px] h-16"
+                placeholder="What was your main takeaway?"
+                oninput="updateBookTakeaway('${b.id}', this.value)"
+            >${b.takeaway || ""}</textarea>
+        </div>
+
+        <div>
+            <label class="text-[10px] uppercase tracking-widest text-indigo-400 font-bold">
+                Monthly Key Learnings
+            </label>
+            <textarea
+                class="note-area w-full p-3 rounded-xl text-[11px] h-20"
+                placeholder="• Key idea 1&#10;• Key idea 2&#10;• Key idea 3"
+                oninput="updateBookMonthlyNotes('${b.id}', this.value)"
+            >${b.monthlyNotes || ""}</textarea>
+        </div>
+    </div>
+`;
+                bookContainer.appendChild(bookDiv);
+            });
+            document.getElementById('books-read-count').innerText = libraryData.filter(b => b.done).length;
+        }
+
+        function toggleBookStatus(id) {
+            const idx = libraryData.findIndex(b => b.id === id);
+            libraryData[idx].done = !libraryData[idx].done;
+            localStorage.setItem('ascend_library_2026', JSON.stringify(libraryData));
+            renderBooks();
+        }
+        function updateBookTakeaway(id, value) {
+    const book = libraryData.find(b => b.id === id);
+    book.takeaway = value;
+    localStorage.setItem('ascend_library_2026', JSON.stringify(libraryData));
+}
+
+function updateBookMonthlyNotes(id, value) {
+    const book = libraryData.find(b => b.id === id);
+    book.monthlyNotes = value;
+    localStorage.setItem('ascend_library_2026', JSON.stringify(libraryData));
+}
+
+function renderCoach() {
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+    const today = new Date();
+
+    const dayOfWeek = today.getDay(); // 0 = Sunday
+    const weekNumber = Math.min(
+        52,
+        Math.ceil(((today - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7)
+    );
+
+    const basePlan = trainingProgram[weekNumber - 1];
+
+    const isSunday = dayOfWeek === 0;
+    const isDeloadWeek = weekNumber % 7 === 0;
+
+    let squatReps = basePlan.squats.reps;
+    let pushupReps = basePlan.pushups.reps;
+    let note = basePlan.tip;
+
+    if (isSunday) {
+        squatReps = Math.floor(squatReps * 0.6);
+        pushupReps = Math.floor(pushupReps * 0.6);
+        note = "Sunday recovery. Move slow, breathe deep, protect joints.";
+    }
+
+    if (isDeloadWeek) {
+        squatReps = Math.floor(squatReps * 0.7);
+        pushupReps = Math.floor(pushupReps * 0.7);
+        note = "Deload week. Reduce volume. Let strength consolidate.";
+    }
+
+    document.getElementById("coach-week").innerText =
+        `Week ${weekNumber}${isDeloadWeek ? " · Deload" : ""}`;
+
+    document.getElementById("coach-squats").innerText =
+        `${basePlan.squats.sets} × ${squatReps} — ${basePlan.squats.variation}`;
+
+    document.getElementById("coach-pushups").innerText =
+        `${basePlan.pushups.sets} × ${pushupReps} — ${basePlan.pushups.variation}`;
+
+    document.getElementById("coach-tip").innerText = note;
+
+    renderCoachReward(weekNumber);
+}
+function completeWeek(week) {
+    if (!coachState.completedWeeks.includes(week)) {
+        coachState.completedWeeks.push(week);
+        coachState.streak += 1;
+        localStorage.setItem("ascend_coach_state", JSON.stringify(coachState));
+        renderCoach();
+    }
+}
+
+function renderCoachReward(currentWeek) {
+    const container = document.getElementById("coach-reward");
+    if (!container) return;
+
+    if (coachState.completedWeeks.includes(currentWeek)) {
+        container.innerHTML = `
+            <div class="reward-badge mt-6 p-4 rounded-2xl bg-green-500/10 border border-green-500/20">
+                <p class="text-[10px] uppercase tracking-widest font-black text-green-400">
+                    Week Completed
+                </p>
+                <p class="text-sm font-bold mt-1">
+                    Streak: ${coachState.streak} 🔥
+                </p>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <button
+                onclick="completeWeek(${currentWeek})"
+                class="mt-6 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-full font-bold transition"
+            >
+                Mark Week Complete
+            </button>
+        `;
+    }
+}
+const diaryData =
+    JSON.parse(localStorage.getItem("ascend_diary")) || {};
+
+function saveDiaryEntry() {
+    const date = document.getElementById("diary-date").value;
+    const text = document.getElementById("diary-entry").value;
+
+    if (!date) return alert("Select a date");
+
+    diaryData[date] = text;
+    localStorage.setItem("ascend_diary", JSON.stringify(diaryData));
+    renderTodayDiary();
+}
+
+function renderTodayDiary() {
+    const today = new Date().toISOString().split("T")[0];
+    const container = document.getElementById("today-diary");
+
+    let html = "";
+
+    if (diaryData[today]) {
+        html += `<p class="mb-3">${diaryData[today]}</p>`;
+    } else {
+        html += `<p class="opacity-50">No personal plans saved.</p>`;
+    }
+
+    const holiday = getKenyaHoliday(today);
+    if (holiday) {
+        html += `
+            <div class="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+                🇰🇪 <strong>${holiday}</strong>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+function getKenyaHoliday(date) {
+    const holidays = {
+        "01-01": "New Year’s Day",
+        "05-01": "Labour Day",
+        "06-01": "Madaraka Day",
+        "10-10": "Utamaduni Day",
+        "12-12": "Jamhuri Day",
+        "12-25": "Christmas Day",
+        "12-26": "Boxing Day"
+    };
+
+    const d = new Date(date);
+    const key =
+        `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    return holidays[key] || null;
+}
+
+        // Init everything
+        window.onload = () => {
+    renderRoadmap();
+    renderBooks();
+    updateDailyVerse();
+    updateTimerDisplay();
+    updateAnnualProgress();
+    renderCoach();
+    renderAnnualGoal();
+    recalculateRoadmap();
+    renderTodayDiary();
+};
+
+    </script>
 </body>
 </html>
