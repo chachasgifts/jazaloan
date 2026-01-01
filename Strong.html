@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -459,8 +460,13 @@ function editAnnualGoal() {
         ];
 
         let roadmapData = JSON.parse(localStorage.getItem('ascend_roadmap_2026')) || roadmapBase.map(m => ({
-            ...m, attained: null, note: "", reward: null
-        }));
+    ...m,
+    attained: null,
+    note: "",
+    reward: null,
+    saved: 0
+}));
+
 
         const currentMonthIndex = new Date().getMonth();
 
@@ -481,26 +487,54 @@ function editAnnualGoal() {
         renderRoadmap();
     }
         function updateAnnualProgress() {
-            const attainedCount = roadmapData.filter(m => m.attained === true).length;
-            const progress = (attainedCount / 12) * 100;
-            const bar = document.getElementById('annual-progress-bar');
-            const text = document.getElementById('progress-text');
-            if(bar) bar.style.width = `${progress}%`;
-            if(text) text.innerText = `Current Progress: ${progress.toFixed(1)}% of total goal reached.`;
+            const totalSaved = roadmapData.reduce(
+                (sum, m) => sum + (m.saved || 0),
+                0
+            );
+
+            const progress = (totalSaved / annualGoal) * 100;
+
+            document.querySelector(
+                ".text-indigo-400.font-mono"
+            ).innerText = `Current: Ksh ${totalSaved.toLocaleString()}`;
+
+            document.querySelector(
+                ".text-xs.text-slate-500"
+            ).innerText = `Target monthly: Ksh ${(annualGoal / 12).toLocaleString()}`;
+
+            document.getElementById("annual-progress-bar").style.width =
+                `${Math.min(progress, 100)}%`;
+
+            document.getElementById("progress-text").innerText =
+                `Current Progress: ${progress.toFixed(1)}% of total goal reached.`;
+        }
+
+        function updateSavedAmount(index, value) {
+            const amount = Math.max(0, parseInt(value) || 0);
+            roadmapData[index].saved = Math.min(amount, roadmapData[index].target);
+            roadmapData[index].attained =
+                roadmapData[index].saved >= roadmapData[index].target;
+            saveRoadmap();
         }
 
         function setGoalStatus(index, status) {
             roadmapData[index].attained = status;
-            // Select reward if achieved
-            if (status === true && !roadmapData[index].reward) {
-                const randomReward = rewardOptions[Math.floor(Math.random() * rewardOptions.length)];
-                roadmapData[index].reward = randomReward;
-            } else if (status === false) {
-                roadmapData[index].reward = null; // Remove reward if marked as failed
+
+            if (status === true) {
+                roadmapData[index].saved = roadmapData[index].target;
+                if (!roadmapData[index].reward) {
+                    roadmapData[index].reward =
+                        rewardOptions[Math.floor(Math.random() * rewardOptions.length)];
+                }
+            } else {
+                roadmapData[index].saved = 0;
+                roadmapData[index].reward = null;
             }
+
             saveRoadmap();
             renderRoadmap();
         }
+
 
         function updateRoadmapNote(index, note) {
             roadmapData[index].note = note;
@@ -540,6 +574,17 @@ function editAnnualGoal() {
                         <div>
                             <span class="text-[10px] ${isCurrent ? 'text-indigo-400' : 'opacity-50'} uppercase font-black tracking-tighter">${m.name}</span>
                             <p class="text-xl font-bold mt-1 ${isFuture ? 'blur-amount' : ''}">Ksh ${m.target.toLocaleString()}</p>
+                            ${!isFuture ? `
+                            <input
+                                type="number"
+                                min="0"
+                                max="${m.target}"
+                                value="${m.saved || ''}"
+                                placeholder="Saved this month"
+                                oninput="updateSavedAmount(${i}, this.value)"
+                                class="mt-2 w-full p-2 rounded-lg bg-transparent border border-indigo-500/20 text-sm"
+                            />
+                            ` : ''}
                         </div>
                         ${!isFuture ? `
                             <div class="flex space-x-1">
