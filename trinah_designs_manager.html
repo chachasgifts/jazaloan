@@ -1085,7 +1085,8 @@
         function handleControllerLogSave(e) {
             e.preventDefault();
             const dateVal = document.getElementById('control-date').value;
-            const countVal = document.getElementById('control-count').value;
+            const sweaterVal = document.getElementById('control-sweater-count').value;
+            const cottonVal = document.getElementById('control-cotton-count').value;
             const kimonoVal = document.getElementById('control-kimono-count').value;
             const noteVal = document.getElementById('control-note').value;
             const originalId = document.getElementById('control-original-id').value;
@@ -1108,13 +1109,13 @@
             }
 
             logs.unshift({
-                id: originalId ? Number(originalId) : Date.now(), 
+                id: originalId ? Number(originalId) : Date.now(),
                 date: dateVal,
-                dressCount: Number(countVal) || 0,
+                sweaterCount: Number(sweaterVal) || 0,
+                cottonCount: Number(cottonVal) || 0,
                 kimonoCount: Number(kimonoVal) || 0,
                 note: noteVal
             });
-            
             logs.sort((a,b) => new Date(b.date) - new Date(a.date));
             
             localStorage.setItem(CONTROLLER_KEY, JSON.stringify(logs));
@@ -1164,16 +1165,38 @@
                                 <label class="text-[10px] font-bold text-slate-500 uppercase">Date</label>
                                 <input type="date" id="control-date" value="${defaultDate}" class="w-full p-2 rounded-lg border border-slate-300">
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-3 gap-3">
                                 <div>
-                                    <label class="text-[10px] font-bold text-indigo-600 uppercase">Dresses + 2Pcs</label>
-                                    <input type="number" id="control-count" value="${defaultDress}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-indigo-50">
+                                    <label class="text-[10px] font-bold text-indigo-600 uppercase">
+                                        Sweater Dresses
+                                    </label>
+                                    <input type="number"
+                                        id="control-sweater-count"
+                                        value="${logToEdit ? (logToEdit.sweaterCount || '') : ''}"
+                                        class="w-full p-2 rounded-lg border border-slate-300 bg-indigo-50">
                                 </div>
+
                                 <div>
-                                    <label class="text-[10px] font-bold text-pink-600 uppercase">Kimonos</label>
-                                    <input type="number" id="control-kimono-count" value="${defaultKimono}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-pink-50">
+                                    <label class="text-[10px] font-bold text-emerald-600 uppercase">
+                                        Cotton Dresses
+                                    </label>
+                                    <input type="number"
+                                        id="control-cotton-count"
+                                        value="${logToEdit ? (logToEdit.cottonCount || '') : ''}"
+                                        class="w-full p-2 rounded-lg border border-slate-300 bg-emerald-50">
+                                </div>
+
+                                <div>
+                                    <label class="text-[10px] font-bold text-pink-600 uppercase">
+                                        Kimonos
+                                    </label>
+                                    <input type="number"
+                                        id="control-kimono-count"
+                                        value="${logToEdit ? (logToEdit.kimonoCount || '') : ''}"
+                                        class="w-full p-2 rounded-lg border border-slate-300 bg-pink-50">
                                 </div>
                             </div>
+
                             <div>
                                 <label class="text-[10px] font-bold text-slate-500 uppercase">Note (Optional)</label>
                                 <input type="text" id="control-note" value="${defaultNote}" placeholder="e.g. Checked by John" class="w-full p-2 rounded-lg border border-slate-300">
@@ -1961,297 +1984,166 @@
             `;
         }
 
-        function renderAdminOverview() {
-            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
-            
-            const targetDateLocale = selectedProcurementDate.toLocaleDateString();
-            const y = selectedProcurementDate.getFullYear();
-            const m = String(selectedProcurementDate.getMonth() + 1).padStart(2, '0');
-            const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
-            const dateInputVal = `${y}-${m}-${d}`;
-            
-            let totalStock = 0;
-            let totalSalesToday = 0;
-            let totalProfitToday = 0;
-            let grandTotalDispatchedDresses = 0;
-            let grandTotalDispatchedKimonos = 0;
+function renderAdminOverview() {
+    const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+    
+    const targetDateLocale = selectedProcurementDate.toLocaleDateString();
+    const y = selectedProcurementDate.getFullYear();
+    const m = String(selectedProcurementDate.getMonth() + 1).padStart(2, '0');
+    const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
+    const dateInputVal = `${y}-${m}-${d}`;
+    
+    let totalStock = 0;
+    let totalSalesToday = 0;
+    let totalProfitToday = 0;
+    let grandTotalDispatchedSweaters = 0;
+    let grandTotalDispatchedCotton = 0;
+    let grandTotalDispatchedKimonos = 0;
 
-            const userCards = users.map(user => {
-                const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
-                const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
-                const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
-                
-                const userHistory = JSON.parse(hStr);
-                const userArchive = JSON.parse(aStr);
-                const allEntries = [...userArchive, ...userHistory];
-                // sort for safety
-                allEntries.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
+    const userCards = users.map(user => {
+        const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
+        const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+        const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
+        
+        const userHistory = JSON.parse(hStr);
+        const userArchive = JSON.parse(aStr);
+        const allEntries = [...userArchive, ...userHistory];
+        allEntries.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
 
-                const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
-                const userSalesToday = todayEntries.reduce((sum, e) => {
-                    const legacy = Number(e.sold) || 0;
-                    const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0) + (Number(e.soldKimonos)||0);
-                    return sum + (e.soldDresses !== undefined ? newFormat : legacy);
-                }, 0);
+        const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
 
-                const userDispatchedTodayDresses = todayEntries.reduce((sum, e) => {
-                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0) + (Number(e.dispatched) || 0);
-                     return sum + val;
-                }, 0);
-                
-                const userDispatchedTodayKimonos = todayEntries.reduce((sum, e) => {
-                     return sum + (Number(e.dispatchedKimonos) || 0);
-                }, 0);
-                
-                const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
-                
-                let currentRemDresses = 0;
-                let currentRemTwoPcs = 0;
-                let currentRemKimonos = 0;
-                
-                // Pressure mode balance
-                let pressureBalance = 0;
+        const userSalesToday = todayEntries.reduce((sum, e) => {
+            const legacy = Number(e.sold) || 0;
+            const newFormat =
+                (Number(e.soldDresses) || 0) +
+                (Number(e.soldTwoPcs) || 0) +
+                (Number(e.soldKimonos) || 0);
+            return sum + (e.soldDresses !== undefined ? newFormat : legacy);
+        }, 0);
 
-                if (allEntries.length > 0) {
-                    const last = allEntries[allEntries.length - 1];
-                    currentRemDresses = last.remDresses || last.remaining || 0;
-                    currentRemTwoPcs = last.remTwoPcs || 0;
-                    currentRemKimonos = last.remKimonos || 0;
-                    pressureBalance = last.balanceBF || 0;
-                } else {
-                     try {
-                        const p = JSON.parse(pStr);
-                        if (typeof p === 'number') currentRemDresses = p;
-                        else {
-                            currentRemDresses = p?.dresses || 0;
-                            currentRemTwoPcs = p?.twoPcs || 0;
-                            currentRemKimonos = p?.kimonos || 0;
-                        }
-                    } catch(e) {}
-                }
+        const userDispatchedSweaterToday = todayEntries.reduce(
+            (s,e)=>s+(Number(e.dispatchedDresses)||0),0
+        );
+        const userDispatchedCottonToday = todayEntries.reduce(
+            (s,e)=>s+(Number(e.dispatchedTwoPcs)||0),0
+        );
+        const userDispatchedKimonosToday = todayEntries.reduce(
+            (s,e)=>s+(Number(e.dispatchedKimonos)||0),0
+        );
 
-                totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
-                totalSalesToday += userSalesToday;
-                totalProfitToday += userProfitToday;
-                grandTotalDispatchedDresses += userDispatchedTodayDresses;
-                grandTotalDispatchedKimonos += userDispatchedTodayKimonos;
+        const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
 
-                let statusBlock = '';
-                if (user.enableReconciliation) {
-                    statusBlock = `
-                        <div class="bg-indigo-50 p-2 rounded-lg col-span-2">
-                            <p class="text-[10px] uppercase font-bold text-indigo-400">Pressure Bal</p>
-                            <p class="font-bold text-indigo-700">${formatCurrency(pressureBalance)}</p>
-                        </div>
-                    `;
-                } else {
-                    statusBlock = `
-                        <div class="bg-orange-50 p-2 rounded-lg">
-                            <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
-                            <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs} / ${currentRemKimonos}</p>
-                            <p class="text-[8px] text-orange-300">D / 2 / K</p>
-                        </div>
-                        <div class="bg-emerald-50 p-2 rounded-lg">
-                            <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Today)</p>
-                            <p class="font-bold text-emerald-700">${userSalesToday}</p>
-                        </div>
-                    `;
-                }
+        let currentRemDresses = 0;
+        let currentRemTwoPcs = 0;
+        let currentRemKimonos = 0;
+        let pressureBalance = 0;
 
-                return `
-                    <div onclick="manageUser('${user.phone}')" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition cursor-pointer group">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold group-hover:bg-indigo-100 group-hover:text-indigo-600 transition">
-                                    ${renderIcon('user', {class:'w-5 h-5'})}
-                                </div>
-                                <div>
-                                    <h3 class="font-bold text-slate-800">${user.name}</h3>
-                                    <p class="text-xs text-slate-400">${user.phone}</p>
-                                </div>
-                            </div>
-                            ${renderIcon('chevron-right', {class:'w-4 h-4 text-slate-300 group-hover:text-indigo-500'})}
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-center">
-                            ${statusBlock}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Retrieve Data
-            const procLogs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-            const procData = procLogs[targetDateLocale];
-            
-            let procDresses = 0;
-            let procKimonos = 0;
-            if (procData) {
-                if (typeof procData === 'number') { procDresses = procData; } 
-                else { procDresses = procData.dresses || 0; procKimonos = procData.kimonos || 0; }
-            }
-
-            const controllerLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
-            // Find controller log for this specific date
-            const controllerLogForDate = controllerLogs.find(l => l.date === dateInputVal);
-            const physicalDresses = controllerLogForDate ? (controllerLogForDate.dressCount || controllerLogForDate.count || 0) : 0;
-            const physicalKimonos = controllerLogForDate ? (controllerLogForDate.kimonoCount || 0) : 0;
-
-            // Calculations
-            const varianceDresses = procDresses - grandTotalDispatchedDresses; // Expected to be remaining
-            const varianceKimonos = procKimonos - grandTotalDispatchedKimonos; // Expected to be remaining
-
-            // Final Missing Calculation: Variance (System Expected) - Physical Count
-            const finalMissingDresses = varianceDresses - physicalDresses;
-            const finalMissingKimonos = varianceKimonos - physicalKimonos;
-
-            appElement.innerHTML = `
-                ${renderHeader()}
-                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
-                    <div class="mb-2">
-                        <h1 class="text-2xl font-bold text-slate-800">Admin Dashboard</h1>
-                        <p class="text-slate-500">Overview of all active accounts</p>
-                    </div>
-
-                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
-                        ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
-                        ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
-                    </div>
-                    
-                    <!-- Procurement Section -->
-                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col md:flex-row gap-6">
-                         <div class="flex-1 w-full">
-                            <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
-                                ${renderIcon('clipboard-list', {class:'w-5 h-5 text-indigo-600'})} Daily Stock Procurement
-                            </h2>
-                            <p class="text-sm text-slate-500 mb-4">Stock Acquired / Bought today.</p>
-                            
-                            <div class="flex flex-col gap-2">
-                                <input type="date" value="${dateInputVal}" 
-                                    onchange="handleProcurementDateChange(this.value)"
-                                    class="p-3 w-full rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700">
-                                
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="text-[10px] font-bold text-indigo-500 uppercase">Dresses/Suits</label>
-                                        <input type="number" id="procurement-dress-input" value="${procDresses || ''}" placeholder="Dresses" class="w-full p-3 rounded-xl bg-indigo-50 border border-indigo-100 outline-none focus:border-indigo-500 font-bold">
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] font-bold text-pink-500 uppercase">Kimonos</label>
-                                        <input type="number" id="procurement-kimono-input" value="${procKimonos || ''}" placeholder="Kimonos" class="w-full p-3 rounded-xl bg-pink-50 border border-pink-100 outline-none focus:border-pink-500 font-bold">
-                                    </div>
-                                </div>
-                                <div class="flex gap-2 mt-2">
-                                    <button onclick="handleProcurementSave()" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
-                                    <button onclick="handleDeleteProcurement()" class="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 border border-red-100" title="Delete Entry for this Date">
-                                        ${renderIcon('trash-2', {class:'w-5 h-5'})}
-                                    </button>
-                                </div>
-                            </div>
-                         </div>
-                         
-                         <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-4 border border-slate-200">
-                            <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Reconciliation (${targetDateLocale})</div>
-                            
-                            <!-- Dresses Table -->
-                            <div class="grid grid-cols-4 gap-2 text-xs mb-2 border-b border-slate-200 pb-2">
-                                <span class="col-span-1 font-bold text-indigo-600">DRESSES</span>
-                                <span class="text-center">System Exp.</span>
-                                <span class="text-center">Physical</span>
-                                <span class="text-right">Variance</span>
-
-                                <span class="col-span-1 text-slate-500">Bought: ${procDresses}<br>Disp: ${grandTotalDispatchedDresses}</span>
-                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceDresses}</span>
-                                <span class="text-center font-bold text-indigo-700 py-2 bg-indigo-50 rounded border border-indigo-100">${physicalDresses}</span>
-                                <span class="text-right font-bold ${finalMissingDresses > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
-                                    ${finalMissingDresses > 0 ? `${finalMissingDresses} Miss` : (finalMissingDresses < 0 ? `${Math.abs(finalMissingDresses)} Extra` : 'OK')}
-                                </span>
-                            </div>
-
-                            <!-- Kimonos Table -->
-                            <div class="grid grid-cols-4 gap-2 text-xs">
-                                <span class="col-span-1 font-bold text-pink-600">KIMONOS</span>
-                                <span class="text-center">System Exp.</span>
-                                <span class="text-center">Physical</span>
-                                <span class="text-right">Variance</span>
-
-                                <span class="col-span-1 text-slate-500">Bought: ${procKimonos}<br>Disp: ${grandTotalDispatchedKimonos}</span>
-                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceKimonos}</span>
-                                <span class="text-center font-bold text-pink-700 py-2 bg-pink-50 rounded border border-pink-100">${physicalKimonos}</span>
-                                <span class="text-right font-bold ${finalMissingKimonos > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
-                                    ${finalMissingKimonos > 0 ? `${finalMissingKimonos} Miss` : (finalMissingKimonos < 0 ? `${Math.abs(finalMissingKimonos)} Extra` : 'OK')}
-                                </span>
-                            </div>
-                         </div>
-                    </div>
-                    
-                    <!-- Stock Controller Section -->
-                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                ${renderIcon('notebook', {class:'w-5 h-5 text-slate-600'})} Stock Controller's Log
-                            </h2>
-                            <button onclick="showControllerModal()" class="text-xs bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-bold hover:bg-slate-200">
-                                + Add Physical Count
-                            </button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm text-left text-slate-500">
-                                <thead class="text-xs text-slate-700 uppercase bg-slate-50">
-                                    <tr>
-                                        <th class="px-4 py-3">Date</th>
-                                        <th class="px-4 py-3">Dresses/2Pcs Count</th>
-                                        <th class="px-4 py-3">Kimonos Count</th>
-                                        <th class="px-4 py-3">Notes</th>
-                                        <th class="px-4 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${controllerLogs.length > 0 ? controllerLogs.slice(0, 5).map(log => `
-                                        <tr class="bg-white border-b hover:bg-slate-50">
-                                            <td class="px-4 py-2 font-medium text-slate-900">${log.date}</td>
-                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.dressCount !== undefined ? log.dressCount : (log.count||0)}</td>
-                                            <td class="px-4 py-2 font-bold text-pink-600">${log.kimonoCount || 0}</td>
-                                            <td class="px-4 py-2">${log.note || '-'}</td>
-                                            <td class="px-4 py-2 text-right flex justify-end gap-2">
-                                                <button onclick="showControllerModal(${log.id})" class="text-indigo-600 hover:text-indigo-800 p-1">
-                                                    ${renderIcon('pencil', {class:'w-4 h-4'})}
-                                                </button>
-                                                <button onclick="handleDeleteControllerLog(${log.id})" class="text-red-600 hover:text-red-800 p-1">
-                                                    ${renderIcon('trash-2', {class:'w-4 h-4'})}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `).join('') : `<tr><td colspan="5" class="px-4 py-4 text-center">No records yet.</td></tr>`}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Staff Grid -->
-                    <div>
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-bold text-slate-700">Staff Accounts</h2>
-                            <button onclick="showAddStaffModal()" class="text-sm text-indigo-600 font-bold hover:underline flex items-center gap-1">
-                                ${renderIcon('plus', {class:'w-4 h-4'})} Add Staff
-                            </button>
-                        </div>
-                        
-                        ${users.length === 0 ? `
-                            <div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                                <p class="text-slate-400 mb-4">No staff accounts found.</p>
-                                <button onclick="showAddStaffModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Add Your First Staff Member</button>
-                            </div>
-                        ` : `
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                ${userCards}
-                            </div>
-                        `}
-                    </div>
-                </main>
-            `;
-            refreshIcons();
+        if (allEntries.length > 0) {
+            const last = allEntries[allEntries.length - 1];
+            currentRemDresses = last.remDresses || 0;
+            currentRemTwoPcs = last.remTwoPcs || 0;
+            currentRemKimonos = last.remKimonos || 0;
+            pressureBalance = last.balanceBF || 0;
+        } else {
+            try {
+                const p = JSON.parse(pStr);
+                currentRemDresses = p?.dresses || 0;
+                currentRemTwoPcs = p?.twoPcs || 0;
+                currentRemKimonos = p?.kimonos || 0;
+            } catch(e){}
         }
+
+        totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
+        totalSalesToday += userSalesToday;
+        totalProfitToday += userProfitToday;
+        grandTotalDispatchedSweaters += userDispatchedSweaterToday;
+        grandTotalDispatchedCotton += userDispatchedCottonToday;
+        grandTotalDispatchedKimonos += userDispatchedKimonosToday;
+
+        let statusBlock = '';
+        if (user.enableReconciliation) {
+            statusBlock = `
+                <div class="bg-indigo-50 p-2 rounded-lg col-span-2">
+                    <p class="text-[10px] uppercase font-bold text-indigo-400">Pressure Bal</p>
+                    <p class="font-bold text-indigo-700">${formatCurrency(pressureBalance)}</p>
+                </div>
+            `;
+        } else {
+            statusBlock = `
+                <div class="bg-orange-50 p-2 rounded-lg">
+                    <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
+                    <p class="font-bold text-orange-700">
+                        ${currentRemDresses} / ${currentRemTwoPcs} / ${currentRemKimonos}
+                    </p>
+                    <p class="text-[8px] text-orange-300">S / C / K</p>
+                </div>
+                <div class="bg-emerald-50 p-2 rounded-lg">
+                    <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Today)</p>
+                    <p class="font-bold text-emerald-700">${userSalesToday}</p>
+                </div>
+            `;
+        }
+
+        return `
+            <div onclick="manageUser('${user.phone}')" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer">
+                <h3 class="font-bold">${user.name}</h3>
+                <div class="grid grid-cols-2 gap-2 mt-3">${statusBlock}</div>
+            </div>
+        `;
+    }).join('');
+
+    const procLogs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+    const procData = procLogs[targetDateLocale] || {};
+    const procSweater = procData.sweater || 0;
+    const procCotton = procData.cotton || 0;
+    const procKimonos = procData.kimonos || 0;
+
+    const controllerLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+    const controllerLogForDate = controllerLogs.find(l => l.date === dateInputVal) || {};
+    const physSweater = controllerLogForDate.sweaterCount || 0;
+    const physCotton = controllerLogForDate.cottonCount || 0;
+    const physKimonos = controllerLogForDate.kimonoCount || 0;
+
+    const varianceSweater = procSweater - grandTotalDispatchedSweaters;
+    const varianceCotton = procCotton - grandTotalDispatchedCotton;
+    const varianceKimonos = procKimonos - grandTotalDispatchedKimonos;
+
+    const finalSweater = varianceSweater - physSweater;
+    const finalCotton = varianceCotton - physCotton;
+    const finalKimonos = varianceKimonos - physKimonos;
+
+    appElement.innerHTML = `
+        ${renderHeader()}
+        <main class="max-w-5xl mx-auto p-6 space-y-6">
+
+            <div class="bg-white rounded-xl p-4 border">
+                <div class="text-xs font-bold uppercase text-center mb-3">
+                    Reconciliation (${targetDateLocale})
+                </div>
+
+                ${[
+                    ['Sweater Dresses', procSweater, grandTotalDispatchedSweaters, varianceSweater, physSweater, finalSweater, 'indigo'],
+                    ['Cotton Dresses', procCotton, grandTotalDispatchedCotton, varianceCotton, physCotton, finalCotton, 'emerald'],
+                    ['Kimonos', procKimonos, grandTotalDispatchedKimonos, varianceKimonos, physKimonos, finalKimonos, 'pink'],
+                ].map(([label,b,d,v,p,f,color])=>`
+                    <div class="grid grid-cols-4 gap-2 text-xs mb-2 border-b pb-2">
+                        <span class="font-bold text-${color}-600">${label}</span>
+                        <span class="text-center">${v}</span>
+                        <span class="text-center font-bold">${p}</span>
+                        <span class="text-right font-bold ${f>0?'text-red-600':'text-emerald-600'}">
+                            ${f>0?`${f} Miss`:f<0?`${Math.abs(f)} Extra`:'OK'}
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                ${userCards}
+            </div>
+        </main>
+    `;
+    refreshIcons();
+}
 
         function renderIndividualDashboard() {
             if (!managedUser) return;
