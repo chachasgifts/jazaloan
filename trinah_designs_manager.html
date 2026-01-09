@@ -484,14 +484,20 @@
                             statusDisplay = `Bal: ${formatCurrency(last.balanceBF || 0)}`;
                         }
                     } else {
-                        let remD = 0, remK = 0;
-                         if (allEntries.length > 0) {
-                            const last = allEntries[allEntries.length - 1];
-                            remD = last.remDresses || last.remaining || 0;
-                            remK = last.remKimonos || 0;
-                        }
-                        statusDisplay = `${remD} / ${remK}`;
+                        // STANDARD STAFF → Bought Today
+                        const todayEntries = allEntries.filter(e => e.fullDate === targetDateLocale);
+
+                        let boughtToday = 0;
+                        todayEntries.forEach(e => {
+                            boughtToday +=
+                                (Number(e.dispatchedDresses) || 0) +
+                                (Number(e.dispatchedTwoPcs) || 0) +
+                                (Number(e.dispatchedKimonos) || 0);
+                        });
+
+                        statusDisplay = boughtToday > 0 ? `${boughtToday} Bought` : '-';
                     }
+
 
                     if (type === 'Daily' && filteredEntries.length === 0) return;
 
@@ -524,7 +530,7 @@
 
                 doc.autoTable({
                     startY: 55,
-                    head: [['Staff Member', 'Type', 'Status/Stock', 'Value/Profit (KES)']],
+                    head: [['Staff Member', 'Type', 'Status / Bought Today', 'Value/Profit (KES)']],
                     body: reportRows,
                     theme: 'striped',
                     headStyles: { fillColor: [30, 58, 138], textColor: 255, halign: 'center' },
