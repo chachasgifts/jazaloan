@@ -6,7 +6,2860 @@
     <title>Trinah Designs Admin Manager</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons --><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trinah Designs Admin Manager</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Load jsPDF for Reports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Load jsPDF AutoTable for easier tables -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.7);
+        }
+        /* PDF loader styles */
+        #pdf-loader { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; }
+        .pdf-loader-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,0.6); }
+        .pdf-loader-box {
+            position: relative; z-index: 61; width: 320px; padding: 18px 20px;
+            border-radius: 12px; background: #ffffff;
+            box-shadow: 0 10px 30px rgba(2,6,23,0.5);
+            display: flex; gap: 12px; align-items: center;
+        }
+        .pdf-spinner {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 4px solid #e6edf8; border-top-color: #1E3A8A;
+            animation: pdfspin 1s linear infinite;
+        }
+        @keyframes pdfspin { to { transform: rotate(360deg); } }
+        .pdf-loader-text { font-weight:600; font-size:14px; color: #0f172a; }
+        
+        /* Mobile Menu Transitions */
+        #mobile-menu { transition: transform 0.3s ease-in-out; }
+        .translate-x-full { transform: translateX(100%); }
+        .translate-x-0 { transform: translateX(0); }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Main Application Container -->
+    <div id="app" class="min-h-screen"></div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-0 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform opacity-0 -translate-y-full" style="display: none;"></div>
+
+    <!-- Modals Container -->
+    <div id="modal-container"></div>
+
+    <!-- PDF Loader -->
+    <div id="pdf-loader" style="display:none;">
+        <div class="pdf-loader-backdrop"></div>
+        <div class="pdf-loader-box">
+            <div class="pdf-spinner"></div>
+            <div class="pdf-loader-text">Generating report — please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration & Constants ---
+        const DEFAULT_BUY_PRICE = 120;
+        const DEFAULT_SELL_PRICE = 200;
+
+        const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const REPORT_TYPES = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
+        
+        // SECURITY CONFIGURATION
+        const SYSTEM_PIN = "2580"; 
+
+        // Local Storage Keys
+        const DB_KEY = "trinah_users_db";
+        const SESSION_KEY = "trinah_active_session";
+        const PROCUREMENT_KEY = "trinah_procurement_log";
+        const CONTROLLER_KEY = "trinah_stock_controller_log"; 
+
+        // View States
+        const VIEW_DASHBOARD = 'dashboard';
+        const VIEW_USERS = 'users';
+
+        // Global State Variables
+        let currentUser = null; 
+        let managedUser = null; 
+        let currentView = VIEW_DASHBOARD;
+        
+        // Data for managed user
+        let history = []; 
+        let archive = []; 
+        // startingPressure updated to include kimonos
+        let startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 }; 
+        
+        let selectedDayIndex = 0;
+        let selectedReport = "Daily"; 
+        
+        // Admin Overview Date State
+        let selectedProcurementDate = new Date(); // Default to today
+
+        // Auth State
+        let authError = "";
+        let authLoading = false;
+        let showAdminCreation = false;
+
+        const appElement = document.getElementById('app');
+        const notificationContainer = document.getElementById('notification-container');
+        const modalContainer = document.getElementById('modal-container');
+
+        // --- Utility Functions ---
+
+        function renderIcon(name, attributes = {}) {
+            if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                const icons = lucide.createIcons();
+                if (icons && icons[name]) {
+                    return icons[name].toSvg(attributes);
+                }
+            }
+            return `<i data-lucide="${name}" class="${attributes.class || ''}"></i>`;
+        }
+
+        function refreshIcons() {
+            if (window.lucide && window.lucide.createIcons) {
+                window.lucide.createIcons();
+            }
+        }
+
+        function saveData(phone) {
+            if (!phone) return;
+            localStorage.setItem(`trinah_current_week_${phone}`, JSON.stringify(history));
+            localStorage.setItem(`trinah_archive_${phone}`, JSON.stringify(archive));
+            localStorage.setItem(`trinah_starting_pressure_${phone}`, JSON.stringify(startingPressure));
+        }
+
+        function loadData(user) {
+            if (!user) return;
+            const phone = user.phone;
+            const savedHistory = localStorage.getItem(`trinah_current_week_${phone}`);
+            if (savedHistory) history = JSON.parse(savedHistory);
+            else history = [];
+            
+            const savedArchive = localStorage.getItem(`trinah_archive_${phone}`);
+            if (savedArchive) archive = JSON.parse(savedArchive);
+            else archive = [];
+            
+            const savedPressure = localStorage.getItem(`trinah_starting_pressure_${phone}`);
+            if (savedPressure) {
+                try {
+                    const parsed = JSON.parse(savedPressure);
+                    if (typeof parsed === 'number') {
+                        startingPressure = { dresses: parsed, twoPcs: 0, kimonos: 0 };
+                    } else {
+                        startingPressure = {
+                            dresses: parsed.dresses || 0,
+                            twoPcs: parsed.twoPcs || 0,
+                            kimonos: parsed.kimonos || 0
+                        };
+                    }
+                } catch (e) {
+                    startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
+                }
+            } else {
+                startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
+            }
+
+            // Recalculate from last archive entry if exists and history is empty
+            if (history.length === 0 && archive.length > 0) {
+                const last = archive[archive.length - 1];
+                startingPressure = {
+                    dresses: last.remDresses || last.remaining || 0, 
+                    twoPcs: last.remTwoPcs || 0,
+                    kimonos: last.remKimonos || 0
+                };
+            }
+
+            // Set default day to today
+            const jsDay = new Date().getDay();
+            const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+            selectedDayIndex = mappedDay;
+        }
+
+        function showNotification(msg) {
+            notificationContainer.innerHTML = `
+                <div class="bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-medium flex items-center gap-2">
+                    ${msg.includes("Locked") ? renderIcon('lock', { class: 'w-4 h-4' }) : ''}
+                    ${msg}
+                </div>`;
+            notificationContainer.style.display = 'block';
+            
+            requestAnimationFrame(() => {
+                notificationContainer.classList.remove('opacity-0', '-translate-y-full');
+                notificationContainer.classList.add('opacity-100', 'translate-y-5');
+                refreshIcons();
+            });
+
+            setTimeout(() => {
+                notificationContainer.classList.remove('opacity-100', 'translate-y-5');
+                notificationContainer.classList.add('opacity-0', '-translate-y-full');
+                setTimeout(() => notificationContainer.style.display = 'none', 300);
+            }, 3000);
+        }
+
+        function formatCurrency(val) {
+            return `KES ${val.toLocaleString()}`;
+        }
+
+        function getFullHistory() {
+            return [...archive, ...history];
+        }
+
+        function isEntryLocked(entry) {
+            if (!entry) return false;
+
+            // Use logical entry date, not creation time
+            const entryDate = entry.sortTimestamp 
+                || (entry.fullDate ? new Date(entry.fullDate).getTime() : entry.id);
+
+            const now = Date.now();
+            const lockDuration = 168 * 60 * 60 * 1000; // 1 week
+
+            // Only lock if entry date is in the past AND older than 1 week
+            return entryDate < now && (now - entryDate) > lockDuration;
+        }
+
+
+        function getFilteredHistory() {
+            const fullHistory = getFullHistory();
+            
+            // Sort history by logical date (sortTimestamp) for display
+            fullHistory.sort((a, b) => {
+                const tA = a.sortTimestamp || a.id;
+                const tB = b.sortTimestamp || b.id;
+                return tA - tB;
+            });
+
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const todayEnd = todayStart + (24 * 60 * 60 * 1000);
+
+            return fullHistory.filter(entry => {
+                let entryTime = entry.sortTimestamp || entry.id;
+                
+                // Fallback for old entries relying on id or date parsing
+                if (!entry.sortTimestamp) {
+                     const parsed = new Date(entry.fullDate);
+                     if (!isNaN(parsed.getTime())) entryTime = parsed.getTime();
+                     else entryTime = entry.id;
+                }
+
+                switch (selectedReport) {
+                    case "Daily": 
+                        // Check if it falls within today's range
+                        // Using string comparison for safety with mixed data
+                        return entry.fullDate === now.toLocaleDateString();
+                    case "Weekly": {
+                        const oneWeekAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
+                        return entryTime >= oneWeekAgo;
+                    }
+                    case "Monthly": {
+                        const thirtyDaysAgo = todayStart - (30 * 24 * 60 * 60 * 1000);
+                        return entryTime >= thirtyDaysAgo;
+                    }
+                    case "Quarterly": {
+                        const ninetyDaysAgo = todayStart - (90 * 24 * 60 * 60 * 1000);
+                        return entryTime >= ninetyDaysAgo;
+                    }
+                    case "Yearly": {
+                        const oneYearAgo = todayStart - (365 * 24 * 60 * 60 * 1000);
+                        return entryTime >= oneYearAgo;
+                    }
+                    default: return true;
+                }
+            });
+        }
+        
+        // --- Recalculation Logic ---
+        function recalculateBalances() {
+            if (!managedUser) return;
+            
+            const allRecords = [...archive, ...history];
+            
+            if (allRecords.length === 0) {
+                 showNotification("No records to recalculate.");
+                 return;
+            }
+
+            // CRITICAL: Sort by Logical Date, not Creation ID
+            // This allows backdated entries to be inserted in the correct order
+            allRecords.sort((a, b) => {
+                const tA = a.sortTimestamp || a.id; // Use timestamp if available, else id
+                const tB = b.sortTimestamp || b.id;
+                return tA - tB;
+            });
+
+            const isPressure = managedUser.enableReconciliation;
+            const prices = managedUser.prices || {};
+
+            let prevPressure = 0; // For Pressure Mode
+            let prevRemDress = 0;
+            let prevRem2pc = 0;
+            let prevRemKimono = 0;
+
+            allRecords.forEach((entry, index) => {
+                if (isPressure) {
+                    // PRESSURE RECALCULATION
+                    if (index === 0) {
+                        prevPressure = 0; 
+                    }
+
+                    // New Data Structure Support
+                    const dispatched = Number(entry.dispatchedPieces) || 0;
+                    const premQty = Number(entry.premiumQty) || 0;
+                    const premSP = Number(entry.premiumSP) || 0;
+                    const cleanQty = Number(entry.cleanupQty) || 0;
+                    const cleanSP = Number(entry.cleanupSP) || 0;
+                    
+                    let stockValue = 0;
+
+                    // Calculate value of SOLD items
+                    stockValue = (premQty * premSP) + (cleanQty * cleanSP);
+
+                    // Add value of REMAINING items (Dispatched but not sold)
+                    if (dispatched > 0) {
+                        const soldTotal = premQty + cleanQty;
+                        const remainder = dispatched - soldTotal;
+                        // Remainder is charged at Premium SP
+                        stockValue += (remainder * premSP);
+                    } else if (!entry.hasSplitData) {
+                        // Legacy calculation fallback
+                        const legDisp = Number(entry.dispatched) || 0;
+                        const legBp = Number(entry.bp) || 0;
+                        stockValue = legDisp * legBp;
+                    }
+
+                    const sent = Number(entry.amountSent) || 0;
+                    const exp = Number(entry.expenseAmount) || 0;
+                    
+                    const totalExpected = stockValue + prevPressure;
+                    const newBalance = totalExpected - (sent + exp);
+                    
+                    // Update Entry
+                    entry.balanceBF = newBalance;
+                    entry.totalExpected = totalExpected;
+                    
+                    // Set prev for next iteration
+                    prevPressure = newBalance;
+                    
+                } else {
+                    // STANDARD RECALCULATION
+                    const dD = Number(entry.dispatchedDresses) || 0;
+                    const dT = Number(entry.dispatchedTwoPcs) || 0;
+                    const dK = Number(entry.dispatchedKimonos) || 0;
+                    
+                    const sD = entry.soldDresses !== undefined ? Number(entry.soldDresses) : (Number(entry.sold)||0);
+                    const sT = Number(entry.soldTwoPcs) || 0;
+                    const sK = Number(entry.soldKimonos) || 0;
+                    
+                    if (index === 0) {
+                        const firstRemD = entry.remDresses !== undefined ? entry.remDresses : (entry.remaining || 0);
+                        const firstRemT = entry.remTwoPcs || 0;
+                        const firstRemK = entry.remKimonos || 0;
+                        
+                        // Attempt to reconstruct "original start" based on the first record's outcome
+                        prevRemDress = firstRemD - dD + sD;
+                        prevRem2pc = firstRemT - dT + sT;
+                        prevRemKimono = firstRemK - dK + sK;
+                    }
+                    
+                    const newRemDress = prevRemDress + dD - sD;
+                    const newRem2pc = prevRem2pc + dT - sT;
+                    const newRemKimono = prevRemKimono + dK - sK;
+                    
+                    entry.remDresses = newRemDress;
+                    entry.remTwoPcs = newRem2pc;
+                    entry.remKimonos = newRemKimono;
+                    entry.remaining = newRemDress + newRem2pc + newRemKimono;
+                    
+                    const pD = sD * ((prices.dressSell||0) - (prices.dressBuy||0));
+                    const pT = sT * ((prices.twoPcSell||0) - (prices.twoPcBuy||0));
+                    const pK = sK * ((prices.kimonoSell||0) - (prices.kimonoBuy||0));
+                    entry.profit = pD + pT + pK;
+
+                    prevRemDress = newRemDress;
+                    prevRem2pc = newRem2pc;
+                    prevRemKimono = newRemKimono;
+                }
+            });
+
+            // Update Current Start State based on last record
+            if (archive.length > 0) {
+                const lastArch = archive[archive.length - 1];
+                if (isPressure) {
+                    startingPressure = { dresses: lastArch.balanceBF, twoPcs: 0, kimonos: 0 }; 
+                } else {
+                    startingPressure = {
+                        dresses: lastArch.remDresses || lastArch.remaining || 0,
+                        twoPcs: lastArch.remTwoPcs || 0,
+                        kimonos: lastArch.remKimonos || 0
+                    };
+                }
+            }
+            
+            saveData(managedUser.phone);
+            renderIndividualDashboard();
+            showNotification("Recalculation Complete!");
+        }
+
+        // --- Expense Management Functions ---
+        function addExpenseRow() {
+            const container = document.getElementById('expenses-container');
+            const rowId = 'exp-row-' + Date.now();
+            const div = document.createElement('div');
+            div.id = rowId;
+            div.className = 'grid grid-cols-5 gap-2 items-center';
+            div.innerHTML = `
+                <div class="col-span-3">
+                    <input type="text" name="expense_name[]" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="Expense Name">
+                </div>
+                <div class="col-span-1">
+                    <input type="number" name="expense_amt[]" class="w-full p-2 text-sm rounded-lg border border-slate-300" placeholder="Amt">
+                </div>
+                <div class="col-span-1 text-center">
+                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                        ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+            refreshIcons();
+        }
+
+        // --- Master Report Logic ---
+        async function downloadMasterReport(type = 'Daily', customDateStr = null) {
+            const loader = document.getElementById('pdf-loader');
+            if (loader) loader.style.display = 'flex';
+            
+            await new Promise(r => setTimeout(r, 800));
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const allUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+                
+                let targetDateLocale = new Date().toLocaleDateString();
+                let reportDateTitle = new Date().toDateString();
+
+                if (customDateStr && type === 'Daily') {
+                    const [y, m, d] = customDateStr.split('-').map(Number);
+                    const dateObj = new Date(y, m - 1, d);
+                    targetDateLocale = dateObj.toLocaleDateString();
+                    reportDateTitle = dateObj.toDateString();
+                }
+
+                let reportRows = [];
+                let grandTotalProfit = 0;
+
+                allUsers.forEach(user => {
+                    const userHistoryStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
+                    const userArchiveStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                    
+                    const userHistory = JSON.parse(userHistoryStr);
+                    const userArchive = JSON.parse(userArchiveStr);
+                    const allEntries = [...userArchive, ...userHistory];
+                    
+                    let filteredEntries = [];
+                    if (type === 'Daily') {
+                        filteredEntries = allEntries.filter(e => e.fullDate === targetDateLocale);
+                    } else {
+                        filteredEntries = allEntries;
+                    }
+
+                    const totalProfit = filteredEntries.reduce((acc, curr) => acc + (Number(curr.profit)||0), 0);
+                    
+                    let statusDisplay = '-';
+                    if (user.enableReconciliation) {
+                        if (filteredEntries.length > 0) {
+                            const last = filteredEntries[filteredEntries.length-1];
+                            statusDisplay = `Bal: ${formatCurrency(last.balanceBF || 0)}`;
+                        }
+                    } else {
+                        // STANDARD STAFF → Bought Today
+                        const todayEntries = allEntries.filter(e => e.fullDate === targetDateLocale);
+
+                        let boughtToday = 0;
+                        todayEntries.forEach(e => {
+                            boughtToday +=
+                                (Number(e.dispatchedDresses) || 0) +
+                                (Number(e.dispatchedTwoPcs) || 0) +
+                                (Number(e.dispatchedKimonos) || 0);
+                        });
+
+                        statusDisplay = boughtToday > 0 ? `${boughtToday} Bought` : '-';
+                    }
+
+
+                    if (type === 'Daily' && filteredEntries.length === 0) return;
+
+                    grandTotalProfit += totalProfit;
+
+                    reportRows.push([
+                        user.name,
+                        user.enableReconciliation ? 'Pressure Calc' : 'Standard',
+                        statusDisplay,
+                        formatCurrency(totalProfit)
+                    ]);
+                });
+
+                doc.setFillColor(30, 58, 138); 
+                doc.rect(0, 0, 210, 45, 'F'); 
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(22);
+                doc.text("TRINAH DESIGNS", 105, 20, { align: "center" });
+                
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                const titleText = type === 'Daily' ? "DAILY OPERATIONS REPORT" : `MASTER ${type.toUpperCase()} REPORT`;
+                doc.text(titleText, 105, 30, { align: "center" });
+
+                doc.setFontSize(10);
+                doc.setTextColor(203, 213, 225); 
+                doc.text(`Period: ${reportDateTitle}`, 105, 38, { align: "center" });
+
+                doc.autoTable({
+                    startY: 55,
+                    head: [['Staff Member', 'Type', 'Status/Stock', 'Value/Profit (KES)']],
+                    body: reportRows,
+                    theme: 'striped',
+                    headStyles: { fillColor: [30, 58, 138], textColor: 255, halign: 'center' },
+                    bodyStyles: { textColor: 50, halign: 'center' },
+                    margin: { top: 55 }
+                });
+
+                const pageCount = doc.internal.getNumberOfPages();
+                for(let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text(`Generated by Trinah Designs Admin System - ${new Date().toLocaleString()}`, 105, 290, { align: "center" });
+                }
+
+                doc.save(`Trinah_${type}_Report.pdf`);
+                showNotification("Report Downloaded Successfully");
+
+            } catch (e) {
+                console.error(e);
+                showNotification("Error generating report.");
+            } finally {
+                if (loader) loader.style.display = 'none';
+            }
+        }
+
+
+        // --- Navigation ---
+
+        function setView(view) {
+            currentView = view;
+            if (view === VIEW_DASHBOARD && currentUser.role === 'admin') {
+                managedUser = null; 
+            }
+            renderApp();
+        }
+
+        function manageUser(userPhone) {
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const target = users.find(u => u.phone === userPhone);
+            if (target) {
+                managedUser = target;
+                loadData(target);
+                renderApp(); 
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const overlay = document.getElementById('mobile-menu-overlay');
+            if (menu && overlay) {
+                const isClosed = menu.classList.contains('translate-x-full');
+                if (isClosed) {
+                    menu.classList.remove('translate-x-full');
+                    menu.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                } else {
+                    menu.classList.add('translate-x-full');
+                    menu.classList.remove('translate-x-0');
+                    overlay.classList.add('hidden');
+                }
+            }
+        }
+
+        // --- Auth & User Management ---
+
+        function handleLogin(user) {
+            authError = "";
+            authLoading = false;
+            currentUser = user;
+            
+            if (!currentUser.role) {
+                const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                if (users.length > 0 && users[0].phone === currentUser.phone) {
+                    currentUser.role = 'admin';
+                    users[0].role = 'admin';
+                    localStorage.setItem(DB_KEY, JSON.stringify(users));
+                } else {
+                    currentUser.role = 'staff';
+                }
+            }
+
+            localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+
+            if (currentUser.role === 'admin') {
+                managedUser = null; 
+                selectedProcurementDate = new Date();
+            } else {
+                managedUser = currentUser; 
+                loadData(currentUser);
+            }
+            
+            setView(VIEW_DASHBOARD);
+        }
+
+        function handleLogout() {
+            if (managedUser) saveData(managedUser.phone);
+            currentUser = null;
+            managedUser = null;
+            localStorage.removeItem(SESSION_KEY);
+            history = [];
+            archive = [];
+            startingPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
+            renderApp();
+        }
+
+        function handleSwitchUser(user) {
+            if (managedUser) saveData(managedUser.phone);
+            handleLogin(user);
+        }
+
+        // --- Admin Functions ---
+
+        function showAddStaffModal(isEdit = false, userPhone = null) {
+            let userToEdit = null;
+            if (isEdit && userPhone) {
+                const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                userToEdit = users.find(u => u.phone === userPhone);
+            }
+
+            const nameVal = userToEdit ? userToEdit.name : '';
+            const phoneVal = userToEdit ? userToEdit.phone : '';
+            const passVal = userToEdit ? userToEdit.password : '';
+            const isReconcileEnabled = userToEdit && userToEdit.enableReconciliation ? 'checked' : '';
+
+            const prices = userToEdit ? (userToEdit.prices || {}) : {};
+            
+            const dbVal = prices.dressBuy || '';
+            const dsVal = prices.dressSell || '';
+            const tbVal = prices.twoPcBuy || '';
+            const tsVal = prices.twoPcSell || '';
+            const kbVal = prices.kimonoBuy || '';
+            const ksVal = prices.kimonoSell || '';
+
+            const modalHTML = `
+                <div id="add-staff-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-staff-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg relative z-10 max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                ${renderIcon(isEdit ? 'user-cog' : 'user-plus', {class:'w-6 h-6 text-indigo-600'})} 
+                                ${isEdit ? 'Edit Staff Details' : 'Add New Staff'}
+                            </h2>
+                            <button onclick="document.getElementById('add-staff-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                                ${renderIcon('x', {class:'w-6 h-6'})}
+                            </button>
+                        </div>
+                        
+                        <form onsubmit="window.handleSaveStaff(event, '${isEdit ? 'edit' : 'add'}', '${phoneVal}')" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 uppercase">Staff Name</label>
+                                    <input id="staff-name" value="${nameVal}" placeholder="Name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-500 uppercase">Phone (ID)</label>
+                                    <input id="staff-phone" value="${phoneVal}" placeholder="Phone" ${isEdit ? 'disabled' : ''} class="w-full p-3 rounded-xl ${isEdit ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'} border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
+                                <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
+                            </div>
+
+                            <div class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                <input type="checkbox" id="staff-reconcile" ${isReconcileEnabled} class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500">
+                                <label for="staff-reconcile" class="text-sm font-bold text-indigo-900 cursor-pointer">
+                                    Enable Pressure Calculation Mode
+                                    <span class="block text-[10px] text-indigo-500 font-normal">Enables detailed pressure tracking: (Premium x SP + Cleanup x SP) + Prev Balance.</span>
+                                </label>
+                            </div>
+
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
+                                <h3 class="text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">Default Price Config (Standard Mode Only)</h3>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <p class="text-xs font-bold text-indigo-600 mb-1">DRESSES</p>
+                                        <div class="space-y-2">
+                                            <input id="price-dress-buy" value="${dbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-dress-sell" value="${dsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-purple-600 mb-1">2 PIECES</p>
+                                        <div class="space-y-2">
+                                            <input id="price-2pc-buy" value="${tbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-2pc-sell" value="${tsVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-xs font-bold text-pink-600 mb-1">KIMONO</p>
+                                        <div class="space-y-2">
+                                            <input id="price-kimono-buy" value="${kbVal}" type="number" placeholder="Buying Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                            <input id="price-kimono-sell" value="${ksVal}" type="number" placeholder="Selling Price" class="w-full p-2 text-sm rounded-lg border border-slate-300">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition mt-4">
+                                ${isEdit ? 'Save Changes' : 'Create Account'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        // --- Edit Entry Modal ---
+        function showEditEntryModal(entryId) {
+            const allRecords = [...archive, ...history];
+            const entry = allRecords.find(r => r.id == entryId);
+            
+            if (!entry) {
+                showNotification("Entry not found.");
+                return;
+            }
+
+            const isPressure = managedUser.enableReconciliation;
+            let formContent = "";
+
+            if (isPressure) {
+                const expensesStr = entry.expensesList ? entry.expensesList.map(e => `${e.name}:${e.amount}`).join(', ') : "";
+                
+                // Determine values (support both new split and legacy single inputs)
+                const dispatchedPieces = entry.dispatchedPieces || 0;
+                // Added dispatchedKimonos
+                const dispatchedKimonos = entry.dispatchedKimonos || 0;
+                const premQty = entry.premiumQty || entry.dispatched || 0;
+                const premSP = entry.premiumSP || entry.bp || 0;
+                const cleanQty = entry.cleanupQty || 0;
+                const cleanSP = entry.cleanupSP || 0;
+
+                formContent = `
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-indigo-800 uppercase">Market</label>
+                            <input type="text" id="edit-market" value="${entry.marketName || ''}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (D/2PC)</label>
+                                <input type="number" id="edit-dispatched-pieces" value="${dispatchedPieces}" class="w-full p-2 text-sm rounded-lg border border-indigo-200">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-pink-600 uppercase">Dispatched Kimonos</label>
+                                <input type="number" id="edit-dispatched-kimonos" value="${dispatchedKimonos}" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50">
+                            </div>
+                        </div>
+                        
+                        <div class="p-2 bg-indigo-50 rounded border border-indigo-100">
+                             <p class="text-[10px] font-bold text-indigo-800 uppercase mb-1">Premium</p>
+                             <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="edit-prem-qty" value="${premQty}" placeholder="Qty" class="w-full p-2 text-sm rounded border border-indigo-200">
+                                <input type="number" id="edit-prem-sp" value="${premSP}" placeholder="SP" class="w-full p-2 text-sm rounded border border-indigo-200">
+                             </div>
+                        </div>
+
+                         <div class="p-2 bg-orange-50 rounded border border-orange-100">
+                             <p class="text-[10px] font-bold text-orange-800 uppercase mb-1">Clean-up</p>
+                             <div class="grid grid-cols-2 gap-2">
+                                <input type="number" id="edit-clean-qty" value="${cleanQty}" placeholder="Qty" class="w-full p-2 text-sm rounded border border-orange-200">
+                                <input type="number" id="edit-clean-sp" value="${cleanSP}" placeholder="SP" class="w-full p-2 text-sm rounded border border-orange-200">
+                             </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold text-emerald-600 uppercase">Amount Sent</label>
+                            <input type="number" id="edit-sent" value="${entry.amountSent || 0}" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Expense Total (Manual Override)</label>
+                            <input type="number" id="edit-expense" value="${entry.expenseAmount || 0}" class="w-full p-2 text-sm rounded-lg border border-slate-200">
+                            <p class="text-[9px] text-slate-400">Editing individual expense items not supported in quick edit. Update total directly.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                formContent = `
+                    <div class="space-y-3">
+                        <p class="text-xs font-bold text-slate-400 uppercase border-b pb-1">Dispatched Stock</p>
+                        <div class="grid grid-cols-3 gap-2">
+                             <input type="number" id="edit-d-dress" value="${entry.dispatchedDresses || 0}" placeholder="Dress" class="p-2 border rounded">
+                             <input type="number" id="edit-d-2pc" value="${entry.dispatchedTwoPcs || 0}" placeholder="2Pc" class="p-2 border rounded">
+                             <input type="number" id="edit-d-kimono" value="${entry.dispatchedKimonos || 0}" placeholder="Kim" class="p-2 border rounded">
+                        </div>
+                        
+                        <p class="text-xs font-bold text-slate-400 uppercase border-b pb-1 pt-2">Sold Stock</p>
+                        <div class="grid grid-cols-3 gap-2">
+                             <input type="number" id="edit-s-dress" value="${entry.soldDresses !== undefined ? entry.soldDresses : (entry.sold||0)}" placeholder="Dress" class="p-2 border rounded">
+                             <input type="number" id="edit-s-2pc" value="${entry.soldTwoPcs || 0}" placeholder="2Pc" class="p-2 border rounded">
+                             <input type="number" id="edit-s-kimono" value="${entry.soldKimonos || 0}" placeholder="Kim" class="p-2 border rounded">
+                        </div>
+                    </div>
+                `;
+            }
+
+            const modalHTML = `
+                <div id="edit-entry-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('edit-entry-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 overflow-y-auto max-h-[90vh]">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-800">Edit Entry (${entry.date})</h2>
+                            <button onclick="document.getElementById('edit-entry-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                                ${renderIcon('x', {class:'w-5 h-5'})}
+                            </button>
+                        </div>
+                        
+                        <form onsubmit="window.handleEditSave(event, ${entryId})" class="space-y-4">
+                            ${formContent}
+                            <div class="bg-amber-50 p-3 rounded-lg text-amber-700 text-xs flex gap-2">
+                                ${renderIcon('alert-circle', {class:'w-4 h-4 flex-shrink-0'})}
+                                <p>Saving triggers an auto-recalculation for subsequent days to correct balances.</p>
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save & Recalculate</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function handleEditSave(e, entryId) {
+            e.preventDefault();
+            const allRecords = [...archive, ...history];
+            const entry = allRecords.find(r => r.id == entryId);
+            if (!entry) return;
+
+            const isPressure = managedUser.enableReconciliation;
+
+            if (isPressure) {
+                entry.marketName = document.getElementById('edit-market').value;
+                entry.dispatchedPieces = Number(document.getElementById('edit-dispatched-pieces').value) || 0;
+                entry.dispatchedKimonos = Number(document.getElementById('edit-dispatched-kimonos').value) || 0;
+                entry.premiumQty = Number(document.getElementById('edit-prem-qty').value) || 0;
+                entry.premiumSP = Number(document.getElementById('edit-prem-sp').value) || 0;
+                entry.cleanupQty = Number(document.getElementById('edit-clean-qty').value) || 0;
+                entry.cleanupSP = Number(document.getElementById('edit-clean-sp').value) || 0;
+                
+                // For legacy compatibility, we might update these or leave them as sums
+                entry.dispatched = entry.premiumQty + entry.cleanupQty;
+                entry.bp = 0; // Legacy field not used in new calculation
+                entry.hasSplitData = true;
+
+                entry.amountSent = Number(document.getElementById('edit-sent').value) || 0;
+                entry.expenseAmount = Number(document.getElementById('edit-expense').value) || 0;
+            } else {
+                entry.dispatchedDresses = Number(document.getElementById('edit-d-dress').value) || 0;
+                entry.dispatchedTwoPcs = Number(document.getElementById('edit-d-2pc').value) || 0;
+                entry.dispatchedKimonos = Number(document.getElementById('edit-d-kimono').value) || 0;
+                
+                entry.soldDresses = Number(document.getElementById('edit-s-dress').value) || 0;
+                entry.soldTwoPcs = Number(document.getElementById('edit-s-2pc').value) || 0;
+                entry.soldKimonos = Number(document.getElementById('edit-s-kimono').value) || 0;
+                
+                entry.dispatched = entry.dispatchedDresses + entry.dispatchedTwoPcs + entry.dispatchedKimonos;
+                entry.sold = entry.soldDresses + entry.soldTwoPcs + entry.soldKimonos;
+            }
+
+            // Since objects in array are references, history/archive are updated.
+            // But we must run recalculate to fix the chain logic (balances).
+            document.getElementById('edit-entry-modal').remove();
+            recalculateBalances();
+        }
+
+        function showReportsModal() {
+             const now = new Date();
+             const y = now.getFullYear();
+             const m = String(now.getMonth() + 1).padStart(2, '0');
+             const d = String(now.getDate()).padStart(2, '0');
+             const todayStr = `${y}-${m}-${d}`;
+
+             const modalHTML = `
+                <div id="reports-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reports-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">Master Reports</h2>
+                        <p class="text-sm text-slate-500 mb-6">Select the type of report to generate for ALL users.</p>
+                        
+                        <div class="space-y-3">
+                            <div class="text-left bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Date for Daily Report</label>
+                                <input type="date" id="report-date-picker" value="${todayStr}" 
+                                    class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
+                            </div>
+
+                            <button onclick="const d = document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d); document.getElementById('reports-modal').remove()" 
+                                class="w-full py-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 border border-emerald-100">
+                                ${renderIcon('calendar', {class:'w-5 h-5'})} Daily Master Report
+                            </button>
+                            
+                            <button onclick="document.getElementById('reports-modal').remove()" class="w-full py-3 text-slate-400 font-medium text-sm mt-2">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function showResetModal() {
+            const modalHTML = `
+                <div id="reset-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('reset-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 text-center">
+                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            ${renderIcon('alert-triangle', {class:'w-6 h-6'})}
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">System Factory Reset</h2>
+                        <p class="text-sm text-slate-500 mb-6">
+                            Are you sure? This will <strong class="text-red-600">permanently delete ALL accounts, records, and history</strong>. This cannot be undone.
+                        </p>
+                        
+                        <div class="space-y-3">
+                            <button onclick="window.handleFactoryReset()" class="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200">Yes, Delete Everything</button>
+                            <button onclick="document.getElementById('reset-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function handleSaveStaff(e, mode, originalPhone) {
+            e.preventDefault();
+            const name = document.getElementById('staff-name').value.trim();
+            const phone = document.getElementById('staff-phone').value.trim();
+            const password = document.getElementById('staff-pass').value.trim();
+            const enableReconciliation = document.getElementById('staff-reconcile').checked;
+            
+            const dressBuy = Number(document.getElementById('price-dress-buy').value);
+            const dressSell = Number(document.getElementById('price-dress-sell').value);
+            const twoPcBuy = Number(document.getElementById('price-2pc-buy').value);
+            const twoPcSell = Number(document.getElementById('price-2pc-sell').value);
+            const kimonoBuy = Number(document.getElementById('price-kimono-buy').value);
+            const kimonoSell = Number(document.getElementById('price-kimono-sell').value);
+
+            if (!name || !phone || !password) {
+                showNotification("Please fill name, phone and password.");
+                return;
+            }
+
+            // Note: Prices are mandatory for standard mode, but less critical for Pressure mode
+            // We still enforce them for data consistency
+            if (!dressBuy || !dressSell || !twoPcBuy || !twoPcSell || !kimonoBuy || !kimonoSell) {
+                showNotification("Please set all default prices.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+
+            if (mode === 'add') {
+                if (users.find(u => u.phone === phone)) {
+                    showNotification("User with this phone already exists.");
+                    return;
+                }
+                const newUser = { 
+                    name, phone, password, role: 'staff',
+                    prices: { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell },
+                    enableReconciliation: enableReconciliation
+                };
+                users.push(newUser);
+                showNotification(`Staff member ${name} added!`);
+            } else {
+                const index = users.findIndex(u => u.phone === originalPhone);
+                if (index !== -1) {
+                    users[index].name = name;
+                    users[index].password = password;
+                    users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell };
+                    users[index].enableReconciliation = enableReconciliation;
+                    showNotification(`Details for ${name} updated!`);
+                }
+            }
+
+            localStorage.setItem(DB_KEY, JSON.stringify(users));
+            
+            const modal = document.getElementById('add-staff-modal');
+            if(modal) modal.remove();
+
+            if (currentView === VIEW_USERS) renderUserManagementScreen();
+        }
+
+        function handleAddStaff(e) {
+            handleSaveStaff(e, 'add', null);
+        }
+
+        function handleDeleteStaff(phone) {
+            if(confirm("Are you sure you want to delete this staff member? This will remove their login access. Their data history will remain until a factory reset.")) {
+                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                users = users.filter(u => u.phone !== phone);
+                localStorage.setItem(DB_KEY, JSON.stringify(users));
+                renderUserManagementScreen();
+                showNotification("Staff member deleted.");
+            }
+        }
+        
+        function handleProcurementDateChange(dateStr) {
+            if (!dateStr) return;
+            const [y, m, d] = dateStr.split('-').map(Number);
+            selectedProcurementDate = new Date(y, m - 1, d);
+            renderAdminOverview();
+        }
+
+        function handleProcurementSave() {
+            const dressVal = document.getElementById('procurement-dress-input').value;
+            const kimonoVal = document.getElementById('procurement-kimono-input').value;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
+            
+            logs[targetDateKey] = {
+                dresses: Number(dressVal) || 0,
+                kimonos: Number(kimonoVal) || 0
+            };
+
+            localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+            
+            showNotification(`Stock saved for ${targetDateKey}!`);
+            renderAdminOverview(); 
+        }
+
+        function handleDeleteProcurement() {
+            if(!confirm("Are you sure you want to delete the procurement record for this date?")) return;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
+            
+            if (logs[targetDateKey]) {
+                delete logs[targetDateKey];
+                localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+                showNotification("Procurement record deleted.");
+                
+                const dIn = document.getElementById('procurement-dress-input');
+                const kIn = document.getElementById('procurement-kimono-input');
+                if(dIn) dIn.value = "";
+                if(kIn) kIn.value = "";
+                
+                renderAdminOverview();
+            } else {
+                showNotification("No record to delete for this date.");
+            }
+        }
+
+        function handleControllerLogSave(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('control-date').value;
+            const countVal = document.getElementById('control-count').value;
+            const kimonoVal = document.getElementById('control-kimono-count').value;
+            const noteVal = document.getElementById('control-note').value;
+            const originalId = document.getElementById('control-original-id').value;
+
+            if(!dateVal || (!countVal && !kimonoVal)) {
+                showNotification("Please select date and at least one count.");
+                return;
+            }
+
+            const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            
+            if (originalId) {
+                const idx = logs.findIndex(l => l.id == originalId); 
+                if (idx !== -1) logs.splice(idx, 1);
+            }
+
+            const existingIndex = logs.findIndex(l => l.date === dateVal);
+            if (existingIndex !== -1) {
+                logs.splice(existingIndex, 1);
+            }
+
+            logs.unshift({
+                id: originalId ? Number(originalId) : Date.now(), 
+                date: dateVal,
+                dressCount: Number(countVal) || 0,
+                kimonoCount: Number(kimonoVal) || 0,
+                note: noteVal
+            });
+            
+            logs.sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(logs));
+            showNotification("Stock record saved safely.");
+            document.getElementById('add-control-modal').remove();
+            renderAdminOverview();
+        }
+
+        function handleDeleteControllerLog(id) {
+            if(!confirm("Delete this stock record?")) return;
+            const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            const newLogs = logs.filter(l => l.id !== id);
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(newLogs));
+            renderAdminOverview();
+            showNotification("Record deleted.");
+        }
+
+        function showControllerModal(editLogId = null) {
+            let logToEdit = null;
+            if (editLogId) {
+                const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+                logToEdit = logs.find(l => l.id === editLogId);
+            }
+
+             const now = new Date();
+             const y = now.getFullYear();
+             const m = String(now.getMonth() + 1).padStart(2, '0');
+             const d = String(now.getDate()).padStart(2, '0');
+             const todayStr = `${y}-${m}-${d}`;
+             
+             const defaultDate = logToEdit ? logToEdit.date : todayStr;
+             const defaultDress = logToEdit ? (logToEdit.dressCount !== undefined ? logToEdit.dressCount : (logToEdit.count||'')) : '';
+             const defaultKimono = logToEdit ? (logToEdit.kimonoCount || '') : '';
+             const defaultNote = logToEdit ? (logToEdit.note || '') : '';
+             const originalId = logToEdit ? logToEdit.id : '';
+
+             const modalHTML = `
+                <div id="add-control-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('add-control-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10">
+                        <h2 class="text-xl font-bold text-slate-800 mb-2">${editLogId ? 'Edit Stock Record' : 'Record Physical Stock'}</h2>
+                        <p class="text-sm text-slate-500 mb-4">Safe storage for daily stock counts (Controller's Record).</p>
+                        
+                        <form onsubmit="window.handleControllerLogSave(event)" class="space-y-3">
+                            <input type="hidden" id="control-original-id" value="${originalId}">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Date</label>
+                                <input type="date" id="control-date" value="${defaultDate}" class="w-full p-2 rounded-lg border border-slate-300">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[10px] font-bold text-indigo-600 uppercase">Dresses + 2Pcs</label>
+                                    <input type="number" id="control-count" value="${defaultDress}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-indigo-50">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-pink-600 uppercase">Kimonos</label>
+                                    <input type="number" id="control-kimono-count" value="${defaultKimono}" placeholder="Count" class="w-full p-2 rounded-lg border border-slate-300 bg-pink-50">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Note (Optional)</label>
+                                <input type="text" id="control-note" value="${defaultNote}" placeholder="e.g. Checked by John" class="w-full p-2 rounded-lg border border-slate-300">
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 mt-2">
+                                ${editLogId ? 'Update Record' : 'Save Record'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
+        }
+
+        function handleFactoryReset() {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('trinah_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+            window.location.reload();
+        }
+
+        // --- Account Recovery Functions ---
+        
+        function renderRecoveryScreen() {
+            appElement.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                ${renderIcon('key-round', {class:'w-8 h-8'})}
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-800">Account Recovery</h1>
+                            <p class="text-sm text-slate-500">Enter your registered phone number to identify your account.</p>
+                        </div>
+
+                        <form id="recovery-form" onsubmit="window.handleRecoveryStep1(event)" class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PHONE NUMBER</label>
+                                <input type="text" id="rec-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                            </div>
+                            <div id="recovery-error" class="text-center text-sm text-red-500 hidden"></div>
+                            
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Verify Account</button>
+                            <button type="button" onclick="renderAuthScreen()" class="w-full py-3 text-slate-500 font-bold hover:text-slate-700">Back to Login</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            refreshIcons();
+        }
+
+        function handleRecoveryStep1(e) {
+            e.preventDefault();
+            const phone = document.getElementById('rec-phone').value.trim();
+            const errDiv = document.getElementById('recovery-error');
+            
+            if(!phone) {
+                errDiv.textContent = "Please enter a phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const user = users.find(u => u.phone === phone);
+
+            if (!user) {
+                errDiv.textContent = "No account found with this phone number.";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const form = document.getElementById('recovery-form');
+            
+            if (user.role === 'admin') {
+                form.innerHTML = `
+                    <div class="bg-indigo-50 text-indigo-800 p-4 rounded-xl text-sm mb-4 border border-indigo-100">
+                        <p class="font-bold">Admin Account Found</p>
+                        <p>To reset the Admin password, please enter the System Setup PIN.</p>
+                    </div>
+                    <input type="hidden" id="reset-phone" value="${phone}">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">SYSTEM PIN</label>
+                            <input type="password" id="reset-pin" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="Enter PIN">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500">NEW PASSWORD</label>
+                            <input type="password" id="new-pass" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                        </div>
+                        <button type="button" onclick="window.handleRecoveryStep2('admin')" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Update Password</button>
+                    </div>
+                `;
+            } else {
+                form.innerHTML = `
+                    <div class="bg-amber-50 text-amber-800 p-6 rounded-xl text-sm mb-6 border border-amber-200 text-center">
+                        <div class="mx-auto w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-2">
+                            ${renderIcon('shield-alert', {class:'w-5 h-5'})}
+                        </div>
+                        <p class="font-bold text-lg mb-2">Action Required</p>
+                        <p class="mb-2">For security reasons, Staff passwords cannot be reset here.</p>
+                        <p>Please contact the <strong>Administrator</strong> to reset your password.</p>
+                    </div>
+                    <button type="button" onclick="renderAuthScreen()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition">Back to Login</button>
+                `;
+            }
+            refreshIcons();
+        }
+
+        function handleRecoveryStep2(role) {
+            const phone = document.getElementById('reset-phone').value;
+            const newPass = document.getElementById('new-pass').value.trim();
+            const enteredPin = role === 'admin' ? document.getElementById('reset-pin').value.trim() : null;
+
+            if (role === 'admin' && enteredPin !== SYSTEM_PIN) {
+                showNotification("Invalid System PIN. Cannot reset.");
+                return;
+            }
+
+            if (!newPass) {
+                showNotification("Please enter a valid password.");
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const index = users.findIndex(u => u.phone === phone);
+            
+            if (index !== -1) {
+                users[index].password = newPass;
+                localStorage.setItem(DB_KEY, JSON.stringify(users));
+                
+                showNotification("Password updated successfully!");
+                renderAuthScreen();
+            } else {
+                showNotification("Error updating password.");
+                renderAuthScreen();
+            }
+        }
+
+        function authHandler(e) {
+            e.preventDefault();
+            const phone = document.getElementById('auth-phone').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null; 
+
+            if (!phone || !password) {
+                authError = "Please enter phone and password.";
+                renderAuthScreen();
+                return;
+            }
+
+            authLoading = true;
+            renderAuthScreen();
+
+            setTimeout(() => {
+                let users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+                
+                if (showAdminCreation && users.length === 0) {
+                     if (!name) {
+                        authError = "Admin name required.";
+                        authLoading = false;
+                        renderAuthScreen();
+                        return;
+                    }
+                    const adminUser = {
+                        name: name,
+                        phone: phone,
+                        password: password,
+                        role: 'admin' 
+                    };
+                    users.push(adminUser);
+                    localStorage.setItem(DB_KEY, JSON.stringify(users));
+                    handleLogin(adminUser);
+                    return;
+                }
+
+                const user = users.find(u => u.phone === phone && u.password === password);
+                
+                if (user) {
+                    handleLogin(user);
+                } else {
+                    if (users.length === 0) {
+                         authError = "System not initialized.";
+                    } else {
+                         authError = "Invalid credentials.";
+                    }
+                }
+                
+                authLoading = false;
+                if (!currentUser) renderAuthScreen();
+            }, 800);
+        }
+
+        function verifySystemPin() {
+            const pinInput = document.getElementById('system-pin-input');
+            const pinError = document.getElementById('pin-error');
+            
+            if (pinInput.value.trim() === SYSTEM_PIN) {
+                showAdminCreation = true;
+                renderAuthScreen();
+            } else {
+                pinError.classList.remove('hidden');
+            }
+        }
+
+        // --- Core Logic ---
+        
+        // Helper to update selected date from week buttons
+        function updateDateFromWeekButton(index) {
+            selectedDayIndex = index;
+            renderIndividualDashboard();
+        }
+
+        function handleDateChange(dateInput) {
+            if (!dateInput.value) return;
+            
+            const selectedDate = new Date(dateInput.value);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            // Check if selected date is in the current week (Mon-Sun)
+            const currentDay = now.getDay();
+            const mappedCurrentDay = currentDay === 0 ? 6 : currentDay - 1;
+            
+            // Calculate Monday of current week
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - mappedCurrentDay);
+            
+            // Calculate Sunday of current week
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            // If selected date is within this week, highlight the button
+            if (selectedDate >= monday && selectedDate <= sunday) {
+                // Find which day index it is
+                // Mon=0, Sun=6
+                const diffTime = Math.abs(selectedDate - monday);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                selectedDayIndex = diffDays;
+            } else {
+                // It's a past date not in current week view
+                selectedDayIndex = -1; // -1 indicates custom past date
+            }
+            
+            // Re-render handled by the date picker change? 
+            // Actually, we don't need to re-render everything, just visual updates.
+            // But re-rendering is safer to ensure state consistency.
+            renderIndividualDashboard();
+            
+            // Important: After re-render, the input value is reset by render logic.
+            // We need to ensure the picker keeps the custom value.
+            // The render logic sets picker value based on selectedDayIndex or override.
+            // We need a persistent state for the date picker if it's custom.
+        }
+
+        function handleSubmit() {
+            if (!managedUser) return; 
+
+            // Common inputs
+            const expenseNames = document.getElementsByName('expense_name[]');
+            const expenseAmts = document.getElementsByName('expense_amt[]');
+            
+            // Reconcile/Pressure Mode specific inputs
+            const marketIn = document.getElementById('rec-market');
+            const sentIn = document.getElementById('rec-sent');
+            
+            // New Split Inputs
+            const dispatchedPiecesIn = document.getElementById('rec-dispatched-pieces');
+            // Added rec-dispatched-kimonos
+            const dispatchedKimonosIn = document.getElementById('rec-dispatched-kimonos');
+            const premQtyIn = document.getElementById('rec-prem-qty');
+            const premSPIn = document.getElementById('rec-prem-sp');
+            const cleanQtyIn = document.getElementById('rec-clean-qty');
+            const cleanSPIn = document.getElementById('rec-clean-sp');
+            
+            // Standard Mode specific
+            const dispatchDressIn = document.getElementById('dispatch-dress');
+            const dispatch2pcIn = document.getElementById('dispatch-2pc');
+            const dispatchKimonoIn = document.getElementById('dispatch-kimono');
+            const salesDressIn = document.getElementById('sales-dress');
+            const sales2pcIn = document.getElementById('sales-2pc');
+            const salesKimonoIn = document.getElementById('sales-kimono');
+
+            const datePicker = document.getElementById('entry-date-picker');
+
+            const isPressureMode = managedUser.enableReconciliation;
+
+            let expensesList = [];
+            let expenseAmt = 0;
+
+            if (isPressureMode) {
+                for(let i=0; i<expenseNames.length; i++) {
+                    const nm = expenseNames[i].value.trim();
+                    const amt = Number(expenseAmts[i].value) || 0;
+                    if(nm || amt > 0) {
+                        expensesList.push({ name: nm || 'Expense', amount: amt });
+                        expenseAmt += amt;
+                    }
+                }
+            }
+
+            // DATE HANDLING LOGIC
+            let targetDate;
+            let fullDateString;
+            let currentDayName;
+            
+            if (datePicker && datePicker.value) {
+                targetDate = new Date(datePicker.value);
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                fullDateString = targetDate.toLocaleDateString();
+                currentDayName = DAYS[targetDate.getDay() === 0 ? 6 : targetDate.getDay() - 1]; // Ensure Mon=0..Sun=6 mapping from JS Sun=0
+                // Fallback for when DAYS array might not perfectly align with Date.getDay if it was a custom range, but here it is standard Mon-Sun
+                // JS getDay(): Sun=0, Mon=1...Sat=6. 
+                // DAYS array: Mon=0, Tue=1...Sun=6.
+                const jsDay = targetDate.getDay();
+                const daysIdx = jsDay === 0 ? 6 : jsDay - 1;
+                currentDayName = DAYS[daysIdx];
+            } else {
+                // Fallback to old logic (shouldn't happen with date picker present)
+                const now = new Date();
+                const jsDay = now.getDay(); 
+                const mappedDay = jsDay === 0 ? 6 : jsDay - 1; 
+
+                // allow future week entries
+                const dayDiff = mappedDay - selectedDayIndex;
+                targetDate = new Date();
+                targetDate.setDate(now.getDate() - dayDiff);
+                currentDayName = DAYS[selectedDayIndex];
+                fullDateString = targetDate.toLocaleDateString();
+            }
+
+            const fullHistory = getFullHistory();
+
+            // PRESSURE MODE CALCULATION
+            if (isPressureMode) {
+                // Get Split Values
+                const dispatchedCount = Number(dispatchedPiecesIn ? dispatchedPiecesIn.value : 0) || 0;
+                // Get Kimonos
+                const dispatchedKimonos = Number(dispatchedKimonosIn ? dispatchedKimonosIn.value : 0) || 0;
+                
+                const premQty = Number(premQtyIn ? premQtyIn.value : 0) || 0;
+                const premSP = Number(premSPIn ? premSPIn.value : 0) || 0;
+                const cleanQty = Number(cleanQtyIn ? cleanQtyIn.value : 0) || 0;
+                const cleanSP = Number(cleanSPIn ? cleanSPIn.value : 0) || 0;
+                
+                const amountSent = Number(sentIn ? sentIn.value : 0) || 0;
+                const marketName = marketIn ? marketIn.value.trim() : 'N/A';
+
+                if (dispatchedCount === 0 && dispatchedKimonos === 0 && premQty === 0 && cleanQty === 0 && amountSent === 0 && expenseAmt === 0) {
+                     showNotification("Please enter stock info or payment.");
+                     return;
+                }
+
+                let prevBalanceBF = 0;
+                // Note: With backdating, simply taking the last history entry might be wrong if we are inserting into the past.
+                // Ideally, we should recalculate the whole chain.
+                // For now, we save it, then call recalculateBalances() which sorts and fixes everything.
+                // We just need a placeholder prevBalanceBF or 0.
+                
+                // Updated Formula Calculation
+                let stockValue = (premQty * premSP) + (cleanQty * cleanSP);
+                
+                if (dispatchedCount > 0) {
+                     // Add value for remainder (Dispatched - Sold) at Premium Price
+                     const soldTotal = premQty + cleanQty;
+                     const remainder = dispatchedCount - soldTotal;
+                     stockValue += (remainder * premSP);
+                }
+
+                const totalExpected = stockValue + prevBalanceBF; // Temporary
+                const deductions = amountSent + expenseAmt;
+                const newPressure = totalExpected - deductions; 
+
+                const record = {
+                    id: Date.now(), // Creation Time
+                    sortTimestamp: targetDate.getTime(), // Logical Time for Sorting
+                    date: currentDayName,
+                    fullDate: fullDateString,
+                    marketName: marketName,
+                    
+                    // New Fields
+                    dispatchedPieces: dispatchedCount,
+                    dispatchedKimonos: dispatchedKimonos, // Add Kimonos to record
+                    premiumQty: premQty,
+                    premiumSP: premSP,
+                    cleanupQty: cleanQty,
+                    cleanupSP: cleanSP,
+                    hasSplitData: true,
+                    
+                    // Legacy fill
+                    dispatched: dispatchedCount > 0 ? dispatchedCount : (premQty + cleanQty),
+                    bp: 0, 
+
+                    totalExpected: totalExpected,
+                    amountSent: amountSent,
+                    expenseAmount: expenseAmt,
+                    expensesList: expensesList,
+                    balanceBF: newPressure,
+                    profit: totalExpected, 
+                    sold: 0, 
+                    remaining: 0 
+                };
+
+                history.push(record);
+
+                // Clear inputs
+                if(dispatchedPiecesIn) dispatchedPiecesIn.value = "";
+                if(dispatchedKimonosIn) dispatchedKimonosIn.value = "";
+                if(premQtyIn) premQtyIn.value = "";
+                if(premSPIn) premSPIn.value = "";
+                if(cleanQtyIn) cleanQtyIn.value = "";
+                if(cleanSPIn) cleanSPIn.value = "";
+                if(sentIn) sentIn.value = "";
+                if(marketIn) marketIn.value = "";
+                const expContainer = document.getElementById('expenses-container');
+                if(expContainer) expContainer.innerHTML = '';
+
+            } else {
+                // STANDARD MODE CALCULATION
+                const dDress = Number(dispatchDressIn ? dispatchDressIn.value : 0) || 0;
+                const d2pc = Number(dispatch2pcIn ? dispatch2pcIn.value : 0) || 0;
+                const dKimono = Number(dispatchKimonoIn ? dispatchKimonoIn.value : 0) || 0;
+
+                const sDress = Number(salesDressIn ? salesDressIn.value : 0) || 0;
+                const s2pc = Number(sales2pcIn ? sales2pcIn.value : 0) || 0;
+                const sKimono = Number(salesKimonoIn ? salesKimonoIn.value : 0) || 0;
+
+                if (dDress === 0 && d2pc === 0 && dKimono === 0 && sDress === 0 && s2pc === 0 && sKimono === 0) {
+                    showNotification("Please enter dispatch or sales.");
+                    return;
+                }
+
+                const prices = managedUser.prices || {};
+                
+                // Temporary placeholders, Recalculate will fix
+                let prevRemDress = 0, prevRem2pc = 0, prevRemKimono = 0;
+                const newRemDress = prevRemDress + dDress - sDress;
+                const newRem2pc = prevRem2pc + d2pc - s2pc;
+                const newRemKimono = prevRemKimono + dKimono - sKimono;
+
+                const profitDress = sDress * (prices.dressSell - prices.dressBuy);
+                const profit2pc = s2pc * (prices.twoPcSell - prices.twoPcBuy);
+                const profitKimono = sKimono * (prices.kimonoSell - prices.kimonoBuy);
+                const totalProfit = profitDress + profit2pc + profitKimono;
+
+                const record = {
+                    id: Date.now(),
+                    sortTimestamp: targetDate.getTime(),
+                    date: currentDayName,
+                    fullDate: fullDateString,
+                    dispatchedDresses: dDress, dispatchedTwoPcs: d2pc, dispatchedKimonos: dKimono,
+                    soldDresses: sDress, soldTwoPcs: s2pc, soldKimonos: sKimono,
+                    remDresses: newRemDress, remTwoPcs: newRem2pc, remKimonos: newRemKimono,
+                    profit: totalProfit,
+                    dispatched: dDress + d2pc + dKimono,
+                    sold: sDress + s2pc + sKimono,
+                    remaining: newRemDress + newRem2pc + newRemKimono
+                };
+
+                history.push(record);
+                
+                // Clear Standard Inputs
+                if (dispatchDressIn) dispatchDressIn.value = "";
+                if (dispatch2pcIn) dispatch2pcIn.value = "";
+                if (dispatchKimonoIn) dispatchKimonoIn.value = "";
+                if (salesDressIn) salesDressIn.value = "";
+                if (sales2pcIn) sales2pcIn.value = "";
+                if (salesKimonoIn) salesKimonoIn.value = "";
+            }
+
+            // Immediately Recalculate to ensure sort order and balances are correct
+            // This handles the "backdating" logic effectively
+            recalculateBalances(); 
+
+            let notificationMessage = `Saved for ${currentDayName} (${fullDateString})!`;
+            showNotification(notificationMessage);
+        }
+
+        function showBalanceModal(dayName, dateStr) {
+            showNotification("Please use the main form to enter expenses.");
+        }
+
+        function handleStartNewWeek() {
+            const modal = document.getElementById('week-complete-modal');
+            if (modal) modal.remove();
+
+            const fullHistory = getFullHistory();
+            
+            // Logic for pressure mode carry over
+            let finalPressure = { dresses: 0, twoPcs: 0, kimonos: 0 };
+            
+            // Logic for standard mode carry over
+            if (fullHistory.length > 0) {
+                // Ensure sorting before taking last
+                fullHistory.sort((a,b) => (a.sortTimestamp||a.id) - (b.sortTimestamp||b.id));
+                const last = fullHistory[fullHistory.length - 1];
+                finalPressure = {
+                    dresses: last.remDresses || last.remaining || 0,
+                    twoPcs: last.remTwoPcs || 0,
+                    kimonos: last.remKimonos || 0
+                };
+            } else {
+                finalPressure = startingPressure;
+            }
+            
+            archive = [...archive, ...history];
+            history = []; 
+            startingPressure = finalPressure; 
+            selectedDayIndex = 0; 
+            
+            saveData(managedUser.phone);
+            showNotification("New week started!");
+            renderIndividualDashboard();
+        }
+
+        function handleDeleteLast() {
+            if (!managedUser) return;
+            const fullHistory = getFullHistory();
+            
+            // Should delete the physically last added entry? Or the last chronological one?
+            // Typically "Delete Last" implies the most recent action (undo).
+            // But here "history" array stores the session.
+            // Let's stick to popping from history array which represents the current unsaved-to-archive session.
+            
+            if (history.length === 0) {
+                 showNotification("No recent entries to delete.");
+                 return;
+            }
+
+            const lastEntry = history[history.length - 1]; // This is the last created one
+
+            if (isEntryLocked(lastEntry)) {
+                showNotification("Locked: 1 week passed since entry.");
+                return;
+            }
+            
+            // Standard Mode Revert Logic for startingPressure is tricky with backdating.
+            // Simpler to just remove and recalculate.
+            history.pop();
+            recalculateBalances();
+            showNotification(`Entry deleted.`);
+        }
+
+        async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
+            if (!managedUser) return;
+            if (data.length === 0) {
+                showNotification(`No data found for ${reportName} report.`);
+                return;
+            }
+            const loader = document.getElementById('pdf-loader');
+            if (loader) loader.style.display = 'flex';
+
+            const isPressureMode = managedUser.enableReconciliation;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFillColor(30, 58, 138); 
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255,255,255);
+                doc.setFontSize(14);
+                doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
+                
+                if (isPressureMode) {
+                    // PRESSURE REPORT FORMAT
+                    doc.setFontSize(10);
+                    doc.text("Pressure Calculation Statement", 14, 26);
+                    
+                    const rows = data.map(item => {
+                         const dateStr = `${item.date.substring(0,3)}, ${item.fullDate}`;
+                         const market = item.marketName || '-';
+                         
+                         // Prioritize explicit dispatchedPieces, fallback to old sum
+                         const dispatched = item.dispatchedPieces || item.dispatched || ((item.premiumQty||0) + (item.cleanupQty||0));
+                         
+                         const totalExpected = item.totalExpected || 0;
+                         const amountSent = item.amountSent || 0;
+                         const balanceBF = item.balanceBF || 0;
+
+                         // Expenses detail for context
+                         let expensesStr = "";
+                         if (item.expensesList && item.expensesList.length > 0) {
+                             expensesStr = "\nExp: " + item.expensesList.map(e => `${e.name} ${e.amount}`).join(', ');
+                         }
+                         
+                         return [
+                             dateStr,
+                             market,
+                             dispatched, // Add Dispatched here
+                             totalExpected.toLocaleString(),
+                             `${amountSent.toLocaleString()}${expensesStr}`,
+                             balanceBF.toLocaleString()
+                         ];
+                    });
+
+                    doc.autoTable({
+                        startY: 40,
+                        head: [['Day & Date', 'Market', 'Dispatched', 'Total Expected', 'Amount Sent', 'Balance BF']], // Update Header
+                        body: rows,
+                        theme: 'grid',
+                        headStyles: { fillColor: [30, 58, 138], halign: 'center' },
+                        bodyStyles: { halign: 'center' },
+                        columnStyles: {
+                            2: { halign: 'center' }, // Dispatched
+                            3: { halign: 'right' }, // Expected
+                            4: { halign: 'right' }, // Sent
+                            5: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] } // Balance
+                        }
+                    });
+
+                } else {
+                    // STANDARD REPORT FORMAT
+                    const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
+                    const totalSoldDresses = data.reduce((sum, r) => sum + (Number(r.soldDresses) || 0), 0);
+                    const totalSoldTwoPcs = data.reduce((sum, r) => sum + (Number(r.soldTwoPcs) || 0), 0);
+                    const totalSoldKimonos = data.reduce((sum, r) => sum + (Number(r.soldKimonos) || 0), 0);
+
+                    const rows = data.map(item => {
+                        const friendlyDate = `${item.date}, ${item.fullDate}`;
+                        return [
+                            friendlyDate, 
+                            `${item.soldDresses || 0} / ${item.soldTwoPcs || 0} / ${item.soldKimonos || 0}`, 
+                            `${item.remDresses || 0} / ${item.remTwoPcs || 0} / ${item.remKimonos || 0}`,
+                            item.profit.toLocaleString()
+                        ];
+                    });
+
+                    doc.autoTable({
+                        startY: 40,
+                        head: [['Date', `Sold (D/2/K)`, `Stock (D/2/K)`, 'Profit (KES)']],
+                        body: rows,
+                        theme: 'grid',
+                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs} / ${totalSoldKimonos}`, '-', totalProfit.toLocaleString()]]
+                    });
+                }
+
+                doc.save(`${managedUser.name}_${reportName}_Report.pdf`);
+                showNotification("PDF Downloaded!");
+
+            } catch (err) {
+                console.error("PDF Error", err);
+                showNotification("Failed to generate PDF.");
+            } finally {
+                if (loader) loader.style.display = 'none';
+            }
+        }
+
+        // --- Renderers ---
+
+        function renderWeekCompleteModal() {
+            const isPressure = managedUser.enableReconciliation;
+            let msg = "";
+            
+            if (isPressure) {
+                const last = history.length > 0 ? history[history.length - 1] : null;
+                const finalBal = last ? last.balanceBF : 0;
+                msg = `Final Pressure/Balance: KES ${finalBal.toLocaleString()}`;
+            } else {
+                const last = history.length > 0 ? history[history.length - 1] : null;
+                const remD = last ? last.remDresses : startingPressure.dresses;
+                msg = `Final Stock: ${remD} Dresses`;
+            }
+            
+            const modalHTML = `
+                <div id="week-complete-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0 transition-opacity" onclick="document.getElementById('week-complete-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm relative z-10 text-center">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">Week Completed!</h2>
+                        <p class="text-slate-600 mb-4 text-sm">${msg}</p>
+                        <div class="space-y-3">
+                            <button onclick="downloadReport(history, 'Weekly_Completed'); document.getElementById('week-complete-modal').remove();" class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Download Report</button>
+                            <button onclick="handleStartNewWeek()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Start New Week</button>
+                            <button onclick="document.getElementById('week-complete-modal').remove()" class="w-full py-3 bg-slate-100 text-slate-600 rounded-xl">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modalContainer.innerHTML = modalHTML;
+        }
+
+        function renderHeader() {
+            const isAdmin = currentUser && currentUser.role === 'admin';
+            const isManaging = isAdmin && managedUser;
+
+            return `
+                <header class="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+                    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">T</div>
+                            <div class="flex flex-col">
+                                <span class="text-lg font-bold text-indigo-900 leading-none">Trinah</span>
+                                <span class="text-[10px] text-slate-500">
+                                    ${isAdmin ? 'Admin Portal' : currentUser.name}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Desktop Nav -->
+                        <nav class="hidden md:flex items-center gap-4">
+                            ${isManaging ? `
+                                <button onclick="managedUser=null; renderApp()" class="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 flex items-center gap-2">
+                                    ${renderIcon('arrow-left', {class:'w-4 h-4'})} Back to Dashboard
+                                </button>
+                            ` : ''}
+
+                            ${isAdmin && !isManaging ? `
+                                <button onclick="setView('${VIEW_USERS}')" class="text-sm font-medium text-slate-600 hover:text-indigo-600 flex items-center gap-2">
+                                    ${renderIcon('users', {class:'w-4 h-4'})} Manage Staff
+                                </button>
+                                <button onclick="showReportsModal()" class="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg hover:bg-emerald-100 flex items-center gap-2">
+                                    ${renderIcon('file-bar-chart', {class:'w-4 h-4'})} Master Reports
+                                </button>
+                                <button onclick="showControllerModal()" class="text-sm font-medium text-slate-600 bg-slate-50 px-3 py-2 rounded-lg hover:bg-slate-100 flex items-center gap-2">
+                                    ${renderIcon('clipboard-list', {class:'w-4 h-4'})} Stock Log
+                                </button>
+                            ` : ''}
+
+                            <button onclick="handleLogout()" class="text-sm font-medium text-red-500 hover:text-red-700">Logout</button>
+                        </nav>
+                        
+                        <!-- Mobile Menu Button -->
+                        <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                            ${renderIcon('menu', { class: 'w-6 h-6' })}
+                        </button>
+                    </div>
+                </header>
+                
+                 <!-- Mobile Menu Overlay -->
+                <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden"></div>
+
+                <!-- Mobile Menu Sidebar -->
+                <div id="mobile-menu" class="fixed right-0 top-0 h-full w-72 bg-white shadow-2xl z-50 p-6 flex flex-col gap-6 translate-x-full">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                        <span class="text-lg font-bold text-slate-800">Menu</span>
+                        <button onclick="toggleMobileMenu()" class="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                            ${renderIcon('x', { class: 'w-6 h-6' })}
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        ${isManaging ? `
+                            <button onclick="managedUser=null; renderApp(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-indigo-50 text-indigo-700">
+                                ${renderIcon('arrow-left', {class:'w-5 h-5'})} Back to Dashboard
+                            </button>
+                        ` : ''}
+
+                        ${isAdmin && !isManaging ? `
+                            <button onclick="setView('${VIEW_USERS}'); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
+                                ${renderIcon('users', {class:'w-5 h-5'})} Manage Staff
+                            </button>
+                            <button onclick="showReportsModal(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-emerald-50 text-emerald-700">
+                                ${renderIcon('file-bar-chart', {class:'w-5 h-5'})} Master Reports
+                            </button>
+                             <button onclick="showControllerModal(); toggleMobileMenu();" class="flex items-center gap-3 w-full p-3 rounded-xl bg-slate-50 text-slate-700">
+                                ${renderIcon('clipboard-list', {class:'w-5 h-5'})} Stock Log
+                            </button>
+                        ` : ''}
+
+                        <button onclick="handleLogout()" class="flex items-center gap-3 w-full p-3 rounded-xl bg-red-50 text-red-600 mt-auto">
+                            ${renderIcon('log-out', {class:'w-5 h-5'})} Log Out
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStatCard(title, value, iconName, colorClass) {
+            return `
+                <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">${title}</p>
+                        <p class="text-xl font-bold ${colorClass}">${value}</p>
+                    </div>
+                    <div class="p-2 rounded-lg bg-white shadow-sm">
+                        ${renderIcon(iconName, { class: `w-5 h-5 ${colorClass}` })}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminOverview() {
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+            
+            const targetDateLocale = selectedProcurementDate.toLocaleDateString();
+            const y = selectedProcurementDate.getFullYear();
+            const m = String(selectedProcurementDate.getMonth() + 1).padStart(2, '0');
+            const d = String(selectedProcurementDate.getDate()).padStart(2, '0');
+            const dateInputVal = `${y}-${m}-${d}`;
+            
+            let totalStock = 0;
+            let totalSalesToday = 0;
+            let totalProfitToday = 0;
+            let grandTotalDispatchedDresses = 0;
+            let grandTotalDispatchedKimonos = 0;
+
+            const userCards = users.map(user => {
+                const hStr = localStorage.getItem(`trinah_current_week_${user.phone}`) || "[]";
+                const aStr = localStorage.getItem(`trinah_archive_${user.phone}`) || "[]";
+                const pStr = localStorage.getItem(`trinah_starting_pressure_${user.phone}`);
+                
+                const userHistory = JSON.parse(hStr);
+                const userArchive = JSON.parse(aStr);
+                const allEntries = [...userArchive, ...userHistory];
+                // sort for safety
+                allEntries.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
+
+                const todayEntries = userHistory.filter(e => e.fullDate === targetDateLocale);
+                const userSalesToday = todayEntries.reduce((sum, e) => {
+                    const legacy = Number(e.sold) || 0;
+                    const newFormat = (Number(e.soldDresses) || 0) + (Number(e.soldTwoPcs) || 0) + (Number(e.soldKimonos)||0);
+                    return sum + (e.soldDresses !== undefined ? newFormat : legacy);
+                }, 0);
+
+                const userDispatchedTodayDresses = todayEntries.reduce((sum, e) => {
+                     const val = (Number(e.dispatchedDresses) || 0) + (Number(e.dispatchedTwoPcs) || 0) + (Number(e.dispatched) || 0);
+                     return sum + val;
+                }, 0);
+                
+                const userDispatchedTodayKimonos = todayEntries.reduce((sum, e) => {
+                     return sum + (Number(e.dispatchedKimonos) || 0);
+                }, 0);
+                
+                const userProfitToday = todayEntries.reduce((sum, e) => sum + (Number(e.profit)||0), 0);
+                
+                let currentRemDresses = 0;
+                let currentRemTwoPcs = 0;
+                let currentRemKimonos = 0;
+                
+                // Pressure mode balance
+                let pressureBalance = 0;
+
+                if (allEntries.length > 0) {
+                    const last = allEntries[allEntries.length - 1];
+                    currentRemDresses = last.remDresses || last.remaining || 0;
+                    currentRemTwoPcs = last.remTwoPcs || 0;
+                    currentRemKimonos = last.remKimonos || 0;
+                    pressureBalance = last.balanceBF || 0;
+                } else {
+                     try {
+                        const p = JSON.parse(pStr);
+                        if (typeof p === 'number') currentRemDresses = p;
+                        else {
+                            currentRemDresses = p?.dresses || 0;
+                            currentRemTwoPcs = p?.twoPcs || 0;
+                            currentRemKimonos = p?.kimonos || 0;
+                        }
+                    } catch(e) {}
+                }
+
+                totalStock += (currentRemDresses + currentRemTwoPcs + currentRemKimonos);
+                totalSalesToday += userSalesToday;
+                totalProfitToday += userProfitToday;
+                grandTotalDispatchedDresses += userDispatchedTodayDresses;
+                grandTotalDispatchedKimonos += userDispatchedTodayKimonos;
+
+                let statusBlock = '';
+                if (user.enableReconciliation) {
+                    statusBlock = `
+                        <div class="bg-indigo-50 p-2 rounded-lg col-span-2">
+                            <p class="text-[10px] uppercase font-bold text-indigo-400">Pressure Bal</p>
+                            <p class="font-bold text-indigo-700">${formatCurrency(pressureBalance)}</p>
+                        </div>
+                    `;
+                } else {
+                    statusBlock = `
+                        <div class="bg-orange-50 p-2 rounded-lg">
+                            <p class="text-[10px] uppercase font-bold text-orange-400">Stock</p>
+                            <p class="font-bold text-orange-700">${currentRemDresses} / ${currentRemTwoPcs} / ${currentRemKimonos}</p>
+                            <p class="text-[8px] text-orange-300">D / 2 / K</p>
+                        </div>
+                        <div class="bg-emerald-50 p-2 rounded-lg">
+                            <p class="text-[10px] uppercase font-bold text-emerald-400">Sold (Today)</p>
+                            <p class="font-bold text-emerald-700">${userSalesToday}</p>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div onclick="manageUser('${user.phone}')" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition cursor-pointer group">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold group-hover:bg-indigo-100 group-hover:text-indigo-600 transition">
+                                    ${renderIcon('user', {class:'w-5 h-5'})}
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800">${user.name}</h3>
+                                    <p class="text-xs text-slate-400">${user.phone}</p>
+                                </div>
+                            </div>
+                            ${renderIcon('chevron-right', {class:'w-4 h-4 text-slate-300 group-hover:text-indigo-500'})}
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-center">
+                            ${statusBlock}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Retrieve Data
+            const procLogs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const procData = procLogs[targetDateLocale];
+            
+            let procDresses = 0;
+            let procKimonos = 0;
+            if (procData) {
+                if (typeof procData === 'number') { procDresses = procData; } 
+                else { procDresses = procData.dresses || 0; procKimonos = procData.kimonos || 0; }
+            }
+
+            const controllerLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            // Find controller log for this specific date
+            const controllerLogForDate = controllerLogs.find(l => l.date === dateInputVal);
+            const physicalDresses = controllerLogForDate ? (controllerLogForDate.dressCount || controllerLogForDate.count || 0) : 0;
+            const physicalKimonos = controllerLogForDate ? (controllerLogForDate.kimonoCount || 0) : 0;
+
+            // Calculations
+            const varianceDresses = procDresses - grandTotalDispatchedDresses; // Expected to be remaining
+            const varianceKimonos = procKimonos - grandTotalDispatchedKimonos; // Expected to be remaining
+
+            // Final Missing Calculation: Variance (System Expected) - Physical Count
+            const finalMissingDresses = varianceDresses - physicalDresses;
+            const finalMissingKimonos = varianceKimonos - physicalKimonos;
+
+            appElement.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+                    <div class="mb-2">
+                        <h1 class="text-2xl font-bold text-slate-800">Admin Dashboard</h1>
+                        <p class="text-slate-500">Overview of all active accounts</p>
+                    </div>
+
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        ${renderStatCard("Total Stock (All Time)", totalStock, "layers", "text-orange-600")}
+                        ${renderStatCard("Total Sales (Selected Date)", totalSalesToday, "shopping-bag", "text-blue-600")}
+                        ${renderStatCard("Total Profit (Selected Date)", formatCurrency(totalProfitToday), "dollar-sign", "text-emerald-600")}
+                    </div>
+                    
+                    <!-- Procurement Section -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex flex-col md:flex-row gap-6">
+                         <div class="flex-1 w-full">
+                            <h2 class="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
+                                ${renderIcon('clipboard-list', {class:'w-5 h-5 text-indigo-600'})} Daily Stock Procurement
+                            </h2>
+                            <p class="text-sm text-slate-500 mb-4">Stock Acquired / Bought today.</p>
+                            
+                            <div class="flex flex-col gap-2">
+                                <input type="date" value="${dateInputVal}" 
+                                    onchange="handleProcurementDateChange(this.value)"
+                                    class="p-3 w-full rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700">
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-indigo-500 uppercase">Dresses/Suits</label>
+                                        <input type="number" id="procurement-dress-input" value="${procDresses || ''}" placeholder="Dresses" class="w-full p-3 rounded-xl bg-indigo-50 border border-indigo-100 outline-none focus:border-indigo-500 font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-pink-500 uppercase">Kimonos</label>
+                                        <input type="number" id="procurement-kimono-input" value="${procKimonos || ''}" placeholder="Kimonos" class="w-full p-3 rounded-xl bg-pink-50 border border-pink-100 outline-none focus:border-pink-500 font-bold">
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="handleProcurementSave()" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
+                                    <button onclick="handleDeleteProcurement()" class="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 border border-red-100" title="Delete Entry for this Date">
+                                        ${renderIcon('trash-2', {class:'w-5 h-5'})}
+                                    </button>
+                                </div>
+                            </div>
+                         </div>
+                         
+                         <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                            <div class="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Reconciliation (${targetDateLocale})</div>
+                            
+                            <!-- Dresses Table -->
+                            <div class="grid grid-cols-4 gap-2 text-xs mb-2 border-b border-slate-200 pb-2">
+                                <span class="col-span-1 font-bold text-indigo-600">DRESSES</span>
+                                <span class="text-center">System Exp.</span>
+                                <span class="text-center">Physical</span>
+                                <span class="text-right">Variance</span>
+
+                                <span class="col-span-1 text-slate-500">Bought: ${procDresses}<br>Disp: ${grandTotalDispatchedDresses}</span>
+                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceDresses}</span>
+                                <span class="text-center font-bold text-indigo-700 py-2 bg-indigo-50 rounded border border-indigo-100">${physicalDresses}</span>
+                                <span class="text-right font-bold ${finalMissingDresses > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
+                                    ${finalMissingDresses > 0 ? `${finalMissingDresses} Miss` : (finalMissingDresses < 0 ? `${Math.abs(finalMissingDresses)} Extra` : 'OK')}
+                                </span>
+                            </div>
+
+                            <!-- Kimonos Table -->
+                            <div class="grid grid-cols-4 gap-2 text-xs">
+                                <span class="col-span-1 font-bold text-pink-600">KIMONOS</span>
+                                <span class="text-center">System Exp.</span>
+                                <span class="text-center">Physical</span>
+                                <span class="text-right">Variance</span>
+
+                                <span class="col-span-1 text-slate-500">Bought: ${procKimonos}<br>Disp: ${grandTotalDispatchedKimonos}</span>
+                                <span class="text-center font-bold text-slate-700 py-2 bg-white rounded">${varianceKimonos}</span>
+                                <span class="text-center font-bold text-pink-700 py-2 bg-pink-50 rounded border border-pink-100">${physicalKimonos}</span>
+                                <span class="text-right font-bold ${finalMissingKimonos > 0 ? 'text-red-600' : 'text-emerald-600'} py-2">
+                                    ${finalMissingKimonos > 0 ? `${finalMissingKimonos} Miss` : (finalMissingKimonos < 0 ? `${Math.abs(finalMissingKimonos)} Extra` : 'OK')}
+                                </span>
+                            </div>
+                         </div>
+                    </div>
+                    
+                    <!-- Stock Controller Section -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                ${renderIcon('notebook', {class:'w-5 h-5 text-slate-600'})} Stock Controller's Log
+                            </h2>
+                            <button onclick="showControllerModal()" class="text-xs bg-slate-100 text-slate-600 px-3 py-2 rounded-lg font-bold hover:bg-slate-200">
+                                + Add Physical Count
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-slate-500">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-3">Date</th>
+                                        <th class="px-4 py-3">Dresses/2Pcs Count</th>
+                                        <th class="px-4 py-3">Kimonos Count</th>
+                                        <th class="px-4 py-3">Notes</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${controllerLogs.length > 0 ? controllerLogs.slice(0, 5).map(log => `
+                                        <tr class="bg-white border-b hover:bg-slate-50">
+                                            <td class="px-4 py-2 font-medium text-slate-900">${log.date}</td>
+                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.dressCount !== undefined ? log.dressCount : (log.count||0)}</td>
+                                            <td class="px-4 py-2 font-bold text-pink-600">${log.kimonoCount || 0}</td>
+                                            <td class="px-4 py-2">${log.note || '-'}</td>
+                                            <td class="px-4 py-2 text-right flex justify-end gap-2">
+                                                <button onclick="showControllerModal(${log.id})" class="text-indigo-600 hover:text-indigo-800 p-1">
+                                                    ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                </button>
+                                                <button onclick="handleDeleteControllerLog(${log.id})" class="text-red-600 hover:text-red-800 p-1">
+                                                    ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('') : `<tr><td colspan="5" class="px-4 py-4 text-center">No records yet.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Staff Grid -->
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-slate-700">Staff Accounts</h2>
+                            <button onclick="showAddStaffModal()" class="text-sm text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                                ${renderIcon('plus', {class:'w-4 h-4'})} Add Staff
+                            </button>
+                        </div>
+                        
+                        ${users.length === 0 ? `
+                            <div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                <p class="text-slate-400 mb-4">No staff accounts found.</p>
+                                <button onclick="showAddStaffModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold">Add Your First Staff Member</button>
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                ${userCards}
+                            </div>
+                        `}
+                    </div>
+                </main>
+            `;
+            refreshIcons();
+        }
+
+        function renderIndividualDashboard() {
+            if (!managedUser) return;
+
+            const fullHistory = getFullHistory();
+            // Important: sort by timestamp before picking last
+            fullHistory.sort((a,b)=>(a.sortTimestamp||a.id)-(b.sortTimestamp||b.id));
+
+            const lastEntry = fullHistory.length > 0 ? fullHistory[fullHistory.length - 1] : null;
+            
+            // Standard Stock Variables
+            let curDresses = 0;
+            let cur2pcs = 0;
+            let curKimonos = 0;
+            
+            // Pressure Variable
+            let currentPressure = 0;
+
+            if (lastEntry) {
+                curDresses = lastEntry.remDresses !== undefined ? lastEntry.remDresses : (lastEntry.remaining || 0);
+                cur2pcs = lastEntry.remTwoPcs || 0;
+                curKimonos = lastEntry.remKimonos || 0;
+                currentPressure = lastEntry.balanceBF || 0;
+            } else {
+                curDresses = startingPressure.dresses || 0;
+                cur2pcs = startingPressure.twoPcs || 0;
+                curKimonos = startingPressure.kimonos || 0;
+                currentPressure = 0;
+            }
+            
+            const now = new Date();
+            const today = now.toLocaleDateString();
+
+            const filteredData = getFilteredHistory();
+            const totalProfit = filteredData.reduce((sum, entry) => sum + entry.profit, 0);
+            
+            const todaysSales = history
+                .filter(entry => entry.fullDate === today)
+                .reduce((sum, entry) => {
+                    const newF = (entry.soldDresses || 0) + (entry.soldTwoPcs || 0) + (entry.soldKimonos||0);
+                    return sum + (entry.soldDresses !== undefined ? newF : (entry.sold||0));
+                }, 0);
+
+            const isPressureMode = managedUser.enableReconciliation;
+
+            // Determine what date the picker should show
+            // If selectedDayIndex is valid (0-6), calculate that date relative to today's week
+            // Else if -1, it means we are in custom mode, we need to preserve the picker value from DOM if possible, 
+            // or default to today if not. Since we are re-rendering, we might lose DOM state.
+            // Let's calculate the date from selectedDayIndex if it's >= 0
+            
+            let pickerValue = "";
+            const currentJsDay = now.getDay();
+            const currentMappedDay = currentJsDay === 0 ? 6 : currentJsDay - 1;
+            
+            if (selectedDayIndex >= 0) {
+                 const diff = currentMappedDay - selectedDayIndex;
+                 const d = new Date();
+                 d.setDate(now.getDate() - diff);
+                 pickerValue = d.toISOString().split('T')[0];
+            } else {
+                 // Check if we have a stored value in DOM before overwrite? 
+                 // It's hard in vanilla JS literal string render.
+                 // We'll default to today if switching modes, or we rely on the user picking again.
+                 // For better UX, let's default to today if index is -1
+                 pickerValue = now.toISOString().split('T')[0];
+            }
+            
+            // However, if we just clicked a date in the picker, we want that date. 
+            // The handleDateChange function updates selectedDayIndex. 
+            // If the user picked a date last month, selectedDayIndex is -1.
+            // We need to know WHAT date they picked to render it back.
+            // We can add a temporary global `customDateOverride` variable for this specific UI state.
+            
+            // Let's grab the existing value if it exists in the DOM
+            const existingPicker = document.getElementById('entry-date-picker');
+            if (existingPicker && selectedDayIndex === -1) {
+                pickerValue = existingPicker.value;
+            }
+
+            appElement.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+                    
+                    <div class="flex items-center justify-between bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-indigo-600 text-white rounded-lg">
+                                ${renderIcon('user-check', {class:'w-5 h-5'})}
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-indigo-400 uppercase">Managing Account</p>
+                                <h2 class="text-lg font-bold text-indigo-900">${managedUser.name}</h2>
+                            </div>
+                        </div>
+                        <div class="text-right hidden md:block">
+                            <p class="text-xs text-indigo-400 font-bold">MODE</p>
+                            <p class="text-sm font-bold text-indigo-700">${isPressureMode ? 'Pressure Calc' : 'Standard Stock'}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 ${isPressureMode ? 'md:grid-cols-2' : 'md:grid-cols-4'} gap-4">
+                        ${isPressureMode ? 
+                            renderStatCard(`Current Pressure (Bal BF)`, formatCurrency(currentPressure), "activity", "text-indigo-600") +
+                            renderStatCard("Total Remitted (Period)", formatCurrency(filteredData.reduce((s,e)=>s+(e.amountSent||0),0)), "send", "text-emerald-600")
+                            :
+                            renderStatCard(`Dresses`, curDresses, "shirt", "text-indigo-600") + 
+                            renderStatCard(`2pcs`, cur2pcs, "layers", "text-purple-600") +
+                            renderStatCard(`Kimono`, curKimonos, "scissors", "text-pink-600") +
+                            renderStatCard("Profit", formatCurrency(totalProfit), "dollar-sign", "text-emerald-600")
+                        }
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="md:col-span-1 space-y-6">
+                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    ${renderIcon('plus-circle', {class:'w-5 h-5 text-indigo-600'})} New Entry
+                                </h2>
+                                
+                                <div class="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Select Entry Date</label>
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative flex-1">
+                                            <input type="date" id="entry-date-picker" 
+                                                value="${pickerValue}" 
+                                                max="${now.toISOString().split('T')[0]}"
+                                                onchange="window.handleDateChange(this)"
+                                                class="w-full p-2 pl-9 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white shadow-sm">
+                                            <div class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                                ${renderIcon('calendar', {class:'w-4 h-4'})}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 grid grid-cols-7 gap-1">
+                                        ${DAYS.map((d, i) => {
+                                            const jsDay = now.getDay();
+                                            const mappedDay = jsDay === 0 ? 6 : jsDay - 1;
+                                            const isFuture = i > mappedDay;
+                                            return `
+                                                <button 
+                                                    onclick="window.updateDateFromWeekButton(${i})"
+                                                    ${isFuture ? 'disabled' : ''}
+                                                    title="${d}"
+                                                    class="text-[9px] py-1.5 rounded-md text-center font-bold transition-all
+                                                    ${selectedDayIndex === i ? 'bg-indigo-600 text-white shadow-md' : 
+                                                      (isFuture ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600')}">
+                                                    ${d.substring(0,1)}
+                                                </button>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    ${isPressureMode ? `
+                                        <!-- PRESSURE MODE FORM -->
+                                        <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100 space-y-3">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-indigo-800 uppercase">Market Name</label>
+                                                <input type="text" id="rec-market" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="e.g. Kamukunji">
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-indigo-800 uppercase">Dispatched (Total)</label>
+                                                    <input type="number" id="rec-dispatched-pieces" class="w-full p-2 text-sm rounded-lg border border-indigo-200" placeholder="Dresses/2pc">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-pink-600 uppercase">Dispatched Kimonos</label>
+                                                    <input type="number" id="rec-dispatched-kimonos" class="w-full p-2 text-sm rounded-lg border border-pink-200 bg-pink-50" placeholder="Kimonos">
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="p-3 bg-white rounded-lg border border-indigo-100 mb-2">
+                                                <p class="text-[10px] font-bold text-indigo-800 uppercase mb-2 border-b border-indigo-50 pb-1">Premium Sold</p>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">Qty</label>
+                                                        <input type="number" id="rec-prem-qty" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">SP</label>
+                                                        <input type="number" id="rec-prem-sp" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Price">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="p-3 bg-white rounded-lg border border-indigo-100">
+                                                <p class="text-[10px] font-bold text-orange-800 uppercase mb-2 border-b border-orange-50 pb-1">Clean-up Sold</p>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">Qty</label>
+                                                        <input type="number" id="rec-clean-qty" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-500 font-bold">SP</label>
+                                                        <input type="number" id="rec-clean-sp" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Price">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-3">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-emerald-600 uppercase">Amount Sent</label>
+                                                <input type="number" id="rec-sent" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50 font-bold" placeholder="Amount remitted">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-400 mb-1 block">Expenses List</label>
+                                                <div id="expenses-container" class="space-y-2 mb-2"></div>
+                                                <button onclick="addExpenseRow()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded-lg font-bold w-full">
+                                                    + Add Expense
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    ` : `
+                                        <!-- STANDARD STOCK MODE FORM -->
+                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">Dresses</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-dress" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">2 Pieces</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-2pc" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p class="text-[10px] font-bold text-pink-400 mb-2 uppercase">Kimonos</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Dispatch</label>
+                                                    <input type="number" id="dispatch-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                                <div>
+                                                    <label class="text-[10px] font-bold text-slate-500">Sold</label>
+                                                    <input type="number" id="sales-kimono" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `}
+                                    
+                                    <button onclick="handleSubmit()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                                        Save Entry
+                                    </button>
+                                </div>
+                            </div>
+
+                            ${lastEntry ? `
+                            <div class="bg-white rounded-2xl shadow p-4 border border-slate-100">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-slate-400">LAST ENTRY</span>
+                                    <span class="text-xs font-bold text-slate-600">${lastEntry.date} (${lastEntry.fullDate})</span>
+                                </div>
+                                <button onclick="handleDeleteLast()" class="w-full py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 flex items-center justify-center gap-2">
+                                    ${renderIcon('trash-2', {class:'w-4 h-4'})} Delete Last
+                                </button>
+                            </div>` : ''}
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 h-full">
+                                <div class="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h2 class="text-lg font-bold text-slate-800">History Log</h2>
+                                        <p class="text-sm text-slate-500">Viewing: ${selectedReport}</p>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-2">
+                                        <div class="flex bg-slate-100 p-1 rounded-lg">
+                                            ${REPORT_TYPES.map(type => `
+                                                <button onclick="selectedReport='${type}'; renderIndividualDashboard();" 
+                                                    class="px-3 py-1 text-xs font-bold rounded-md transition ${selectedReport === type ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}">
+                                                    ${type}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                        <button onclick="recalculateBalances()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded">
+                                            ${renderIcon('refresh-cw', {class:'w-3 h-3'})} Recalculate Chain
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-y-auto max-h-[400px]">
+                                    <table class="w-full text-sm text-left">
+                                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
+                                            ${isPressureMode ? `
+                                                <tr>
+                                                    <th class="px-4 py-3 rounded-l-lg">Day & Date</th>
+                                                    <th class="px-4 py-3">Market</th>
+                                                    <th class="px-4 py-3 text-center">Dispatched</th>
+                                                    <th class="px-4 py-3 text-right">Total Expected</th>
+                                                    <th class="px-4 py-3 text-right">Amt Sent</th>
+                                                    <th class="px-4 py-3 text-right">Balance BF</th>
+                                                    <th class="px-4 py-3 rounded-r-lg"></th>
+                                                </tr>
+                                            ` : `
+                                                <tr>
+                                                    <th class="px-4 py-3 rounded-l-lg">Date</th>
+                                                    <th class="px-4 py-3">Sold (D/2/K)</th>
+                                                    <th class="px-4 py-3">Stock (D/2/K)</th>
+                                                    <th class="px-4 py-3">Profit</th>
+                                                    <th class="px-4 py-3 rounded-r-lg"></th>
+                                                </tr>
+                                            `}
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            ${filteredData.length > 0 ? filteredData.map(d => {
+                                                const isLocked = isEntryLocked(d);
+                                                const editBtn = isLocked ? '' : `
+                                                    <button onclick="showEditEntryModal(${d.id})" class="text-slate-400 hover:text-indigo-600">
+                                                        ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                    </button>
+                                                `;
+
+                                                if (isPressureMode) {
+                                                    const dispatchedVal = d.dispatchedPieces || d.dispatched || ((d.premiumQty||0) + (d.cleanupQty||0));
+                                                    // Optionally show Kimonos in table if desired, currently sticking to core view
+                                                    return `
+                                                        <tr class="hover:bg-slate-50 group">
+                                                            <td class="px-4 py-3 font-medium text-slate-900">${d.date.substring(0,3)}, ${d.fullDate}</td>
+                                                            <td class="px-4 py-3 text-slate-600">${d.marketName || '-'}</td>
+                                                            <td class="px-4 py-3 text-center font-bold text-slate-700">${dispatchedVal}</td>
+                                                            <td class="px-4 py-3 text-right font-bold text-indigo-600">${formatCurrency(d.totalExpected || 0)}</td>
+                                                            <td class="px-4 py-3 text-right text-emerald-600">${formatCurrency(d.amountSent || 0)}</td>
+                                                            <td class="px-4 py-3 text-right font-bold text-red-600">${formatCurrency(d.balanceBF || 0)}</td>
+                                                            <td class="px-4 py-3 text-right">${editBtn}</td>
+                                                        </tr>
+                                                    `;
+                                                } else {
+                                                    return `
+                                                        <tr class="hover:bg-slate-50 group">
+                                                            <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate} <span class="text-slate-400 text-xs block">${d.date.substring(0,3)}</span></td>
+                                                            <td class="px-4 py-3 text-emerald-600 font-bold">
+                                                                ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0} / ${d.soldKimonos || 0}
+                                                            </td>
+                                                            <td class="px-4 py-3 text-orange-600 font-bold">
+                                                                ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0} / ${d.remKimonos || 0}
+                                                            </td>
+                                                            <td class="px-4 py-3 text-slate-600">${formatCurrency(d.profit)}</td>
+                                                            <td class="px-4 py-3 text-right">${editBtn}</td>
+                                                        </tr>
+                                                    `;
+                                                }
+                                            }).reverse().join('') : `
+                                                <tr>
+                                                    <td colspan="${isPressureMode ? 7 : 5}" class="text-center py-8 text-slate-400">
+                                                        No records found for ${selectedReport} view.
+                                                    </td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                                    <button onclick="downloadReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2">
+                                        ${renderIcon('file-down', {class:'w-4 h-4'})} Download PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            `;
+            refreshIcons();
+        }
+
+        function renderAuthScreen() {
+            const users = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
+            const isFirstRun = users.length === 0;
+
+            if (isFirstRun && !showAdminCreation) {
+                appElement.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center p-4">
+                        <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100 text-center">
+                            <div class="w-16 h-16 bg-slate-800 text-white rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                ${renderIcon('shield-lock', {class:'w-8 h-8'})}
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-800">System Initialization</h1>
+                            <p class="text-sm text-slate-500 mb-6">Enter System PIN to create the first Admin account.</p>
+
+                            <div class="space-y-4">
+                                <input type="password" id="system-pin-input" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 text-center tracking-widest text-lg" placeholder="PIN">
+                                <p id="pin-error" class="text-red-500 text-xs hidden">Invalid PIN. Try "2580"</p>
+                                <button onclick="verifySystemPin()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition">Unlock System</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                refreshIcons();
+                return;
+            }
+
+            appElement.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4">T</div>
+                            <h1 class="text-2xl font-bold text-slate-800">Trinah Designs</h1>
+                            <p class="text-sm text-slate-500">${showAdminCreation ? 'Create Main Admin Account' : 'Authorized Access Only'}</p>
+                        </div>
+
+                        ${showAdminCreation ? `
+                            <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-sm mb-6 flex items-start gap-2">
+                                ${renderIcon('unlock', {class:'w-4 h-4 mt-1'})}
+                                <div>
+                                    <strong>System Unlocked!</strong><br>
+                                    Please set up your Admin credentials below.
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <form onsubmit="window.authHandler(event)" class="space-y-4">
+                            ${showAdminCreation ? `
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">ADMIN NAME</label>
+                                <input type="text" id="auth-name" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="e.g. Trinah Admin">
+                            </div>` : ''}
+                            
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PHONE</label>
+                                <input type="text" id="auth-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PASSWORD</label>
+                                <input type="password" id="auth-password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                            </div>
+                            
+                            <div class="flex justify-end pt-1">
+                                <button type="button" onclick="renderRecoveryScreen()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">Forgot Password?</button>
+                            </div>
+
+                            ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
+                            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition" ${authLoading ? 'disabled' : ''}>
+                                ${authLoading ? 'Processing...' : (showAdminCreation ? 'Create Admin Account' : 'Login')}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            refreshIcons();
+        }
+
+        function renderUserManagementScreen() {
+            const storedUsers = JSON.parse(localStorage.getItem(DB_KEY) || "[]").filter(u => u.role !== 'admin');
+            
+            appElement.innerHTML = `
+                ${renderHeader()}
+                <main class="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <button onclick="setView('${VIEW_DASHBOARD}')" class="p-2 hover:bg-white rounded-lg text-slate-500">
+                             ${renderIcon('arrow-left', {class:'w-5 h-5'})}
+                        </button>
+                        <h2 class="text-xl font-bold text-slate-800">User Management</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="showAddStaffModal()" class="bg-indigo-600 text-white rounded-2xl p-6 shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition flex flex-col items-center justify-center gap-2">
+                             ${renderIcon('user-plus', {class:'w-8 h-8'})} 
+                             <span class="font-bold">Add New Staff</span>
+                        </button>
+                        <button onclick="showResetModal()" class="bg-white border border-red-100 text-red-600 rounded-2xl p-6 shadow-sm hover:bg-red-50 transition flex flex-col items-center justify-center gap-2">
+                             ${renderIcon('trash-2', {class:'w-8 h-8'})} 
+                             <span class="font-bold">System Reset</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">Existing Staff</h2>
+                        <div class="space-y-3">
+                            ${storedUsers.map(user => {
+                                const isPress = user.enableReconciliation;
+                                return `
+                                    <div class="p-4 rounded-xl border border-slate-200">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div class="flex items-center gap-3">
+                                                <div class="p-2 rounded-full bg-slate-100 text-slate-600">
+                                                    ${renderIcon('user', {class:'w-4 h-4'})}
+                                                </div>
+                                                <div>
+                                                    <p class="font-bold text-slate-800">${user.name}</p>
+                                                    <p class="text-xs text-slate-500">${user.phone}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="flex gap-2">
+                                                <button onclick="showAddStaffModal(true, '${user.phone}')" class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Edit Staff">
+                                                    ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                </button>
+                                                <button onclick="handleDeleteStaff('${user.phone}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Delete Staff">
+                                                    ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded flex gap-4">
+                                            <span><strong>Type:</strong> ${isPress ? 'Pressure Calc' : 'Standard Stock'}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                            ${storedUsers.length === 0 ? '<p class="text-slate-400 text-sm text-center">No staff added yet.</p>' : ''}
+                        </div>
+                    </div>
+                </main>
+            `;
+            refreshIcons();
+        }
+
+        function renderApp() {
+            if (!currentUser) {
+                renderAuthScreen();
+            } else if (currentView === VIEW_USERS) {
+                renderUserManagementScreen();
+            } else if (currentUser.role === 'admin' && !managedUser) {
+                renderAdminOverview();
+            } else {
+                renderIndividualDashboard();
+            }
+            refreshIcons();
+        }
+
+        // --- Init ---
+        window.toggleAuthMode = () => {}; 
+        window.authHandler = authHandler;
+        window.handleSwitchUser = handleSwitchUser;
+        window.handleLogout = handleLogout;
+        window.downloadReport = downloadReport;
+        window.downloadMasterReport = downloadMasterReport;
+        window.handleSubmit = handleSubmit;
+        window.handleDeleteLast = handleDeleteLast;
+        window.handleStartNewWeek = handleStartNewWeek;
+        window.handleAddStaff = handleAddStaff;
+        window.showAddStaffModal = showAddStaffModal;
+        window.showReportsModal = showReportsModal;
+        window.showResetModal = showResetModal;
+        window.handleFactoryReset = handleFactoryReset;
+        window.manageUser = manageUser;
+        window.setView = setView;
+        
+        window.handleSaveStaff = handleSaveStaff;
+        window.handleDeleteStaff = handleDeleteStaff;
+        window.handleProcurementSave = handleProcurementSave;
+        window.handleDeleteProcurement = handleDeleteProcurement;
+        window.handleProcurementDateChange = handleProcurementDateChange;
+        window.showBalanceModal = showBalanceModal;
+        window.addExpenseRow = addExpenseRow; 
+        
+        window.renderRecoveryScreen = renderRecoveryScreen;
+        window.handleRecoveryStep1 = handleRecoveryStep1;
+        window.handleRecoveryStep2 = handleRecoveryStep2;
+        window.verifySystemPin = verifySystemPin;
+
+        window.showControllerModal = showControllerModal;
+        window.handleControllerLogSave = handleControllerLogSave;
+        window.handleDeleteControllerLog = handleDeleteControllerLog;
+        
+        // New exports for editing and recalculating
+        window.recalculateBalances = recalculateBalances;
+        window.showEditEntryModal = showEditEntryModal;
+        window.handleEditSave = handleEditSave;
+        
+        // New exports for date picker logic
+        window.updateDateFromWeekButton = updateDateFromWeekButton;
+        window.handleDateChange = handleDateChange;
+
+        window.onload = function() {
+            const sessionUser = localStorage.getItem(SESSION_KEY);
+            if (sessionUser) {
+                try {
+                    handleLogin(JSON.parse(sessionUser));
+                } catch(e) {
+                    renderAuthScreen();
+                }
+            } else {
+                renderAuthScreen();
+            }
+        };
+    </script>
+</body>
+</html>
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Load jsPDF for Reports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -2882,3 +5735,4 @@
     </script>
 </body>
 </html>
+
