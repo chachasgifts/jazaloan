@@ -2223,8 +2223,9 @@
                                 <thead class="text-xs text-slate-700 uppercase bg-slate-50">
                                     <tr>
                                         <th class="px-4 py-3">Date</th>
-                                        <th class="px-4 py-3">Dresses/2Pcs Count</th>
-                                        <th class="px-4 py-3">Kimonos Count</th>
+                                        <th class="px-4 py-3">Sweater Dresses</th>
+                                        <th class="px-4 py-3">Cotton Dresses</th>
+                                        <th class="px-4 py-3">Kimonos</th>
                                         <th class="px-4 py-3">Notes</th>
                                         <th class="px-4 py-3 text-right">Actions</th>
                                     </tr>
@@ -2233,8 +2234,14 @@
                                     ${controllerLogs.length > 0 ? controllerLogs.slice(0, 5).map(log => `
                                         <tr class="bg-white border-b hover:bg-slate-50">
                                             <td class="px-4 py-2 font-medium text-slate-900">${log.date}</td>
-                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.dressCount !== undefined ? log.dressCount : (log.count||0)}</td>
-                                            <td class="px-4 py-2 font-bold text-pink-600">${log.kimonoCount || 0}</td>
+                                            <td class="px-4 py-2 font-bold text-indigo-600">${log.sweaterCount || 0}</td>
+                                            <td class="px-4 py-2 font-bold text-emerald-600">
+                                                ${log.cottonCount || 0}
+                                            </td>
+                                            <td class="px-4 py-2 font-bold text-pink-600">
+                                                ${log.kimonoCount || 0}
+                                            </td>
+
                                             <td class="px-4 py-2">${log.note || '-'}</td>
                                             <td class="px-4 py-2 text-right flex justify-end gap-2">
                                                 <button onclick="showControllerModal(${log.id})" class="text-indigo-600 hover:text-indigo-800 p-1">
