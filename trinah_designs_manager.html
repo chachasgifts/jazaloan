@@ -1106,33 +1106,38 @@ if (dayStock) {
         }
 
 function handleControllerLogSave() {
-    const sweater = Number(document.getElementById('stock-sweater').value) || 0;
-    const cotton = Number(document.getElementById('stock-cotton').value) || 0;
-    const twopc = Number(document.getElementById('stock-2pc').value) || 0;
-    const kimono = Number(document.getElementById('stock-kimono').value) || 0;
-    const note = document.getElementById('stock-note').value;
-    const today = new Date().toISOString().split('T')[0];
+            const dateVal = document.getElementById('stock-date').value;
+            const sweaterCount = Number(document.getElementById('stock-sweater').value) || 0;
+            const cottonCount = Number(document.getElementById('stock-cotton').value) || 0;
+            const twoPcCount = Number(document.getElementById('stock-2pc').value) || 0;
+            const kimonoCount = Number(document.getElementById('stock-kimono').value) || 0;
 
-    let logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
-    const index = logs.findIndex(l => l.date === today);
+            if (!dateVal) {
+                showNotification("Please select a date");
+                return;
+            }
 
-    const record = { 
-        date: today, 
-        sweaterCount: sweater, 
-        cottonCount: cotton, 
-        twoPcCount: twopc, 
-        kimonoCount: kimono, 
-        note: note 
-    };
+            let logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            
+            // Remove existing log for this date if it exists (Overwrite/Update)
+            logs = logs.filter(l => l.date !== dateVal);
+            
+            logs.push({
+                date: dateVal,
+                sweaterCount,
+                cottonCount,
+                twoPcCount,
+                kimonoCount,
+                timestamp: Date.now()
+            });
 
-    if (index > -1) logs[index] = record;
-    else logs.push(record);
-
-    localStorage.setItem(CONTROLLER_KEY, JSON.stringify(logs));
-    document.getElementById('controller-modal').remove();
-    showNotification("Physical Stock Updated");
-    if (currentView === VIEW_DASHBOARD) renderApp();
-}
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(logs));
+            showNotification(`Stock Log saved for ${dateVal}`);
+            
+            // Refresh modal and background UI
+            showControllerModal();
+            if (currentView === VIEW_DASHBOARD) renderAdminOverview();
+        }
 
 function handleDeleteControllerLog(id) {
             if(!confirm("Delete this stock record?")) return;
@@ -1144,43 +1149,90 @@ function handleDeleteControllerLog(id) {
         }
 
 function showControllerModal() {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
-    const existing = logs.find(l => l.date === todayStr);
+            const controllerLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            // Sort by date descending
+            const sortedLogs = [...controllerLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const todayStr = new Date().toISOString().split('T')[0];
 
-    const modalHTML = `
-        <div id="controller-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="modal-overlay absolute inset-0" onclick="document.getElementById('controller-modal').remove()"></div>
-            <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative z-10">
-                <h2 class="text-xl font-bold text-slate-800 mb-4">Daily Stock Log (Physical Count)</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">Sweater Dresses</label>
-                        <input id="stock-sweater" type="number" value="${existing ? (existing.sweaterCount || 0) : ''}" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            const modalHTML = `
+                <div id="controller-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="modal-overlay absolute inset-0" onclick="document.getElementById('controller-modal').remove()"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl relative z-10 max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold text-slate-800">Physical Stock Management</h2>
+                            <button onclick="document.getElementById('controller-modal').remove()" class="text-slate-400 hover:text-slate-600">
+                                ${renderIcon('x', {class:'w-6 h-6'})}
+                            </button>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                            <h3 class="text-sm font-bold text-slate-600 uppercase mb-3">Add / Update Log</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <div class="col-span-2 md:col-span-1">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Log Date</label>
+                                    <input id="stock-date" type="date" value="${todayStr}" class="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Sweater Dresses</label>
+                                    <input id="stock-sweater" type="number" class="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Cotton Dresses</label>
+                                    <input id="stock-cotton" type="number" class="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase">2pcs</label>
+                                    <input id="stock-2pc" type="number" class="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase">Kimonos</label>
+                                    <input id="stock-kimono" type="number" class="w-full p-2 text-sm bg-white border border-slate-200 rounded-lg" placeholder="0">
+                                </div>
+                                <div class="flex items-end">
+                                    <button onclick="handleControllerLogSave()" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 transition">Save Log</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-100 text-slate-500 uppercase text-[10px] font-bold">
+                                    <tr>
+                                        <th class="px-3 py-2">Date</th>
+                                        <th class="px-3 py-2 text-center">S/C/2/K</th>
+                                        <th class="px-3 py-2 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${sortedLogs.length === 0 ? '<tr><td colspan="3" class="text-center py-4 text-slate-400 text-xs">No logs found</td></tr>' : 
+                                    sortedLogs.map(log => `
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-3 py-3 text-xs font-medium text-slate-700">${log.date}</td>
+                                            <td class="px-3 py-3 text-center text-xs font-bold text-slate-600">
+                                                ${log.sweaterCount || 0} / ${log.cottonCount || 0} / ${log.twoPcCount || 0} / ${log.kimonoCount || 0}
+                                            </td>
+                                            <td class="px-3 py-3 text-right">
+                                                <div class="flex justify-end gap-2">
+                                                    <button onclick="editControllerLog('${log.date}')" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded" title="Edit">
+                                                        ${renderIcon('pencil', {class:'w-4 h-4'})}
+                                                    </button>
+                                                    <button onclick="handleDeleteControllerLog('${log.date}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                                                        ${renderIcon('trash-2', {class:'w-4 h-4'})}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">Cotton Dresses</label>
-                        <input id="stock-cotton" type="number" value="${existing ? (existing.cottonCount || 0) : ''}" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">2pcs</label>
-                        <input id="stock-2pc" type="number" value="${existing ? (existing.twoPcCount || 0) : ''}" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">Kimonos</label>
-                        <input id="stock-kimono" type="number" value="${existing ? (existing.kimonoCount || 0) : ''}" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase">Note</label>
-                        <textarea id="stock-note" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">${existing ? (existing.note || '') : ''}</textarea>
-                    </div>
-                    <button onclick="window.handleControllerLogSave()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl">Save Stock Log</button>
                 </div>
-            </div>
-        </div>
-    `;
-    modalContainer.innerHTML = modalHTML;
+            `;
+            modalContainer.innerHTML = modalHTML;
+            refreshIcons();
 }
+
         function handleFactoryReset() {
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
@@ -1382,6 +1434,32 @@ function showControllerModal() {
         function updateDateFromWeekButton(index) {
             selectedDayIndex = index;
             renderIndividualDashboard();
+        }
+        function editControllerLog(dateStr) {
+            const logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            const log = logs.find(l => l.date === dateStr);
+            if (!log) return;
+
+            // Populate the inputs with the log's data
+            document.getElementById('stock-date').value = log.date;
+            document.getElementById('stock-sweater').value = log.sweaterCount || 0;
+            document.getElementById('stock-cotton').value = log.cottonCount || 0;
+            document.getElementById('stock-2pc').value = log.twoPcCount || 0;
+            document.getElementById('stock-kimono').value = log.kimonoCount || 0;
+            
+            showNotification(`Editing log for ${dateStr}`);
+        }
+
+        function handleDeleteControllerLog(dateStr) {
+            if (!confirm(`Are you sure you want to delete the stock log for ${dateStr}?`)) return;
+            
+            let logs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
+            logs = logs.filter(l => l.date !== dateStr);
+            localStorage.setItem(CONTROLLER_KEY, JSON.stringify(logs));
+            
+            showNotification("Log deleted");
+            showControllerModal();
+            if (currentView === VIEW_DASHBOARD) renderAdminOverview();
         }
 
         function handleDateChange(dateInput) {
@@ -2838,6 +2916,7 @@ function showControllerModal() {
         window.showControllerModal = showControllerModal;
         window.handleControllerLogSave = handleControllerLogSave;
         window.handleDeleteControllerLog = handleDeleteControllerLog;
+        window.editControllerLog = editControllerLog;
         
         // New exports for editing and recalculating
         window.recalculateBalances = recalculateBalances;
