@@ -1042,33 +1042,23 @@
             renderAdminOverview();
         }
 
-       function handleProcurementSave() {
-    const sweaterVal = Number(
-        document.getElementById('procurement-sweater-input').value
-    ) || 0;
+        function handleProcurementSave() {
+            const dressVal = document.getElementById('procurement-dress-input').value;
+            const kimonoVal = document.getElementById('procurement-kimono-input').value;
+            
+            const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
+            const targetDateKey = selectedProcurementDate.toLocaleDateString();
+            
+            logs[targetDateKey] = {
+                dresses: Number(dressVal) || 0,
+                kimonos: Number(kimonoVal) || 0
+            };
 
-    const cottonVal = Number(
-        document.getElementById('procurement-cotton-input').value
-    ) || 0;
-
-    const kimonoVal = Number(
-        document.getElementById('procurement-kimono-input').value
-    ) || 0;
-
-    const logs = JSON.parse(localStorage.getItem(PROCUREMENT_KEY) || "{}");
-    const targetDateKey = selectedProcurementDate.toLocaleDateString();
-
-    logs[targetDateKey] = {
-        sweater: sweaterVal,
-        cotton: cottonVal,
-        kimonos: kimonoVal
-    };
-
-    localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
-
-    showNotification(`Stock saved for ${targetDateKey}!`);
-    renderAdminOverview();
-}
+            localStorage.setItem(PROCUREMENT_KEY, JSON.stringify(logs));
+            
+            showNotification(`Stock saved for ${targetDateKey}!`);
+            renderAdminOverview(); 
+        }
 
         function handleDeleteProcurement() {
             if(!confirm("Are you sure you want to delete the procurement record for this date?")) return;
@@ -2164,38 +2154,16 @@
                                     onchange="handleProcurementDateChange(this.value)"
                                     class="p-3 w-full rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 font-medium text-slate-700">
                                 
-                                <div class="grid grid-cols-3 gap-2">
-                                <div>
-                                    <label class="text-[10px] font-bold text-indigo-500 uppercase">
-                                        Sweater Dresses
-                                    </label>
-                                    <input type="number"
-                                        id="procurement-sweater-input"
-                                        value="${procSweater || ''}"
-                                        class="w-full p-3 rounded-xl bg-indigo-50 border border-indigo-100 font-bold">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-indigo-500 uppercase">Dresses/Suits</label>
+                                        <input type="number" id="procurement-dress-input" value="${procDresses || ''}" placeholder="Dresses" class="w-full p-3 rounded-xl bg-indigo-50 border border-indigo-100 outline-none focus:border-indigo-500 font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-pink-500 uppercase">Kimonos</label>
+                                        <input type="number" id="procurement-kimono-input" value="${procKimonos || ''}" placeholder="Kimonos" class="w-full p-3 rounded-xl bg-pink-50 border border-pink-100 outline-none focus:border-pink-500 font-bold">
+                                    </div>
                                 </div>
-
-                                <div>
-                                    <label class="text-[10px] font-bold text-emerald-500 uppercase">
-                                        Cotton Dresses
-                                    </label>
-                                    <input type="number"
-                                        id="procurement-cotton-input"
-                                        value="${procCotton || ''}"
-                                        class="w-full p-3 rounded-xl bg-emerald-50 border border-emerald-100 font-bold">
-                                </div>
-
-                                <div>
-                                    <label class="text-[10px] font-bold text-pink-500 uppercase">
-                                        Kimonos
-                                    </label>
-                                    <input type="number"
-                                        id="procurement-kimono-input"
-                                        value="${procKimonos || ''}"
-                                        class="w-full p-3 rounded-xl bg-pink-50 border border-pink-100 font-bold">
-                                </div>
-                            </div>
-
                                 <div class="flex gap-2 mt-2">
                                     <button onclick="handleProcurementSave()" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">Save</button>
                                     <button onclick="handleDeleteProcurement()" class="px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-100 border border-red-100" title="Delete Entry for this Date">
