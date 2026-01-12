@@ -71,7 +71,7 @@
         const DEFAULT_SELL_PRICE = 200;
 
         const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        const REPORT_TYPES = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"];
+        const REPORT_TYPES = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly", "Custom"];
         
         // SECURITY CONFIGURATION
         const SYSTEM_PIN = "2580"; 
@@ -90,6 +90,8 @@
         let currentUser = null; 
         let managedUser = null; 
         let currentView = VIEW_DASHBOARD;
+        let customStartDate = "";
+        let customEndDate = "";
         
         // Data for managed user
         let history = []; 
@@ -272,6 +274,12 @@
                     case "Yearly": {
                         const oneYearAgo = todayStart - (365 * 24 * 60 * 60 * 1000);
                         return entryTime >= oneYearAgo;
+                    }
+                    case "Custom": {
+                        if (!customStartDate || !customEndDate) return true;
+                        const start = new Date(customStartDate).setHours(0,0,0,0);
+                        const end = new Date(customEndDate).setHours(23,59,59,999);
+                        return entryTime >= start && entryTime <= end;
                     }
                     default: return true;
                 }
@@ -1862,29 +1870,35 @@ function showControllerModal() {
                         }
                     });
 
-                } else {
+                    } else {
                     // STANDARD REPORT FORMAT
-                    const totalProfit = data.reduce((sum, r) => sum + (Number(r.profit) || 0), 0);
-                    const totalSoldDresses = data.reduce((sum, r) => sum + (Number(r.soldDresses) || 0), 0);
-                    const totalSoldTwoPcs = data.reduce((sum, r) => sum + (Number(r.soldTwoPcs) || 0), 0);
-                    const totalSoldKimonos = data.reduce((sum, r) => sum + (Number(r.soldKimonos) || 0), 0);
-
+                    const prices = managedUser.prices || {};
+                    const headers = [['Date', 'Sold (D/2/K)', 'Expected (KES)', 'Profit (KES)']]; // Renamed Column
+                    
                     const rows = data.map(item => {
-                        const friendlyDate = `${item.date}, ${item.fullDate}`;
+                        const sD = item.soldDresses !== undefined ? Number(item.soldDresses) : (Number(item.sold)||0);
+                        const sT = Number(item.soldTwoPcs) || 0;
+                        const sK = Number(item.soldKimonos) || 0;
+
+                        // Apply your formula: Expected = (dresses x sell) + (2pcs x sell) + (kimonos x sell)
+                        const expected = (sD * (prices.dressSell || 200)) + 
+                                        (sT * (prices.twoPcSell || 0)) + 
+                                        (sK * (prices.kimonoSell || 0));
+
                         return [
-                            friendlyDate, 
-                            `${item.soldDresses || 0} / ${item.soldTwoPcs || 0} / ${item.soldKimonos || 0}`, 
-                            `${item.remDresses || 0} / ${item.remTwoPcs || 0} / ${item.remKimonos || 0}`,
-                            item.profit.toLocaleString()
+                            item.fullDate,
+                            `${sD} / ${sT} / ${sK}`,
+                            expected.toLocaleString(), // Expected Amount
+                            (item.profit || 0).toLocaleString()
                         ];
                     });
 
                     doc.autoTable({
-                        startY: 40,
-                        head: [['Date', `Sold (D/2/K)`, `Stock (D/2/K)`, 'Profit (KES)']],
+                        startY: 35,
+                        head: headers,
                         body: rows,
-                        theme: 'grid',
-                        foot: [['TOTAL', `${totalSoldDresses} / ${totalSoldTwoPcs} / ${totalSoldKimonos}`, '-', totalProfit.toLocaleString()]]
+                        theme: 'striped',
+                        headStyles: { fillColor: [30, 58, 138] }
                     });
                 }
 
@@ -2628,7 +2642,8 @@ function showControllerModal() {
                                         <h2 class="text-lg font-bold text-slate-800">History Log</h2>
                                         <p class="text-sm text-slate-500">Viewing: ${selectedReport}</p>
                                     </div>
-                                    <div class="flex flex-col items-end gap-2">
+
+                                    <div class="flex flex-wrap justify-end gap-2">
                                         <div class="flex bg-slate-100 p-1 rounded-lg">
                                             ${REPORT_TYPES.map(type => `
                                                 <button onclick="selectedReport='${type}'; renderIndividualDashboard();" 
@@ -2637,6 +2652,15 @@ function showControllerModal() {
                                                 </button>
                                             `).join('')}
                                         </div>
+                                        
+                                        ${selectedReport === 'Custom' ? `
+                                            <div class="flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-lg shadow-sm">
+                                                <input type="date" value="${customStartDate || ''}" onchange="window.customStartDate = this.value; renderIndividualDashboard();" class="text-[10px] font-bold outline-none">
+                                                <span class="text-slate-400 text-[10px]">to</span>
+                                                <input type="date" value="${customEndDate || ''}" onchange="window.customEndDate = this.value; renderIndividualDashboard();" class="text-[10px] font-bold outline-none">
+                                            </div>
+                                        ` : ''}
+                                    </div>
                                         <button onclick="recalculateBalances()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded">
                                             ${renderIcon('refresh-cw', {class:'w-3 h-3'})} Recalculate Chain
                                         </button>
@@ -2660,7 +2684,7 @@ function showControllerModal() {
                                                 <tr>
                                                     <th class="px-4 py-3 rounded-l-lg">Date</th>
                                                     <th class="px-4 py-3">Sold (D/2/K)</th>
-                                                    <th class="px-4 py-3">Stock (D/2/K)</th>
+                                                    <th class="px-4 py-3">Expected</th> 
                                                     <th class="px-4 py-3">Profit</th>
                                                     <th class="px-4 py-3 rounded-r-lg"></th>
                                                 </tr>
@@ -2690,16 +2714,28 @@ function showControllerModal() {
                                                         </tr>
                                                     `;
                                                 } else {
+                                                    // 1. Get the quantities
+                                                    const sD = d.soldDresses !== undefined ? Number(d.soldDresses) : (Number(d.sold) || 0);
+                                                    const sT = Number(d.soldTwoPcs) || 0;
+                                                    const sK = Number(d.soldKimonos) || 0;
+
+                                                    // 2. Get the prices from managedUser settings
+                                                    const prices = managedUser.prices || {};
+                                                    
+                                                    // 3. Apply your formula: Expected = (dresses × dressSell) + (2pcs × twoPcSell) + (kimonos × kimonoSell)
+                                                    const expectedVal = (sD * (prices.dressSell || 200)) + 
+                                                                        (sT * (prices.twoPcSell || 0)) + 
+                                                                        (sK * (prices.kimonoSell || 0));
+
                                                     return `
                                                         <tr class="hover:bg-slate-50 group">
                                                             <td class="px-4 py-3 font-medium text-slate-900">${d.fullDate} <span class="text-slate-400 text-xs block">${d.date.substring(0,3)}</span></td>
                                                             <td class="px-4 py-3 text-emerald-600 font-bold">
-                                                                ${d.soldDresses !== undefined ? d.soldDresses : d.sold} / ${d.soldTwoPcs || 0} / ${d.soldKimonos || 0}
+                                                                ${sD} / ${sT} / ${sK}
                                                             </td>
-                                                            <td class="px-4 py-3 text-orange-600 font-bold">
-                                                                ${d.remDresses !== undefined ? d.remDresses : d.remaining} / ${d.remTwoPcs || 0} / ${d.remKimonos || 0}
-                                                            </td>
-                                                            <td class="px-4 py-3 text-slate-600">${formatCurrency(d.profit)}</td>
+                                                            <td class="px-4 py-3 text-indigo-600 font-bold">
+                                                                ${formatCurrency(expectedVal)} </td>
+                                                            <td class="px-4 py-3 text-slate-600 font-bold">${formatCurrency(d.profit)}</td>
                                                             <td class="px-4 py-3 text-right">${editBtn}</td>
                                                         </tr>
                                                     `;
