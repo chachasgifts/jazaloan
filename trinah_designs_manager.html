@@ -1855,20 +1855,74 @@ function showControllerModal() {
                          ];
                     });
 
-                    doc.autoTable({
-                        startY: 40,
-                        head: [['Day & Date', 'Market', 'Dispatched', 'Total Expected', 'Amount Sent', 'Balance BF']], // Update Header
-                        body: rows,
-                        theme: 'grid',
-                        headStyles: { fillColor: [30, 58, 138], halign: 'center' },
-                        bodyStyles: { halign: 'center' },
-                        columnStyles: {
-                            2: { halign: 'center' }, // Dispatched
-                            3: { halign: 'right' }, // Expected
-                            4: { halign: 'right' }, // Sent
-                            5: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] } // Balance
-                        }
-                    });
+                   doc.autoTable({
+                            startY: 40,
+                            head: [[
+                                'Day & Date',
+                                'Market',
+                                'Dispatched',
+                                'Total Expected',
+                                'Amount Sent',
+                                'Balance BF'
+                            ]],
+                            body: rows,
+                            theme: 'grid',
+
+                            headStyles: {
+                                fillColor: [30, 58, 138],
+                                textColor: 255,
+                                halign: 'center',
+                                fontStyle: 'bold'
+                            },
+
+                            bodyStyles: {
+                                fontSize: 9,
+                                textColor: [30, 41, 59]
+                            },
+
+                            alternateRowStyles: {
+                                fillColor: [248, 250, 252]
+                            },
+
+                            columnStyles: {
+                                2: { halign: 'center' },                    // Dispatched
+                                3: { halign: 'right' },                     // Total Expected
+                                4: { halign: 'right' },                     // Amount Sent
+                                5: { halign: 'right', fontStyle: 'bold' }   // Balance BF
+                            },
+
+                            didParseCell: function (data) {
+                                if (data.section !== 'body') return;
+
+                                // AMOUNT SENT → GREEN
+                                if (data.column.index === 4) {
+                                    data.cell.styles.fillColor = [220, 252, 231]; // light green
+                                    data.cell.styles.textColor = [22, 101, 52];   // dark green
+                                    data.cell.styles.fontStyle = 'bold';
+                                }
+
+                                // BALANCE BF → RED
+                                if (data.column.index === 5) {
+                                    data.cell.styles.textColor = [220, 38, 38];   // red
+                                    data.cell.styles.fontStyle = 'bold';
+                                }
+                            }
+                        });
+
+                    const summaryY = doc.lastAutoTable.finalY + 12;
+
+                    doc.setFontSize(10);
+                    doc.setTextColor(30, 41, 59);
+
+                    doc.text(
+                    `Summary:
+                    This is a ${selectedReport.toUpperCase()} pressure reconciliation report.
+                    Green values represent the amount sent back by the staff.
+                    Red values show the remaining balance carried forward after expenses.
+                    All figures reflect pressure movement for the selected period.`,
+                    14,
+                    summaryY
+                    );
 
                     } else {
                     // STANDARD REPORT FORMAT
