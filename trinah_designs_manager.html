@@ -1802,112 +1802,142 @@ function showControllerModal() {
             showNotification(`Entry deleted.`);
         }
 
+// Updated downloadReport function with automatic data retrieval
         async function downloadReport(data = getFilteredHistory(), reportName = selectedReport) {
             if (!managedUser) return;
-            if (data.length === 0) {
+            
+            if (!data || data.length === 0) {
                 showNotification(`No data found for ${reportName} report.`);
                 return;
             }
+
             const loader = document.getElementById('pdf-loader');
             if (loader) loader.style.display = 'flex';
-
+            
             const isPressureMode = managedUser.enableReconciliation;
 
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-
-                doc.setFillColor(30, 58, 138); 
-                doc.rect(0, 0, 210, 30, 'F');
-                doc.setTextColor(255,255,255);
-                doc.setFontSize(14);
-                doc.text(`${managedUser.name} - ${reportName} Report`, 14, 20);
                 
+                // Header Background
+                doc.setFillColor(30, 58, 138); 
+                doc.rect(0, 0, 210, 40, 'F'); 
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(20);
+                doc.text("TRINAH DESIGNS", 105, 18, { align: "center" });
+                
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                doc.text(`${managedUser.name.toUpperCase()} - ${reportName.toUpperCase()} REPORT`, 105, 28, { align: "center" });
+                
+                doc.setFontSize(9);
+                doc.setTextColor(200, 200, 200);
+                const dateRange = data.length > 1 ? `Period: ${data[0].fullDate} to ${data[data.length-1].fullDate}` : `Date: ${data[0].fullDate}`;
+                doc.text(dateRange, 105, 35, { align: "center" });
+
                 if (isPressureMode) {
-                    // PRESSURE REPORT FORMAT
-                    doc.setFontSize(10);
-                    doc.text("Pressure Calculation Statement", 14, 26);
-                    
+                    // --- PRESSURE STAFF REPORT ---
                     const rows = data.map(item => {
-                         const dateStr = `${item.date.substring(0,3)}, ${item.fullDate}`;
-                         const market = item.marketName || '-';
-                         
-                         // Prioritize explicit dispatchedPieces, fallback to old sum
-                         const dispatched = item.dispatchedPieces || item.dispatched || ((item.premiumQty||0) + (item.cleanupQty||0));
-                         
-                         const totalExpected = item.totalExpected || 0;
-                         const amountSent = item.amountSent || 0;
-                         const balanceBF = item.balanceBF || 0;
-
-                         // Expenses detail for context
-                         let expensesStr = "";
-                         if (item.expensesList && item.expensesList.length > 0) {
-                             expensesStr = "\nExp: " + item.expensesList.map(e => `${e.name} ${e.amount}`).join(', ');
-                         }
-                         
-                         return [
-                             dateStr,
-                             market,
-                             dispatched, // Add Dispatched here
-                             totalExpected.toLocaleString(),
-                             `${amountSent.toLocaleString()}${expensesStr}`,
-                             balanceBF.toLocaleString()
-                         ];
-                    });
-
-                    doc.autoTable({
-                        startY: 40,
-                        head: [['Day & Date', 'Market', 'Dispatched', 'Total Expected', 'Amount Sent', 'Balance BF']], // Update Header
-                        body: rows,
-                        theme: 'grid',
-                        headStyles: { fillColor: [30, 58, 138], halign: 'center' },
-                        bodyStyles: { halign: 'center' },
-                        columnStyles: {
-                            2: { halign: 'center' }, // Dispatched
-                            3: { halign: 'right' }, // Expected
-                            4: { halign: 'right' }, // Sent
-                            5: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] } // Balance
-                        }
-                    });
-
-                    } else {
-                    // STANDARD REPORT FORMAT
-                    const prices = managedUser.prices || {};
-                    const headers = [['Date', 'Sold (D/2/K)', 'Expected (KES)', 'Profit (KES)']]; // Renamed Column
-                    
-                    const rows = data.map(item => {
-                        const sD = item.soldDresses !== undefined ? Number(item.soldDresses) : (Number(item.sold)||0);
-                        const sT = Number(item.soldTwoPcs) || 0;
-                        const sK = Number(item.soldKimonos) || 0;
-
-                        // Apply your formula: Expected = (dresses x sell) + (2pcs x sell) + (kimonos x sell)
-                        const expected = (sD * (prices.dressSell || 200)) + 
-                                        (sT * (prices.twoPcSell || 0)) + 
-                                        (sK * (prices.kimonoSell || 0));
+                        const dateStr = `${item.date.substring(0,3)}, ${item.fullDate}`;
+                        const market = item.marketName || '-';
+                        const dispatched = item.dispatchedPieces || item.dispatched || ((item.premiumQty||0) + (item.cleanupQty||0));
+                        const totalExpected = item.totalExpected || 0;
+                        const amountSent = item.amountSent || 0;
+                        const totalExpenses = item.expenseAmount || 0;
+                        const balanceBF = item.balanceBF || 0;
 
                         return [
-                            item.fullDate,
-                            `${sD} / ${sT} / ${sK}`,
-                            expected.toLocaleString(), // Expected Amount
-                            (item.profit || 0).toLocaleString()
+                            dateStr, 
+                            market, 
+                            dispatched, 
+                            totalExpected.toLocaleString(), 
+                            amountSent.toLocaleString(), 
+                            totalExpenses.toLocaleString(), 
+                            balanceBF.toLocaleString()
                         ];
                     });
 
                     doc.autoTable({
-                        startY: 35,
-                        head: headers,
+                        startY: 50,
+                        head: [['Day & Date', 'Market', 'Dispatched', 'Expected (KES)', 'Amount Sent', 'Total Expenses', 'Balance BF']],
+                        body: rows,
+                        theme: 'grid',
+                        headStyles: { fillColor: [30, 58, 138], fontSize: 8, halign: 'center' },
+                        columnStyles: {
+                            4: { fillColor: [220, 252, 231], textColor: [21, 128, 61], fontStyle: 'bold', halign: 'right' }, // Amount Sent
+                            5: { fillColor: [254, 226, 226], textColor: [185, 28, 28], fontStyle: 'bold', halign: 'right' }, // Total Expenses
+                            3: { halign: 'right' },
+                            6: { halign: 'right' }
+                        },
+                        styles: { fontSize: 8, cellPadding: 3 },
+                        alternateRowStyles: { fillColor: [248, 250, 252] }
+                    });
+
+                } else {
+                    // --- STANDARD STAFF REPORT ---
+                    const rows = data.map(item => [
+                        item.fullDate,
+                        `${item.dispatchedDresses || 0}/${item.dispatchedTwoPcs || 0}/${item.dispatchedKimonos || 0}`,
+                        `${item.soldDresses !== undefined ? item.soldDresses : (item.sold||0)}/${item.soldTwoPcs || 0}/${item.soldKimonos || 0}`,
+                        `${item.remDresses || 0}/${item.remTwoPcs || 0}/${item.remKimonos || 0}`,
+                        (item.profit || 0).toLocaleString()
+                    ]);
+
+                    doc.autoTable({
+                        startY: 50,
+                        head: [['Date', 'Dispatched (D/2/K)', 'Sold (D/2/K)', 'Remaining', 'Profit (KES)']],
                         body: rows,
                         theme: 'striped',
-                        headStyles: { fillColor: [30, 58, 138] }
+                        headStyles: { fillColor: [30, 58, 138], halign: 'center' },
+                        columnStyles: { 4: { halign: 'right', fontStyle: 'bold', textColor: [30, 58, 138] } }
                     });
                 }
 
+                // --- SUMMARY SECTION ---
+                const finalY = doc.lastAutoTable.finalY + 15;
+                const totalSent = data.reduce((acc, curr) => acc + (Number(curr.amountSent) || 0), 0);
+                const totalExp = data.reduce((acc, curr) => acc + (Number(curr.expenseAmount) || 0), 0);
+                const finalBalance = data[data.length - 1].balanceBF || 0;
+
+                doc.setDrawColor(226, 232, 240);
+                doc.line(14, finalY - 5, 196, finalY - 5);
+
+                doc.setFontSize(11);
+                doc.setTextColor(30, 58, 138);
+                doc.setFont("helvetica", "bold");
+                doc.text("REPORT SUMMARY & FOOTNOTES", 14, finalY);
+
+                doc.setFontSize(9);
+                doc.setTextColor(71, 85, 105);
+                doc.setFont("helvetica", "normal");
+                
+                const summaryLines = [
+                    `• This is a ${reportName.toLowerCase()} statement for ${managedUser.name}.`,
+                    `• TOTAL AMOUNT SENT: KES ${totalSent.toLocaleString()} (Highlighted in Green)`,
+                    `• TOTAL OPERATIONAL EXPENSES: KES ${totalExp.toLocaleString()} (Highlighted in Red)`,
+                    `• CLOSING BALANCE: KES ${finalBalance.toLocaleString()}`,
+                    `• Report generated on ${new Date().toLocaleString()}.`
+                ];
+
+                doc.text(summaryLines, 14, finalY + 8);
+
+                const pageCount = doc.internal.getNumberOfPages();
+                for(let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(148, 163, 184);
+                    doc.text(`Page ${i} of ${pageCount} - Trinah Designs Management System`, 105, 290, { align: "center" });
+                }
+
                 doc.save(`${managedUser.name}_${reportName}_Report.pdf`);
-                showNotification("PDF Downloaded!");
+                showNotification("Enhanced Report Downloaded!");
 
             } catch (err) {
                 console.error("PDF Error", err);
-                showNotification("Failed to generate PDF.");
+                showNotification("Failed to generate styled PDF.");
             } finally {
                 if (loader) loader.style.display = 'none';
             }
