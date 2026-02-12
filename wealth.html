@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My 100K Goal </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Patrick+Hand&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; padding-bottom: 80px; }
+        .handwritten { font-family: 'Patrick Hand', cursive; }
+        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #334155 100%); }
+        .card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-2px); }
+        .tab-btn { opacity: 0.6; transition: all 0.3s; border-bottom: 3px solid transparent; }
+        .tab-btn.active { opacity: 1; color: #059669; border-color: #059669; font-weight: bold; }
+        .hidden { display: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Focus Mode Styles */
+        #focusMode { display: none; position: fixed; inset: 0; background: #0f172a; z-index: 100; color: white; padding: 2rem; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        #focusMode.active { display: flex; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Focus Mode Overlay -->
+    <div id="focusMode">
+        <button onclick="toggleFocus()" class="absolute top-8 right-8 text-slate-400 hover:text-white"><i class="fas fa-times text-2xl"></i></button>
+        <div class="max-w-2xl">
+            <p class="text-amber-400 uppercase tracking-widest text-sm mb-4">Auto-Suggestion Statement</p>
+            <h2 id="focusText" class="handwritten text-3xl md:text-5xl leading-tight"></h2>
+            <p class="mt-12 text-slate-500 italic">"I believe I have it now."</p>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto">
+
+        <!-- Header: The Chief Aim -->
+        <header class="gradient-bg text-white p-6 rounded-3xl mb-6 text-center shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-300 opacity-80"></div>
+            <div class="relative z-10">
+                <div class="flex justify-between items-start">
+                    <div class="text-left">
+                        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">The 100K Quest</h1>
+                        <p class="text-amber-300 text-xs uppercase tracking-widest font-semibold mt-1">Think & Grow Rich Dashboard</p>
+                    </div>
+                    <div class="text-right">
+                         <p class="text-[10px] uppercase opacity-60">Target</p>
+                         <p class="font-bold text-xl">Dec 31, '26</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-slate-800/50 p-4 rounded-xl backdrop-blur-sm border border-white/10">
+                    <div class="flex justify-between text-xs mb-2 text-emerald-300 font-bold uppercase">
+                        <span>Current Reality</span>
+                        <span>The Vision</span>
+                    </div>
+                    <div class="w-full bg-slate-700 h-4 rounded-full overflow-hidden border border-slate-600 relative">
+                        <div id="goalProgress" class="bg-gradient-to-r from-emerald-500 to-emerald-300 h-full w-0 transition-all duration-1000"></div>
+                    </div>
+                    <div class="flex justify-between items-end mt-2">
+                        <p id="progressText" class="text-white font-bold text-lg">0 / 100,000 Ksh</p>
+                        <div class="text-right">
+                             <p id="progressPercent" class="text-emerald-300 font-bold text-2xl tracking-tighter">0%</p>
+                             <p id="dressesRemaining" class="text-[10px] text-slate-400 font-medium">~0 dresses to goal</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="sticky top-0 z-40 bg-[#f1f5f9]/95 backdrop-blur-sm pt-2 pb-4 mb-4">
+            <div class="flex space-x-6 overflow-x-auto no-scrollbar border-b border-slate-200 px-2">
+                <button onclick="showTab('daily')" class="tab-btn active pb-2 whitespace-nowrap flex items-center gap-2"><i class="fas fa-sun"></i> Daily Routine</button>
+                <button onclick="showTab('business')" class="tab-btn pb-2 whitespace-nowrap flex items-center gap-2"><i class="fas fa-chart-line"></i> Business</button>
+                <button onclick="showTab('journal')" class="tab-btn pb-2 whitespace-nowrap flex items-center gap-2"><i class="fas fa-book-open"></i> Journal</button>
+                <button onclick="showTab('mindset')" class="tab-btn pb-2 whitespace-nowrap flex items-center gap-2"><i class="fas fa-brain"></i> The Laws</button>
+            </div>
+        </div>
+
+        <!-- TAB 1: DAILY ROUTINE -->
+        <section id="daily" class="tab-content">
+            <div class="card p-6 border-l-4 border-amber-500 mb-6">
+                <div class="flex justify-between items-start mb-2">
+                    <h2 class="text-xl font-bold text-slate-800">🌞 Today's Alignment</h2>
+                    <div class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full flex items-center gap-2 shadow-sm border border-amber-200">
+                        <i class="fas fa-fire text-orange-500"></i>
+                        <span id="streakDisplay" class="font-bold text-sm tracking-wide">0 Day Streak</span>
+                    </div>
+                </div>
+                
+                <p id="dailyQuote" class="text-sm text-slate-600 mb-5 italic border-l-2 border-slate-300 pl-3 py-1 bg-slate-50 rounded-r">
+                    Loading today's wisdom...
+                </p>
+                
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <label class="flex-grow flex items-center p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-amber-50 transition border border-slate-100">
+                            <input type="checkbox" id="taskMorning" onchange="toggleDaily('taskMorning')" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                            <span class="ml-3 text-slate-700 font-medium">Morning Auto-Suggestion</span>
+                        </label>
+                        <button onclick="toggleFocus()" class="bg-amber-100 text-amber-600 px-4 rounded-lg hover:bg-amber-200"><i class="fas fa-expand"></i></button>
+                    </div>
+                    <label class="flex items-center p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-amber-50 transition border border-slate-100">
+                        <input type="checkbox" id="taskVisualize" onchange="toggleDaily('taskVisualize')" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                        <span class="ml-3 text-slate-700 font-medium">Visualize the Money (See & Touch)</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-amber-50 transition border border-slate-100">
+                        <input type="checkbox" id="taskAction" onchange="toggleDaily('taskAction')" class="w-5 h-5 text-amber-500 rounded focus:ring-amber-500">
+                        <span class="ml-3 text-slate-700 font-medium">Execute 1 Key Business Task</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-indigo-50 transition border border-slate-100">
+                        <input type="checkbox" id="taskEvening" onchange="toggleDaily('taskEvening')" class="w-5 h-5 text-indigo-500 rounded focus:ring-indigo-500">
+                        <span class="ml-3 text-slate-700 font-medium">Evening Gratitude & Suggestion</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="font-bold text-slate-800 mb-4 flex justify-between items-center">
+                    <span>📝 Today's Priorities</span>
+                    <span class="text-[10px] text-slate-400 uppercase">Organized Planning</span>
+                </h3>
+                <div class="space-y-2" id="priorityContainer"></div>
+            </div>
+        </section>
+
+        <!-- TAB 2: BUSINESS -->
+        <section id="business" class="tab-content hidden">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="card p-4 bg-emerald-50 border border-emerald-100">
+                    <p class="text-xs text-emerald-600 uppercase font-bold">Total Profit</p>
+                    <p id="totalProfit" class="text-2xl font-bold text-slate-800">0 Ksh</p>
+                </div>
+                <div class="card p-4 bg-blue-50 border border-blue-100">
+                    <p class="text-xs text-blue-600 uppercase font-bold">Avg Profit/Dress</p>
+                    <p id="avgProfit" class="text-2xl font-bold text-slate-800">0 Ksh</p>
+                </div>
+            </div>
+
+            <!-- Add Sale Form -->
+            <div class="card p-5 mb-6 border-2 border-dashed border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-3"><i class="fas fa-plus-circle text-emerald-500"></i> Log New Sale</h3>
+                <div class="flex flex-col md:flex-row gap-3">
+                    <input id="itemDesc" type="text" placeholder="Item (e.g. Red Dress)" class="p-3 border rounded-lg w-full focus:outline-none focus:border-emerald-500">
+                    <input id="itemSp" type="number" placeholder="Sold Price" class="p-3 border rounded-lg w-full md:w-32 focus:outline-none focus:border-emerald-500">
+                    <button onclick="addSale()" class="bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700 transition">SAVE</button>
+                </div>
+            </div>
+
+            <!-- Launch Checklist -->
+            <details class="mb-6 group">
+                <summary class="list-none cursor-pointer card p-4 flex justify-between items-center font-bold text-rose-600">
+                    <span>🚀 Launch Checklist</span>
+                    <span class="group-open:rotate-180 transition"><i class="fas fa-chevron-down"></i></span>
+                </summary>
+                <div class="bg-white p-4 rounded-b-xl border-t mt-[-1rem] shadow-sm" id="checklistContainer"></div>
+            </details>
+
+            <!-- Sales History -->
+            <div class="card p-0 overflow-hidden">
+                <div class="bg-slate-50 p-4 border-b flex justify-between items-center">
+                    <h3 class="font-bold text-slate-700">Transaction History</h3>
+                    <button onclick="clearData()" class="text-xs text-red-400 hover:text-red-600">Reset</button>
+                </div>
+                <div class="max-h-64 overflow-y-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-500 text-xs uppercase sticky top-0">
+                            <tr>
+                                <th class="p-3">Date</th>
+                                <th class="p-3">Item</th>
+                                <th class="p-3 text-right">Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesLog"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: JOURNAL -->
+        <section id="journal" class="tab-content hidden">
+            <div class="card p-6 border-l-4 border-purple-500">
+                <h2 class="text-xl font-bold mb-2 flex items-center gap-2"><span>📓</span> Subconscious Diary</h2>
+                <div class="mb-4">
+                    <input type="date" id="journalDate" class="border p-2 rounded-lg text-sm bg-slate-50 w-full mb-2">
+                    <textarea id="journalEntry" rows="4" placeholder="Record ideas or analyze failures..." class="handwritten text-lg w-full p-3 border rounded-lg bg-yellow-50"></textarea>
+                </div>
+                <button onclick="saveJournal()" class="w-full bg-purple-600 text-white font-bold py-2 rounded-lg">Save Entry</button>
+            </div>
+            <div id="journalList" class="space-y-4 mt-6"></div>
+        </section>
+
+        <!-- TAB 4: MINDSET & LAWS -->
+        <section id="mindset" class="tab-content hidden">
+            <div class="card p-6 bg-amber-50 border border-amber-100 mb-6">
+                <h2 class="text-lg font-bold text-amber-800 mb-2">📜 Statement of Purpose</h2>
+                <div id="statementDisplay" class="handwritten text-xl text-slate-800 leading-relaxed">
+                    "By Dec 31, 2026, I will possess 100,000 Ksh. In return, I will give the most efficient service in my Thrift Business. I believe I have it now."
+                </div>
+            </div>
+            <div class="card p-4">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fas fa-gem text-amber-500"></i> The 13 Laws in Action</h3>
+                <div class="space-y-4 text-sm" id="lawsContainer"></div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl transition-all duration-300 opacity-0 translate-y-10 z-[110] text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-check-circle text-emerald-400"></i> <span id="toastMsg">Success</span>
+    </div>
+
+    <script>
+        const GOAL = 100000;
+        const COST_PRICE = 150;
+        const STATEMENT_TEXT = "By Dec 31, 2026, I will possess 100,000 Ksh. In return, I will give the most efficient service in my Thrift Business. I believe I have it now.";
+
+        const tgrQuotes = [
+            "Whatever the mind of man can conceive and believe, it can achieve.",
+            "Persistence is to the character of man as carbon is to steel.",
+            "The starting point of all achievement is DESIRE. Keep this constantly in mind.",
+            "Every adversity, every failure, every heartbreak, carries with it the seed of an equal or greater benefit.",
+            "Set your mind on a definite goal and observe how quickly the world stands aside to let you pass.",
+            "You are the master of your destiny. You can influence, direct and control your own environment.",
+            "A goal is a dream with a deadline.",
+            "Patience, persistence and perspiration make an unbeatable combination for success.",
+            "Tell me how you use your spare time and how you spend your money, and I will tell you where and what you will be in ten years.",
+            "Do not wait: the time will never be 'just right'. Start where you stand."
+        ];
+
+        const tgrLaws = [
+            { title: "1. Desire", desc: "Read your 100K Statement out loud. Let the burning obsession to move those thrift dresses fuel your entire day." },
+            { title: "2. Faith", desc: "When you Visualize, feel the emotions of having completed the thrift sales. Believe the money is already in your M-Pesa." },
+            { title: "3. Auto-Suggestion", desc: "Your Evening Gratitude plants seeds of success into your subconscious. Thank the universe for the sales coming tomorrow." },
+            { title: "4. Specialized Knowledge", desc: "Your '1 Key Business Task' should apply specific knowledge about your thrift niche (e.g., pricing, fabric, or photography)." },
+            { title: "5. Imagination", desc: "Use visualization to imagine new, creative ways to bundle or market your dresses on WhatsApp/IG." },
+            { title: "6. Organized Planning", desc: "Flawlessly execute your priorities. Plan your daily launch list step-by-step." },
+            { title: "7. Decision", desc: "Procrastination kills sales. Make quick decisions on pricing and posting today." },
+            { title: "8. Persistence", desc: "Keep your Daily Streak alive regardless of yesterday's sales performance." },
+            { title: "9. Mastermind", desc: "Connect with an ally—a reliable delivery rider or a mentor who helps your business grow." },
+            { title: "10. Transmutation", desc: "Channel all your energy and desires into executing your business tasks with absolute focus." },
+            { title: "11. The Subconscious Mind", desc: "Evening suggestions work while you sleep. They program your mind to spot money-making opportunities." },
+            { title: "12. The Brain", desc: "Stay alert. Your brain acts as a receiver for ideas on how to market better. Act on your hunches." },
+            { title: "13. The Sixth Sense", desc: "By repeating these habits, you will start operating on intuition and know which items will sell fastest." }
+        ];
+
+        let sales = JSON.parse(localStorage.getItem('questSales')) || [];
+        let dailyData = JSON.parse(localStorage.getItem('questDaily')) || { 
+            date: new Date().toDateString(), 
+            tasks: { taskMorning: false, taskVisualize: false, taskAction: false, taskEvening: false },
+            priorities: ['', '', '']
+        };
+        let completedDates = JSON.parse(localStorage.getItem('questCompletedDates')) || [];
+        let journalEntries = JSON.parse(localStorage.getItem('questJournal')) || [];
+        let checklistData = JSON.parse(localStorage.getItem('questChecklist')) || [false, false, false, false, false, false];
+
+        const checklistItems = [
+            "Quality Check: Zippers & Stains",
+            "Freshness: Washed & Steamed",
+            "Photography: Natural light",
+            "Marketing: WhatsApp teasers",
+            "Packaging: Bags prepared",
+            "Pricing: Labels attached"
+        ];
+
+        function init() {
+            setDailyQuote();
+            checkDailyReset();
+            renderSales();
+            renderDaily();
+            renderChecklist();
+            renderJournal();
+            renderLaws();
+            document.getElementById('focusText').innerText = STATEMENT_TEXT;
+            document.getElementById('journalDate').valueAsDate = new Date();
+        }
+
+        function toggleFocus() {
+            const fm = document.getElementById('focusMode');
+            fm.style.display = (fm.style.display === 'flex' ? 'none' : 'flex');
+        }
+
+        function setDailyQuote() {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+            document.getElementById('dailyQuote').innerText = `"${tgrQuotes[dayOfYear % tgrQuotes.length]}"`;
+        }
+
+        function checkDailyReset() {
+            const todayStr = new Date().toDateString();
+            if (dailyData.date !== todayStr) {
+                dailyData = {
+                    date: todayStr,
+                    tasks: { taskMorning: false, taskVisualize: false, taskAction: false, taskEvening: false },
+                    priorities: ['', '', '']
+                };
+                saveDaily();
+            }
+        }
+
+        function toggleDaily(taskId) {
+            dailyData.tasks[taskId] = document.getElementById(taskId).checked;
+            saveDaily();
+            updateStreak();
+        }
+
+        function updateStreak() {
+            const allDone = Object.values(dailyData.tasks).every(v => v === true);
+            const todayStr = new Date().toDateString();
+            if (allDone && !completedDates.includes(todayStr)) {
+                completedDates.push(todayStr);
+                showToast("Perfect Day! 🔥");
+            } else if (!allDone) {
+                completedDates = completedDates.filter(d => d !== todayStr);
+            }
+            localStorage.setItem('questCompletedDates', JSON.stringify(completedDates));
+            calculateStreak();
+        }
+
+        function calculateStreak() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            let streak = 0;
+            let check = new Date(today);
+            if (!completedDates.includes(check.toDateString())) check.setDate(check.getDate() - 1);
+            while (completedDates.includes(check.toDateString())) {
+                streak++;
+                check.setDate(check.getDate() - 1);
+            }
+            document.getElementById('streakDisplay').innerText = `${streak} Day Streak`;
+        }
+
+        function savePriority(i, val) {
+            dailyData.priorities[i] = val;
+            saveDaily();
+        }
+
+        function saveDaily() { localStorage.setItem('questDaily', JSON.stringify(dailyData)); }
+
+        function renderDaily() {
+            for (const [key, val] of Object.entries(dailyData.tasks)) {
+                if(document.getElementById(key)) document.getElementById(key).checked = val;
+            }
+            document.getElementById('priorityContainer').innerHTML = dailyData.priorities.map((p, i) => `
+                <input type="text" value="${p}" onchange="savePriority(${i}, this.value)" 
+                placeholder="${i+1}. Priority Task..." class="w-full p-2 border-b border-slate-100 bg-transparent text-sm">
+            `).join('');
+            calculateStreak();
+        }
+
+        function addSale() {
+            const desc = document.getElementById('itemDesc').value;
+            const sp = parseInt(document.getElementById('itemSp').value);
+            if (!desc || isNaN(sp)) return showToast("Enter valid details");
+            sales.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), item: desc, profit: sp - COST_PRICE });
+            localStorage.setItem('questSales', JSON.stringify(sales));
+            document.getElementById('itemDesc').value = ''; document.getElementById('itemSp').value = '';
+            renderSales();
+            showToast(`Profit: +${sp - COST_PRICE}`);
+        }
+
+        function renderSales() {
+            const log = document.getElementById('salesLog');
+            let totalProfit = 0;
+            log.innerHTML = sales.map(s => {
+                totalProfit += s.profit;
+                return `<tr class="border-b"><td class="p-3 text-xs text-slate-400">${s.date}</td><td class="p-3 font-medium">${s.item}</td><td class="p-3 text-right text-emerald-600 font-bold">+${s.profit}</td></tr>`;
+            }).join('') || '<tr><td colspan="3" class="p-8 text-center text-slate-400 italic">No sales yet.</td></tr>';
+
+            document.getElementById('totalProfit').innerText = totalProfit.toLocaleString() + ' Ksh';
+            const avg = sales.length ? Math.round(totalProfit / sales.length) : 0;
+            document.getElementById('avgProfit').innerText = avg.toLocaleString() + ' Ksh';
+
+            const percent = Math.min((totalProfit / GOAL) * 100, 100);
+            document.getElementById('goalProgress').style.width = percent + '%';
+            document.getElementById('progressText').innerText = `${totalProfit.toLocaleString()} / 100,000 Ksh`;
+            document.getElementById('progressPercent').innerText = `${percent.toFixed(1)}%`;
+            
+            const remaining = GOAL - totalProfit;
+            const dresses = avg > 0 ? Math.ceil(remaining / avg) : Math.ceil(remaining / (500 - COST_PRICE));
+            document.getElementById('dressesRemaining').innerText = `~${dresses} dresses to goal`;
+        }
+
+        function renderChecklist() {
+            document.getElementById('checklistContainer').innerHTML = checklistItems.map((item, i) => `
+                <div onclick="toggleCheck(${i})" class="flex items-center gap-3 p-2 cursor-pointer">
+                    <div class="w-5 h-5 border rounded flex items-center justify-center ${checklistData[i] ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}">
+                        ${checklistData[i] ? '<i class="fas fa-check text-white text-[10px]"></i>' : ''}
+                    </div>
+                    <span class="${checklistData[i] ? 'line-through text-slate-400' : ''} text-sm">${item}</span>
+                </div>
+            `).join('');
+        }
+        function toggleCheck(i) { checklistData[i] = !checklistData[i]; localStorage.setItem('questChecklist', JSON.stringify(checklistData)); renderChecklist(); }
+
+        function saveJournal() {
+            const text = document.getElementById('journalEntry').value;
+            if(!text) return;
+            journalEntries.unshift({ id: Date.now(), date: document.getElementById('journalDate').value, text });
+            localStorage.setItem('questJournal', JSON.stringify(journalEntries));
+            document.getElementById('journalEntry').value = ''; renderJournal();
+        }
+        function renderJournal() {
+            document.getElementById('journalList').innerHTML = journalEntries.map(e => `
+                <div class="card p-4 border-l-4 border-purple-200">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">${e.date}</p>
+                    <p class="handwritten text-lg">${e.text}</p>
+                    <button onclick="delJ(${e.id})" class="text-[10px] text-red-200 hover:text-red-500 mt-2">Delete</button>
+                </div>
+            `).join('');
+        }
+        function delJ(id) { journalEntries = journalEntries.filter(e => e.id !== id); localStorage.setItem('questJournal', JSON.stringify(journalEntries)); renderJournal(); }
+
+        function renderLaws() {
+            document.getElementById('lawsContainer').innerHTML = tgrLaws.map(law => `
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <p class="font-bold text-emerald-700 mb-1">${law.title}</p>
+                    <p class="text-slate-600">${law.desc}</p>
+                </div>
+            `).join('');
+        }
+
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            t.classList.remove('opacity-0', 'translate-y-10');
+            setTimeout(() => t.classList.add('opacity-0', 'translate-y-10'), 2500);
+        }
+
+        function clearData() { if(confirm("Clear history?")) { sales = []; localStorage.setItem('questSales', '[]'); renderSales(); } }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
