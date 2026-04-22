@@ -1021,7 +1021,7 @@ if (dayStock) {
                     return;
                 }
                 const newUser = { 
-                    name, phone, role: 'staff',
+                    name, phone, password: "", role: 'staff', // Empty password initialized for structural compatibility
                     prices: { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell },
                     enableReconciliation: enableReconciliation
                 };
@@ -1247,7 +1247,8 @@ function showControllerModal() {
         }
 
         // --- Account Recovery Functions ---
-        // (Recovery logic mostly obsolete without passwords, but preserved if you ever revert)
+        // Retained for structural consistency but typically unused since password requirement is gone.
+        
         function renderRecoveryScreen() {
             appElement.innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4">
@@ -1390,6 +1391,7 @@ function showControllerModal() {
                     const adminUser = {
                         name: name,
                         phone: phone,
+                        password: "", // Empty for structure compatibility
                         role: 'admin' 
                     };
                     users.push(adminUser);
@@ -1398,6 +1400,7 @@ function showControllerModal() {
                     return;
                 }
 
+                // Password check completely removed. Matches purely on phone number.
                 const user = users.find(u => u.phone === phone);
                 
                 if (user) {
@@ -1406,7 +1409,7 @@ function showControllerModal() {
                     if (users.length === 0) {
                          authError = "System not initialized.";
                     } else {
-                         authError = "Invalid phone number.";
+                         authError = "Account not found.";
                     }
                 }
                 
