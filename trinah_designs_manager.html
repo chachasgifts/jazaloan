@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Load jsPDF AutoTable for easier tables -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
@@ -442,6 +443,72 @@
             refreshIcons();
         }
 
+        function calculateAdvancedMetrics(entries) {
+    let totals = { sweater: 0, cotton: 0, kimonos: 0, twoPcs: 0, profit: 0 };
+
+    entries.forEach(e => {
+        totals.sweater += Number(e.sweaterCount || 0);
+        totals.cotton += Number(e.cottonCount || 0);
+        totals.kimonos += Number(e.dispatchedKimonos || 0);
+        totals.twoPcs += Number(e.dispatchedTwoPcs || 0);
+        totals.profit += Number(e.profit || 0);
+    });
+
+    return totals;
+}
+
+function getTrendData(days = 7) {
+    const now = Date.now();
+    const range = days * 86400000;
+    const data = {};
+
+    getFullHistory().forEach(e => {
+        const t = e.sortTimestamp || e.id;
+        if (now - t <= range) {
+            const d = new Date(t).toLocaleDateString();
+            if (!data[d]) data[d] = 0;
+
+            data[d] += 
+                (Number(e.soldDresses || 0)) +
+                (Number(e.soldTwoPcs || 0)) +
+                (Number(e.soldKimonos || 0));
+        }
+    });
+
+    return data;
+}
+
+function renderTrendChart(days = 7) {
+    const ctx = document.getElementById('trendChart');
+    if (!ctx) return;
+
+    const data = getTrendData(days);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Object.keys(data),
+            datasets: [{
+                label: 'Pieces Sold',
+                data: Object.values(data),
+                tension: 0.4
+            }]
+        }
+    });
+}
+
+function checkWeeklyReminder() {
+    const last = localStorage.getItem('weekly_check');
+    const now = Date.now();
+
+    if (!last || (now - last) > 604800000) {
+        setTimeout(() => {
+            alert("What can you improve next week to increase sales?");
+        }, 1000);
+        localStorage.setItem('weekly_check', now);
+    }
+}
+
         // --- Master Report Logic ---
         async function downloadMasterReport(type = 'Daily', customDateStr = null) {
             const loader = document.getElementById('pdf-loader');
@@ -545,6 +612,20 @@
                     bodyStyles: { textColor: 50, halign: 'center' },
                     margin: { top: 55 }
                 });
+const metrics = calculateAdvancedMetrics(allEntries);
+
+doc.autoTable({
+    startY: doc.lastAutoTable.finalY + 10,
+    head: [['Category', 'Total']],
+    body: [
+        ['Sweater Dresses', metrics.sweater],
+        ['Cotton Dresses', metrics.cotton],
+        ['2pcs Sets', metrics.twoPcs],
+        ['Kimonos', metrics.kimonos],
+        ['Total Profit', formatCurrency(metrics.profit)]
+    ],
+    theme: 'grid'
+});
                 // Find log for the report date
 const reportDateKey = customDateStr || new Date().toISOString().split('T')[0];
 const stockLogs = JSON.parse(localStorage.getItem(CONTROLLER_KEY) || "[]");
@@ -684,6 +765,7 @@ if (dayStock) {
 
             const nameVal = userToEdit ? userToEdit.name : '';
             const phoneVal = userToEdit ? userToEdit.phone : '';
+            const passVal = userToEdit ? userToEdit.password : '';
             const isReconcileEnabled = userToEdit && userToEdit.enableReconciliation ? 'checked' : '';
 
             const prices = userToEdit ? (userToEdit.prices || {}) : {};
@@ -719,6 +801,10 @@ if (dayStock) {
                                     <label class="text-xs font-bold text-slate-500 uppercase">Phone (ID)</label>
                                     <input id="staff-phone" value="${phoneVal}" placeholder="Phone" ${isEdit ? 'disabled' : ''} class="w-full p-3 rounded-xl ${isEdit ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'} border border-slate-200 outline-none focus:border-indigo-500 mt-1">
                                 </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
+                                <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
                             </div>
 
                             <div class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -834,6 +920,10 @@ if (dayStock) {
                             <input type="number" id="edit-sent" value="${entry.amountSent || 0}" class="w-full p-2 text-sm rounded-lg border border-emerald-200 bg-emerald-50">
                         </div>
                         <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Manager Note</label>
+                            <textarea id="manager-note" class="w-full p-2 text-sm rounded-lg border border-slate-200" placeholder="Observations, issues, improvements..."></textarea>
+                        </div>
+                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase">Expense Total (Manual Override)</label>
                             <input type="number" id="edit-expense" value="${entry.expenseAmount || 0}" class="w-full p-2 text-sm rounded-lg border border-slate-200">
                             <p class="text-[9px] text-slate-400">Editing individual expense items not supported in quick edit. Update total directly.</p>
@@ -950,10 +1040,15 @@ if (dayStock) {
                                     class="w-full p-2 text-sm font-bold text-slate-700 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 bg-white">
                             </div>
 
-                            <button onclick="const d = document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d); document.getElementById('reports-modal').remove()" 
-                                class="w-full py-4 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-100 border border-emerald-100">
-                                ${renderIcon('calendar', {class:'w-5 h-5'})} Daily Master Report
-                            </button>
+                            <div class="space-y-2">
+                            <button onclick="const d=document.getElementById('report-date-picker').value; downloadMasterReport('Daily', d);" class="w-full py-3 bg-emerald-50 rounded-xl font-bold">Daily</button>
+                            
+                            <button onclick="downloadMasterReport('Weekly')" class="w-full py-3 bg-slate-50 rounded-xl font-bold">Last 7 Days</button>
+                            
+                            <button onclick="downloadMasterReport('Monthly')" class="w-full py-3 bg-slate-50 rounded-xl font-bold">Last 30 Days</button>
+                            
+                            <button onclick="downloadMasterReport('Quarterly')" class="w-full py-3 bg-slate-50 rounded-xl font-bold">Last 3 Months</button>
+                        </div>
                             
                             <button onclick="document.getElementById('reports-modal').remove()" class="w-full py-3 text-slate-400 font-medium text-sm mt-2">Cancel</button>
                         </div>
@@ -992,6 +1087,7 @@ if (dayStock) {
             e.preventDefault();
             const name = document.getElementById('staff-name').value.trim();
             const phone = document.getElementById('staff-phone').value.trim();
+            const password = document.getElementById('staff-pass').value.trim();
             const enableReconciliation = document.getElementById('staff-reconcile').checked;
             
             const dressBuy = Number(document.getElementById('price-dress-buy').value);
@@ -1001,8 +1097,8 @@ if (dayStock) {
             const kimonoBuy = Number(document.getElementById('price-kimono-buy').value);
             const kimonoSell = Number(document.getElementById('price-kimono-sell').value);
 
-            if (!name || !phone) {
-                showNotification("Please fill name and phone.");
+            if (!name || !phone || !password) {
+                showNotification("Please fill name, phone and password.");
                 return;
             }
 
@@ -1021,7 +1117,7 @@ if (dayStock) {
                     return;
                 }
                 const newUser = { 
-                    name, phone, password: "", role: 'staff', // Empty password initialized for structural compatibility
+                    name, phone, password, role: 'staff',
                     prices: { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell },
                     enableReconciliation: enableReconciliation
                 };
@@ -1031,6 +1127,7 @@ if (dayStock) {
                 const index = users.findIndex(u => u.phone === originalPhone);
                 if (index !== -1) {
                     users[index].name = name;
+                    users[index].password = password;
                     users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell };
                     users[index].enableReconciliation = enableReconciliation;
                     showNotification(`Details for ${name} updated!`);
@@ -1247,7 +1344,6 @@ function showControllerModal() {
         }
 
         // --- Account Recovery Functions ---
-        // Retained for structural consistency but typically unused since password requirement is gone.
         
         function renderRecoveryScreen() {
             appElement.innerHTML = `
@@ -1367,10 +1463,11 @@ function showControllerModal() {
         function authHandler(e) {
             e.preventDefault();
             const phone = document.getElementById('auth-phone').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
             const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null; 
 
-            if (!phone) {
-                authError = "Please enter phone number.";
+            if (!phone || !password) {
+                authError = "Please enter phone and password.";
                 renderAuthScreen();
                 return;
             }
@@ -1391,7 +1488,7 @@ function showControllerModal() {
                     const adminUser = {
                         name: name,
                         phone: phone,
-                        password: "", // Empty for structure compatibility
+                        password: password,
                         role: 'admin' 
                     };
                     users.push(adminUser);
@@ -1400,8 +1497,7 @@ function showControllerModal() {
                     return;
                 }
 
-                // Password check completely removed. Matches purely on phone number.
-                const user = users.find(u => u.phone === phone);
+                const user = users.find(u => u.phone === phone && u.password === password);
                 
                 if (user) {
                     handleLogin(user);
@@ -1409,7 +1505,7 @@ function showControllerModal() {
                     if (users.length === 0) {
                          authError = "System not initialized.";
                     } else {
-                         authError = "Account not found.";
+                         authError = "Invalid credentials.";
                     }
                 }
                 
@@ -2870,6 +2966,14 @@ function showControllerModal() {
                                 <label class="text-xs font-bold text-slate-500">PHONE</label>
                                 <input type="text" id="auth-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
                             </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500">PASSWORD</label>
+                                <input type="password" id="auth-password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
+                            </div>
+                            
+                            <div class="flex justify-end pt-1">
+                                <button type="button" onclick="renderRecoveryScreen()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">Forgot Password?</button>
+                            </div>
 
                             ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
                             <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition" ${authLoading ? 'disabled' : ''}>
@@ -2878,8 +2982,21 @@ function showControllerModal() {
                         </form>
                     </div>
                 </div>
+
+                <div class="bg-white p-5 rounded-xl shadow border mt-4">
+    <h3 class="font-bold text-slate-700 mb-3">Sales Trends</h3>
+    <canvas id="trendChart" height="120"></canvas>
+
+    <div class="flex gap-2 mt-3">
+        <button onclick="renderTrendChart(7)" class="px-3 py-1 bg-slate-100 rounded">7d</button>
+        <button onclick="renderTrendChart(30)" class="px-3 py-1 bg-slate-100 rounded">30d</button>
+        <button onclick="renderTrendChart(90)" class="px-3 py-1 bg-slate-100 rounded">3m</button>
+    </div>
+</div>
             `;
             refreshIcons();
+            setTimeout(() => renderTrendChart(7), 300);
+checkWeeklyReminder();
         }
 
         function renderUserManagementScreen() {
