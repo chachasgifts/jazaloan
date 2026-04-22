@@ -684,7 +684,6 @@ if (dayStock) {
 
             const nameVal = userToEdit ? userToEdit.name : '';
             const phoneVal = userToEdit ? userToEdit.phone : '';
-            const passVal = userToEdit ? userToEdit.password : '';
             const isReconcileEnabled = userToEdit && userToEdit.enableReconciliation ? 'checked' : '';
 
             const prices = userToEdit ? (userToEdit.prices || {}) : {};
@@ -720,10 +719,6 @@ if (dayStock) {
                                     <label class="text-xs font-bold text-slate-500 uppercase">Phone (ID)</label>
                                     <input id="staff-phone" value="${phoneVal}" placeholder="Phone" ${isEdit ? 'disabled' : ''} class="w-full p-3 rounded-xl ${isEdit ? 'bg-slate-100 text-slate-400' : 'bg-slate-50'} border border-slate-200 outline-none focus:border-indigo-500 mt-1">
                                 </div>
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 uppercase">Password</label>
-                                <input id="staff-pass" value="${passVal}" type="text" placeholder="Password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500 mt-1">
                             </div>
 
                             <div class="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -997,7 +992,6 @@ if (dayStock) {
             e.preventDefault();
             const name = document.getElementById('staff-name').value.trim();
             const phone = document.getElementById('staff-phone').value.trim();
-            const password = document.getElementById('staff-pass').value.trim();
             const enableReconciliation = document.getElementById('staff-reconcile').checked;
             
             const dressBuy = Number(document.getElementById('price-dress-buy').value);
@@ -1007,8 +1001,8 @@ if (dayStock) {
             const kimonoBuy = Number(document.getElementById('price-kimono-buy').value);
             const kimonoSell = Number(document.getElementById('price-kimono-sell').value);
 
-            if (!name || !phone || !password) {
-                showNotification("Please fill name, phone and password.");
+            if (!name || !phone) {
+                showNotification("Please fill name and phone.");
                 return;
             }
 
@@ -1027,7 +1021,7 @@ if (dayStock) {
                     return;
                 }
                 const newUser = { 
-                    name, phone, password, role: 'staff',
+                    name, phone, role: 'staff',
                     prices: { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell },
                     enableReconciliation: enableReconciliation
                 };
@@ -1037,7 +1031,6 @@ if (dayStock) {
                 const index = users.findIndex(u => u.phone === originalPhone);
                 if (index !== -1) {
                     users[index].name = name;
-                    users[index].password = password;
                     users[index].prices = { dressBuy, dressSell, twoPcBuy, twoPcSell, kimonoBuy, kimonoSell };
                     users[index].enableReconciliation = enableReconciliation;
                     showNotification(`Details for ${name} updated!`);
@@ -1254,7 +1247,7 @@ function showControllerModal() {
         }
 
         // --- Account Recovery Functions ---
-        
+        // (Recovery logic mostly obsolete without passwords, but preserved if you ever revert)
         function renderRecoveryScreen() {
             appElement.innerHTML = `
                 <div class="min-h-screen flex items-center justify-center p-4">
@@ -1373,11 +1366,10 @@ function showControllerModal() {
         function authHandler(e) {
             e.preventDefault();
             const phone = document.getElementById('auth-phone').value.trim();
-            const password = document.getElementById('auth-password').value.trim();
             const name = document.getElementById('auth-name') ? document.getElementById('auth-name').value.trim() : null; 
 
-            if (!phone || !password) {
-                authError = "Please enter phone and password.";
+            if (!phone) {
+                authError = "Please enter phone number.";
                 renderAuthScreen();
                 return;
             }
@@ -1398,7 +1390,6 @@ function showControllerModal() {
                     const adminUser = {
                         name: name,
                         phone: phone,
-                        password: password,
                         role: 'admin' 
                     };
                     users.push(adminUser);
@@ -1407,7 +1398,7 @@ function showControllerModal() {
                     return;
                 }
 
-                const user = users.find(u => u.phone === phone && u.password === password);
+                const user = users.find(u => u.phone === phone);
                 
                 if (user) {
                     handleLogin(user);
@@ -1415,7 +1406,7 @@ function showControllerModal() {
                     if (users.length === 0) {
                          authError = "System not initialized.";
                     } else {
-                         authError = "Invalid credentials.";
+                         authError = "Invalid phone number.";
                     }
                 }
                 
@@ -2875,14 +2866,6 @@ function showControllerModal() {
                             <div>
                                 <label class="text-xs font-bold text-slate-500">PHONE</label>
                                 <input type="text" id="auth-phone" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="0712 345 678">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500">PASSWORD</label>
-                                <input type="password" id="auth-password" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none focus:border-indigo-500" placeholder="••••••••">
-                            </div>
-                            
-                            <div class="flex justify-end pt-1">
-                                <button type="button" onclick="renderRecoveryScreen()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">Forgot Password?</button>
                             </div>
 
                             ${authError ? `<p class="text-red-500 text-sm text-center bg-red-50 p-2 rounded-lg">${authError}</p>` : ''}
