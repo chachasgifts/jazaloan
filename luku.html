@@ -37,7 +37,6 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
-        /* Custom Styles & Animations */
         body { -webkit-tap-highlight-color: transparent; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -166,7 +165,7 @@
         // --- 1. Database & State Management ---
         const DB_KEY = 'luku_designs_db';
         
-        // Let's create a rich mock database with historic dates for last week to draw the graph beautifully on first start!
+        // Mock historical data generation perfectly spreads over different time milestones (weeks, months, quarters)
         const generateMockDate = (daysAgo) => {
             const date = new Date();
             date.setDate(date.getDate() - daysAgo);
@@ -177,7 +176,7 @@
             settings: { darkMode: false, lastBackup: null, milestoneLevel: 0 },
             customers: [
                 { id: 'c1', name: 'Nelly Wanjiku', phone: '0712345678', tiktok: 'nelly_designs', category: 'Frequent Customer', totalOrders: 2, createdAt: generateMockDate(15) },
-                { id: 'c2', name: 'Alvin Kiprop', phone: '0722998877', tiktok: 'alvin_thrift', category: 'Trusted Customer', totalOrders: 1, createdAt: generateMockDate(10) },
+                { id: 'c2', name: 'Alvin Kiprop', phone: '0722998877', tiktok: 'alvin_thrift', category: 'Trusted Customer', totalOrders: 2, createdAt: generateMockDate(10) },
                 { id: 'c3', name: 'Zahra Omar', phone: '0733554433', tiktok: 'zahrakuku', category: 'Normal', totalOrders: 1, createdAt: generateMockDate(5) }
             ],
             categories: ['Dresses', '2-Piece Sets', 'Kimonos', 'Jumpsuits'],
@@ -188,39 +187,15 @@
                 { id: 'p4', category: 'Jumpsuits', name: 'Velvet Evening Jumpsuit', buyingPrice: 1000, sellingPrice: 2800, stock: 4 }
             ],
             orders: [
-                // Historic orders to pre-populate the dashboard graphs beautifully
-                { 
-                    id: 'o1', date: generateMockDate(6), 
-                    customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678',
-                    productId: 'p1', productName: 'Silk Slip Dress', productCategory: 'Dresses',
-                    quantity: 1, sellingPrice: 1500, buyingPrice: 500, totalValue: 1500,
-                    destination: 'Thika', courier: 'Super 2D Sacco', paid: 1500, balance: 0,
-                    paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(5)
-                },
-                { 
-                    id: 'o2', date: generateMockDate(4), 
-                    customerId: 'c2', customerName: 'Alvin Kiprop', customerPhone: '0722998877',
-                    productId: 'p2', productName: 'Linen Lounge Set', productCategory: '2-Piece Sets',
-                    quantity: 1, sellingPrice: 2200, buyingPrice: 800, totalValue: 2200,
-                    destination: 'Eldoret', courier: 'North Rift Shuttle', paid: 1200, balance: 1000,
-                    paymentStatus: 'Partially Paid', deliveryStatus: 'Pending Delivery', collectionStatus: 'Awaiting Collection', updatedAt: generateMockDate(4)
-                },
-                { 
-                    id: 'o3', date: generateMockDate(2), 
-                    customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678',
-                    productId: 'p3', productName: 'Boho Floral Kimono', productCategory: 'Kimonos',
-                    quantity: 2, sellingPrice: 1800, buyingPrice: 600, totalValue: 3600,
-                    destination: 'Nairobi CBD', courier: 'Rider Direct', paid: 3600, balance: 0,
-                    paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(2)
-                },
-                { 
-                    id: 'o4', date: generateMockDate(1), 
-                    customerId: 'c3', customerName: 'Zahra Omar', customerPhone: '0733554433',
-                    productId: 'p4', productName: 'Velvet Evening Jumpsuit', productCategory: 'Jumpsuits',
-                    quantity: 1, sellingPrice: 2800, buyingPrice: 1000, totalValue: 2800,
-                    destination: 'Mombasa', courier: 'F经典 Sacco', paid: 2800, balance: 0,
-                    paymentStatus: 'Fully Paid', deliveryStatus: 'Pending Delivery', collectionStatus: 'Awaiting Collection', updatedAt: generateMockDate(1)
-                }
+                // Recent orders (Daily/Weekly tab)
+                { id: 'o1', date: generateMockDate(6), customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678', productId: 'p1', productName: 'Silk Slip Dress', productCategory: 'Dresses', quantity: 1, sellingPrice: 1500, buyingPrice: 500, totalValue: 1500, destination: 'Thika', courier: 'Super 2D Sacco', paid: 1500, balance: 0, paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(5) },
+                { id: 'o2', date: generateMockDate(4), customerId: 'c2', customerName: 'Alvin Kiprop', customerPhone: '0722998877', productId: 'p2', productName: 'Linen Lounge Set', productCategory: '2-Piece Sets', quantity: 1, sellingPrice: 2200, buyingPrice: 800, totalValue: 2200, destination: 'Eldoret', courier: 'North Rift Shuttle', paid: 1200, balance: 1000, paymentStatus: 'Partially Paid', deliveryStatus: 'Pending Delivery', collectionStatus: 'Awaiting Collection', updatedAt: generateMockDate(4) },
+                { id: 'o3', date: generateMockDate(2), customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678', productId: 'p3', productName: 'Boho Floral Kimono', productCategory: 'Kimonos', quantity: 2, sellingPrice: 1800, buyingPrice: 600, totalValue: 3600, destination: 'Nairobi CBD', courier: 'Rider Direct', paid: 3600, balance: 0, paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(2) },
+                // Historical orders (Monthly/Quarterly tab)
+                { id: 'o4', date: generateMockDate(20), customerId: 'c3', customerName: 'Zahra Omar', customerPhone: '0733554433', productId: 'p4', productName: 'Velvet Evening Jumpsuit', productCategory: 'Jumpsuits', quantity: 1, sellingPrice: 2800, buyingPrice: 1000, totalValue: 2800, destination: 'Mombasa', courier: 'F经典 Sacco', paid: 2800, balance: 0, paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(18) },
+                { id: 'o5', date: generateMockDate(45), customerId: 'c3', customerName: 'Zahra Omar', customerPhone: '0733554433', productId: 'p1', productName: 'Silk Slip Dress', productCategory: 'Dresses', quantity: 3, sellingPrice: 1500, buyingPrice: 500, totalValue: 4500, destination: 'Nairobi', courier: 'Rider Direct', paid: 4500, balance: 0, paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(42) },
+                { id: 'o6', date: generateMockDate(110), customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678', productId: 'p4', productName: 'Velvet Evening Jumpsuit', productCategory: 'Jumpsuits', quantity: 2, sellingPrice: 2800, buyingPrice: 1000, totalValue: 5600, destination: 'Thika', courier: 'Super 2D Sacco', paid: 5600, balance: 0, paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(100) },
+                { id: 'o7', date: generateMockDate(250), customerId: 'c2', customerName: 'Alvin Kiprop', customerPhone: '0722998877', productId: 'p3', productName: 'Boho Floral Kimono', productCategory: 'Kimonos', quantity: 4, sellingPrice: 1800, buyingPrice: 600, totalValue: 7200, destination: 'Eldoret', courier: 'North Rift Shuttle', paid: 7200, balance: 0, paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(248) }
             ],
             destinations: ['Thika', 'Eldoret', 'Nairobi CBD', 'Mombasa', 'Kisumu', 'Nakuru'],
             couriers: ['Super 2D Sacco', 'North Rift Shuttle', 'Rider Direct', 'F经典 Sacco'],
@@ -320,6 +295,75 @@
             }
         };
 
+        const app = {
+            currentUser: null,
+            graphPeriod: 'daily', // Default graph tab state
+            init() {
+                db.init();
+                const session = sessionStorage.getItem('luku_session');
+                if (session) {
+                    this.currentUser = JSON.parse(session);
+                    this.showMainApp();
+                } else {
+                    document.getElementById('auth-screen').classList.remove('hidden');
+                }
+                
+                const isDark = db.data.settings.darkMode;
+                if(isDark) document.documentElement.classList.add('dark');
+                
+                document.getElementById('theme-toggle').onclick = () => this.toggleTheme();
+                document.getElementById('mobile-theme-toggle').onclick = () => this.toggleTheme();
+                
+                document.getElementById('login-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const u = document.getElementById('username').value.trim().toLowerCase();
+                    const p = document.getElementById('password').value.trim();
+                    if((u === 'admin' && p === 'admin') || (u === 'staff' && p === 'staff')) {
+                        this.currentUser = { username: u, role: u };
+                        sessionStorage.setItem('luku_session', JSON.stringify(this.currentUser));
+                        this.showMainApp();
+                        ui.toast(`Welcome back, ${u}!`);
+                    } else {
+                        ui.toast('Invalid credentials', 'error');
+                    }
+                };
+            },
+            toggleTheme() {
+                const isDark = document.documentElement.classList.toggle('dark');
+                db.data.settings.darkMode = isDark;
+                db.save();
+                if(ui.currentView === 'dashboard') renderSVGRevenueGraph('dashboardGraphContainer', this.graphPeriod);
+            },
+            showMainApp() {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                document.getElementById('user-role-display').innerText = `${this.currentUser.role} Account`;
+                this.navigate('dashboard');
+                renderNav();
+            },
+            logout() {
+                sessionStorage.removeItem('luku_session');
+                this.currentUser = null;
+                document.getElementById('app-screen').classList.add('hidden');
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('login-form').reset();
+            },
+            navigate(viewId) {
+                ui.currentView = viewId;
+                renderNav();
+                const container = document.getElementById('view-container');
+                container.innerHTML = views[viewId]();
+                lucide.createIcons();
+                
+                if (viewId === 'dashboard') {
+                    setTimeout(() => renderSVGRevenueGraph('dashboardGraphContainer', this.graphPeriod), 50);
+                }
+            },
+            render() {
+                this.navigate(ui.currentView);
+            }
+        };
+
         // --- 3. Navigation & Routing ---
         const navItems = [
             { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard', adminOnly: false },
@@ -327,7 +371,7 @@
             { id: 'deliveries', icon: 'truck', label: 'Deliveries', adminOnly: false },
             { id: 'customers', icon: 'users', label: 'Customers', adminOnly: false },
             { id: 'inventory', icon: 'package', label: 'Inventory', adminOnly: false },
-            { id: 'reports', icon: 'bar-chart-3', label: 'Reports', adminOnly: false }, // Reports now fully active for both roles
+            { id: 'reports', icon: 'bar-chart-3', label: 'Reports', adminOnly: false },
             { id: 'settings', icon: 'settings', label: 'Settings', adminOnly: true }
         ];
 
@@ -355,7 +399,6 @@
                     </a>
                 `;
                 
-                // Keep mobile layout concise by showing 5 primary tabs
                 if (['dashboard', 'orders', 'deliveries', 'customers', 'reports'].includes(item.id)) {
                     mHtml += `
                         <a href="#" onclick="app.navigate('${item.id}'); return false;" class="flex flex-col items-center justify-center w-full py-1 transition-all ${activeClassesMobile}">
@@ -372,35 +415,84 @@
         };
 
         /**
-         * Dynamic, Beautiful SVG Line Graph Generator
-         * Replaces complex charts with a fully custom-engineered, lightweight SVG vector graph.
+         * Dynamic, Advanced SVG Line Graph Generator with Time Grouping (Daily, Weekly, Monthly, etc.)
+         * Now shows Profit Tooltips alongside Revenue curves!
          */
-        const renderSVGRevenueGraph = (containerId) => {
+        const renderSVGRevenueGraph = (containerId, period = 'daily') => {
             const container = document.getElementById(containerId);
             if (!container) return;
 
             const isDark = document.documentElement.classList.contains('dark');
             const orders = db.get('orders');
             
-            // Get past 7 calendar dates
-            const days = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                days.push(d.toISOString().split('T')[0]);
+            const today = new Date();
+            const dataPoints = [];
+            const labels = [];
+            
+            // Core Aggregation Engine for Periods
+            if (period === 'daily') {
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(); d.setDate(today.getDate() - i);
+                    const dateStr = d.toISOString().split('T')[0];
+                    const dailyOrders = orders.filter(o => o.date.startsWith(dateStr));
+                    
+                    const rev = dailyOrders.reduce((sum, o) => sum + o.totalValue, 0);
+                    const prof = dailyOrders.reduce((sum, o) => sum + ((o.sellingPrice - o.buyingPrice) * o.quantity), 0);
+                    dataPoints.push({ rev, prof });
+                    labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+                }
+            } else if (period === 'weekly') {
+                for (let i = 6; i >= 0; i--) {
+                    const dEnd = new Date(); dEnd.setDate(today.getDate() - i * 7);
+                    const dStart = new Date(dEnd); dStart.setDate(dStart.getDate() - 6);
+                    const weeklyOrders = orders.filter(o => {
+                        const oDate = new Date(o.date);
+                        return oDate >= dStart && oDate <= dEnd;
+                    });
+                    const rev = weeklyOrders.reduce((sum, o) => sum + o.totalValue, 0);
+                    const prof = weeklyOrders.reduce((sum, o) => sum + ((o.sellingPrice - o.buyingPrice) * o.quantity), 0);
+                    dataPoints.push({ rev, prof });
+                    labels.push(`Wk ${7-i}`);
+                }
+            } else if (period === 'monthly') {
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                    const monthStr = d.toISOString().substring(0, 7);
+                    const monthlyOrders = orders.filter(o => o.date.startsWith(monthStr));
+                    const rev = monthlyOrders.reduce((sum, o) => sum + o.totalValue, 0);
+                    const prof = monthlyOrders.reduce((sum, o) => sum + ((o.sellingPrice - o.buyingPrice) * o.quantity), 0);
+                    dataPoints.push({ rev, prof });
+                    labels.push(d.toLocaleDateString('en-GB', { month: 'short' }));
+                }
+            } else if (period === 'quarterly') {
+                for (let i = 3; i >= 0; i--) {
+                    const d = new Date(today.getFullYear(), today.getMonth() - i * 3, 1);
+                    const qStart = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3, 1);
+                    const qEnd = new Date(qStart.getFullYear(), qStart.getMonth() + 3, 0);
+                    const qOrders = orders.filter(o => {
+                        const oDate = new Date(o.date);
+                        return oDate >= qStart && oDate <= qEnd;
+                    });
+                    const rev = qOrders.reduce((sum, o) => sum + o.totalValue, 0);
+                    const prof = qOrders.reduce((sum, o) => sum + ((o.sellingPrice - o.buyingPrice) * o.quantity), 0);
+                    dataPoints.push({ rev, prof });
+                    labels.push(`Q${Math.floor(d.getMonth() / 3) + 1} '${String(d.getFullYear()).slice(2)}`);
+                }
+            } else if (period === 'yearly') {
+                for (let i = 4; i >= 0; i--) {
+                    const year = today.getFullYear() - i;
+                    const yOrders = orders.filter(o => o.date.startsWith(year.toString()));
+                    const rev = yOrders.reduce((sum, o) => sum + o.totalValue, 0);
+                    const prof = yOrders.reduce((sum, o) => sum + ((o.sellingPrice - o.buyingPrice) * o.quantity), 0);
+                    dataPoints.push({ rev, prof });
+                    labels.push(year.toString());
+                }
             }
 
-            // Map revenue values
-            const revenueMap = days.map(day => {
-                return orders
-                    .filter(o => o.date.startsWith(day))
-                    .reduce((total, curr) => total + curr.totalValue, 0);
-            });
-
-            const maxRev = Math.max(...revenueMap, 5000); // Guard division by zero
+            const revenueMap = dataPoints.map(dp => dp.rev);
+            const maxRev = Math.max(...revenueMap, 5000); 
             const gridMax = Math.ceil(maxRev / 1000) * 1000;
 
-            // Dimensions
             const width = 600;
             const height = 220;
             const paddingLeft = 50;
@@ -410,12 +502,11 @@
 
             const graphWidth = width - paddingLeft - paddingRight;
             const graphHeight = height - paddingTop - paddingBottom;
-
-            // Helper conversion functions
-            const getX = (index) => paddingLeft + (index / 6) * graphWidth;
+            
+            const numPoints = dataPoints.length;
+            const getX = (index) => paddingLeft + (index / (numPoints - 1)) * graphWidth;
             const getY = (val) => paddingTop + graphHeight - (val / gridMax) * graphHeight;
 
-            // Generate Horizontal grid lines & Y labels
             let yGridHtml = '';
             const steps = 4;
             for (let i = 0; i <= steps; i++) {
@@ -427,18 +518,14 @@
                 `;
             }
 
-            // X Labels (Dates)
             let xLabelsHtml = '';
-            days.forEach((day, idx) => {
+            labels.forEach((label, idx) => {
                 const xCoord = getX(idx);
-                const dObj = new Date(day);
-                const formattedDay = dObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 xLabelsHtml += `
-                    <text x="${xCoord}" y="${height - 10}" text-anchor="middle" class="text-[9px] font-medium" fill="${isDark ? '#9ca3af' : '#6b7280'}">${formattedDay}</text>
+                    <text x="${xCoord}" y="${height - 10}" text-anchor="middle" class="text-[9px] font-medium" fill="${isDark ? '#9ca3af' : '#6b7280'}">${label}</text>
                 `;
             });
 
-            // Generate Path Points
             let pathD = '';
             let areaD = `M ${getX(0)} ${getY(0)}`;
             
@@ -449,7 +536,6 @@
                     pathD += `M ${cx} ${cy}`;
                     areaD = `M ${cx} ${getY(0)} L ${cx} ${cy}`;
                 } else {
-                    // Smooth quadratic/bezier styling
                     const prevX = getX(idx - 1);
                     const prevY = getY(revenueMap[idx - 1]);
                     const cpX1 = prevX + (cx - prevX) / 2;
@@ -462,48 +548,37 @@
                 }
             });
 
-            // Interactive coordinate nodes
             let circlesHtml = '';
-            revenueMap.forEach((val, idx) => {
+            dataPoints.forEach((dp, idx) => {
                 const cx = getX(idx);
-                const cy = getY(val);
+                const cy = getY(dp.rev);
+                // Advanced Tooltip featuring BOTH Revenue and Profit!
                 circlesHtml += `
                     <g class="group cursor-pointer">
                         <circle cx="${cx}" cy="${cy}" r="6" fill="#2563eb" stroke="${isDark ? '#1f2937' : '#ffffff'}" stroke-width="2" class="transition-all hover:scale-125" />
                         <circle cx="${cx}" cy="${cy}" r="12" fill="#2563eb" fill-opacity="0" class="hover:fill-opacity-10 transition-all" />
-                        <!-- Interactive Tooltip -->
-                        <g class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-150">
-                            <rect x="${cx - 45}" y="${cy - 35}" width="90" height="24" rx="6" fill="${isDark ? '#111827' : '#1f2937'}" />
-                            <text x="${cx}" y="${cy - 20}" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="bold">KSh ${val.toLocaleString()}</text>
+                        <g class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-150 z-50">
+                            <rect x="${cx - 55}" y="${cy - 48}" width="110" height="40" rx="6" fill="${isDark ? '#111827' : '#1f2937'}" />
+                            <text x="${cx}" y="${cy - 32}" text-anchor="middle" font-size="9" fill="#93c5fd" font-weight="bold">Rev: KSh ${dp.rev.toLocaleString()}</text>
+                            <text x="${cx}" y="${cy - 20}" text-anchor="middle" font-size="9" fill="#34d399" font-weight="bold">Profit: KSh ${dp.prof.toLocaleString()}</text>
                         </g>
                     </g>
                 `;
             });
 
-            // Put SVG together
             container.innerHTML = `
                 <div class="relative w-full h-full">
-                    <svg viewBox="0 0 ${width} ${height}" class="w-full h-full select-none">
+                    <svg viewBox="0 0 ${width} ${height}" class="w-full h-full select-none overflow-visible">
                         <defs>
                             <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stop-color="#2563eb" stop-opacity="0.3"/>
                                 <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
                             </linearGradient>
                         </defs>
-                        
-                        <!-- Grid Lines -->
                         ${yGridHtml}
-                        
-                        <!-- Area path under curve -->
                         <path d="${areaD}" fill="url(#chartGradient)" />
-                        
-                        <!-- Main Line Curve -->
                         <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-                        
-                        <!-- Interactive point overlay -->
                         ${circlesHtml}
-                        
-                        <!-- Date labels -->
                         ${xLabelsHtml}
                     </svg>
                 </div>
@@ -514,9 +589,7 @@
         const views = {
             dashboard() {
                 const orders = db.get('orders');
-                const products = db.get('products');
                 
-                // Detailed Financial Calcs
                 let totalProfit = 0;
                 let totalRevenue = 0;
                 let pendingDeliveries = 0;
@@ -535,7 +608,6 @@
                     if (o.collectionStatus === 'Awaiting Collection' && daysSince >= 11) expiringCollections++;
                 });
 
-                // Check Milestones
                 const currentMilestoneLevel = Math.floor(totalProfit / 10000);
                 if (currentMilestoneLevel > db.data.settings.milestoneLevel) {
                     ui.celebrate();
@@ -544,7 +616,6 @@
                     db.save();
                 }
 
-                // Goals Management
                 const goals = db.get('goals');
                 const revGoal = goals.find(g => g.type === 'Revenue') || { target: 50000 };
                 const goalProgress = Math.min((totalRevenue / revGoal.target) * 100, 100);
@@ -573,9 +644,6 @@
                                     </div>
                                     <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 rounded-xl"><i data-lucide="trending-up" class="w-5 h-5"></i></div>
                                 </div>
-                                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
-                                    <i data-lucide="info" class="w-3.5 h-3.5"></i> Based on product cost pricing
-                                </p>
                             </div>
                             
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-primary-300 transition-all" onclick="app.navigate('deliveries')">
@@ -586,9 +654,6 @@
                                     </div>
                                     <div class="p-2.5 bg-blue-50 dark:bg-blue-950/30 text-blue-600 rounded-xl"><i data-lucide="truck" class="w-5 h-5"></i></div>
                                 </div>
-                                <p class="text-[11px] text-primary-600 dark:text-primary-400 mt-2 font-medium flex items-center gap-1">
-                                    Click to launch delivery manager <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                                </p>
                             </div>
                             
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -599,7 +664,6 @@
                                     </div>
                                     <div class="p-2.5 bg-red-50 dark:bg-red-950/30 text-red-600 rounded-xl"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
                                 </div>
-                                <p class="text-[11px] text-gray-500 mt-2">Held for more than 11-14 Days</p>
                             </div>
                             
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -616,30 +680,25 @@
                             </div>
                         </div>
 
-                        <!-- Progress Explanation Box -->
-                        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 flex items-start gap-3">
-                            <i data-lucide="sparkles" class="text-purple-600 dark:text-purple-400 w-5 h-5 flex-shrink-0 mt-0.5"></i>
-                            <div class="text-sm">
-                                <h4 class="font-bold text-purple-900 dark:text-purple-300">Target Progress breakdown</h4>
-                                <p class="text-purple-800 dark:text-purple-400 mt-0.5">
-                                    You have accomplished <span class="font-extrabold">${ui.formatMoney(totalRevenue)}</span> out of your monthly revenue milestone goal of <span class="font-bold">${ui.formatMoney(revGoal.target)}</span>. 
-                                    ${remainingToGoal > 0 
-                                        ? `You require <span class="font-extrabold text-indigo-600 dark:text-indigo-400">${ui.formatMoney(remainingToGoal)}</span> more sales value to reach your business objective.` 
-                                        : `🎉 <strong>Congratulations!</strong> You have completely smashed this month's revenue goal!`}
-                                </p>
-                            </div>
-                        </div>
-
                         <!-- Charts & Recent orders block -->
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
-                                <div class="flex justify-between items-center mb-4">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                                     <div>
-                                        <h3 class="text-lg font-bold">Revenue Overview (Past 7 Days)</h3>
-                                        <p class="text-xs text-gray-400">Total processed orders value trend</p>
+                                        <h3 class="text-lg font-bold">Revenue & Profit Analytics</h3>
+                                        <p class="text-xs text-gray-400">Total processed orders value and net margins</p>
                                     </div>
-                                    <span class="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded-full font-bold">Daily Analytics</span>
+                                    
+                                    <!-- Dynamic Time Milestones Graph Tabs -->
+                                    <div class="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                                        ${['daily', 'weekly', 'monthly', 'quarterly', 'yearly'].map(p => `
+                                            <button onclick="actions.setGraphPeriod('${p}')" id="btn-graph-${p}" class="graph-tab-btn px-2.5 py-1.5 text-[10px] sm:text-xs font-bold rounded-md transition-all ${app.graphPeriod === p ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}">
+                                                ${p.charAt(0).toUpperCase() + p.slice(1)}
+                                            </button>
+                                        `).join('')}
+                                    </div>
                                 </div>
+                                
                                 <div id="dashboardGraphContainer" class="w-full h-60 min-h-[220px]">
                                     <!-- Embedded clean SVG graph injects here -->
                                 </div>
@@ -817,11 +876,9 @@
             deliveries() {
                 const orders = db.get('orders');
                 
-                // Grouping lists
                 const pending = orders.filter(o => o.deliveryStatus === 'Pending Delivery');
                 const delivered = orders.filter(o => o.deliveryStatus === 'Delivered');
                 
-                // Get 14 Day orders
                 const today = new Date();
                 const fourteenDaysAgo = new Date();
                 fourteenDaysAgo.setDate(today.getDate() - 14);
@@ -874,8 +931,7 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- 14-Day Orders Tracker Grid -->
+                        
                         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
                             <div class="flex justify-between items-center mb-4">
                                 <div>
@@ -980,9 +1036,8 @@
                 const orders = db.get('orders');
                 const products = db.get('products');
                 
-                // Detailed aggregates
                 let totalRevenue = 0;
-                let totalCOGS = 0; // Total Cost of Goods Sold
+                let totalCOGS = 0; 
                 let totalItemsSold = 0;
 
                 orders.forEach(o => {
@@ -994,7 +1049,6 @@
                 const grossProfit = totalRevenue - totalCOGS;
                 const netMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
                 
-                // Total Valuation of Current Inventory
                 const totalAssetValue = products.reduce((sum, p) => sum + (p.buyingPrice * p.stock), 0);
                 const potentialAssetRev = products.reduce((sum, p) => sum + (p.sellingPrice * p.stock), 0);
 
@@ -1039,9 +1093,11 @@
                             </div>
                         </div>
 
-                        <!-- Table Sales Report breakdown -->
+                        <!-- Table Sales Report breakdown & INLINE EDIT -->
                         <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
-                            <h3 class="text-base font-extrabold mb-4">Stock Valuation & Performance</h3>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-base font-extrabold">Stock Valuation & Performance</h3>
+                            </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-sm text-left whitespace-nowrap">
                                     <thead class="bg-gray-50 dark:bg-gray-900/40 text-xs font-bold text-gray-500 uppercase border-b border-gray-100 dark:border-gray-700">
@@ -1052,6 +1108,7 @@
                                             <th class="px-4 py-3">Retail Price</th>
                                             <th class="px-4 py-3">Active Stock</th>
                                             <th class="px-4 py-3">Est. Valuation</th>
+                                            <th class="px-4 py-3 text-right">Edit Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -1063,8 +1120,16 @@
                                                     <td class="px-4 py-3.5">${p.category}</td>
                                                     <td class="px-4 py-3.5">${ui.formatMoney(p.buyingPrice)}</td>
                                                     <td class="px-4 py-3.5 font-semibold text-primary-600 dark:text-primary-400">${ui.formatMoney(p.sellingPrice)}</td>
-                                                    <td class="px-4 py-3.5">${p.stock} units</td>
+                                                    <td class="px-4 py-3.5">
+                                                        <span class="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 font-extrabold text-gray-800 dark:text-gray-100">${p.stock} units</span>
+                                                    </td>
                                                     <td class="px-4 py-3.5 font-bold">${ui.formatMoney(valuation)}</td>
+                                                    <td class="px-4 py-3.5 text-right">
+                                                        <!-- Direct action logic available for stock editing inline report -->
+                                                        <button onclick="actions.openEditProductModal('${p.id}')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/60 rounded-lg font-bold transition-all flex items-center gap-1 ml-auto shadow-sm">
+                                                            <i data-lucide="pen-line" class="w-3.5 h-3.5"></i> Edit Stock
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             `;
                                         }).join('')}
@@ -1113,7 +1178,26 @@
 
         // --- 5. Business Logic Actions ---
         const actions = {
-            // --- Customer Actions ---
+            
+            // Dashboard Actions
+            setGraphPeriod(period) {
+                app.graphPeriod = period;
+                
+                document.querySelectorAll('.graph-tab-btn').forEach(btn => {
+                    btn.classList.remove('bg-white', 'dark:bg-gray-800', 'text-primary-600', 'shadow-sm');
+                    btn.classList.add('text-gray-500', 'hover:text-gray-900', 'dark:hover:text-white');
+                });
+                
+                const activeBtn = document.getElementById(`btn-graph-${period}`);
+                if(activeBtn) {
+                    activeBtn.classList.remove('text-gray-500', 'hover:text-gray-900', 'dark:hover:text-white');
+                    activeBtn.classList.add('bg-white', 'dark:bg-gray-800', 'text-primary-600', 'shadow-sm');
+                }
+                
+                renderSVGRevenueGraph('dashboardGraphContainer', period);
+            },
+
+            // Customer Actions
             openAddCustomerModal() {
                 ui.openModal(`
                     <h3 class="text-lg font-extrabold mb-4">Create Customer Record</h3>
@@ -1212,12 +1296,10 @@
                     const name = fd.get('name').trim();
                     const phone = fd.get('phone').trim();
 
-                    // Check duplication with others
                     if(db.get('customers').some(c => c.phone === phone && c.id !== id)) {
                         return ui.toast('Another customer with this phone number exists!', 'error');
                     }
 
-                    // Update customer details
                     db.update('customers', id, {
                         name,
                         phone,
@@ -1225,7 +1307,6 @@
                         category: fd.get('category')
                     });
 
-                    // Reactively update customer references inside historical orders too!
                     const orders = db.get('orders');
                     orders.forEach(o => {
                         if (o.customerId === id) {
@@ -1242,7 +1323,6 @@
             },
 
             deleteCustomer(id) {
-                // Ensure there is confirmation modal instead of plain prompt
                 ui.openModal(`
                     <div class="text-center p-4">
                         <div class="w-14 h-14 bg-rose-100 dark:bg-rose-950/40 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1265,7 +1345,7 @@
                 app.render();
             },
 
-            // --- Product Actions ---
+            // Product Actions
             openAddProductModal() {
                 const cats = db.get('categories').map(c => `<option value="${c}">${c}</option>`).join('');
                 ui.openModal(`
@@ -1323,7 +1403,7 @@
                 `).join('');
 
                 ui.openModal(`
-                    <h3 class="text-lg font-extrabold mb-4">Edit Product Inventory</h3>
+                    <h3 class="text-lg font-extrabold mb-4">Edit Product Inventory / Valuation</h3>
                     <form id="edit-product-form" class="space-y-4">
                         <div>
                             <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Product Name</label>
@@ -1346,9 +1426,10 @@
                         <div>
                             <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Current Stock Quantity</label>
                             <input type="number" name="stock" value="${product.stock}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                            <p class="text-[10px] text-gray-400 mt-1"><i data-lucide="info" class="w-3 h-3 inline"></i> Note: Order transactions automatically deduct this quantity.</p>
                         </div>
                         <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white p-3.5 rounded-xl font-bold mt-4 shadow-md transition-colors">
-                            Update Product Catalog
+                            Update Product Specifications
                         </button>
                     </form>
                 `);
@@ -1366,12 +1447,12 @@
                     });
 
                     ui.closeModal();
-                    ui.toast('Inventory product catalog successfully updated!');
+                    ui.toast('Inventory & Valuation successfully updated!');
                     app.render();
                 };
             },
 
-            // --- Order Actions ---
+            // Order Actions
             openAddOrderModal() {
                 const customers = db.get('customers');
                 const products = db.get('products').filter(p => p.stock > 0);
@@ -1453,7 +1534,6 @@
                     const balance = totalValue - paid;
                     const paymentStatus = balance <= 0 ? 'Fully Paid' : (paid > 0 ? 'Partially Paid' : 'Unpaid');
                     
-                    // Destination unlock checker
                     const dest = fd.get('destination').trim();
                     let destList = db.get('destinations');
                     if(!destList.includes(dest)) {
@@ -1465,7 +1545,7 @@
                         }, 400);
                     }
 
-                    // Process order additions
+                    // Log Order
                     db.add('orders', {
                         date: new Date().toISOString(),
                         customerId: cust.id, 
@@ -1487,14 +1567,13 @@
                         collectionStatus: 'Awaiting Collection'
                     });
 
-                    // Auto decrement product stock level
+                    // AUTOMATIC STOCK DEDUCTION
                     db.update('products', prod.id, { stock: prod.stock - qty });
                     
-                    // Auto increment total client transaction volume count
                     db.update('customers', cust.id, { totalOrders: (cust.totalOrders || 0) + 1 });
 
                     ui.closeModal();
-                    ui.toast('Client transaction logged successfully!');
+                    ui.toast('Client transaction logged & Stock updated successfully!');
                     app.render();
                 };
             },
@@ -1553,18 +1632,14 @@
             confirmDeleteOrder(orderId) {
                 const order = db.get('orders').find(o => o.id === orderId);
                 if (order) {
-                    // Automatically restore product stock level count back
                     const product = db.get('products').find(p => p.id === order.productId);
                     if (product) {
                         db.update('products', product.id, { stock: product.stock + order.quantity });
                     }
-                    
-                    // Decrease customer total order counts
                     const customer = db.get('customers').find(c => c.id === order.customerId);
                     if (customer) {
                         db.update('customers', customer.id, { totalOrders: Math.max((customer.totalOrders || 1) - 1, 0) });
                     }
-
                     db.delete('orders', orderId);
                     ui.toast('Order deleted and stock has been restored.');
                 }
@@ -1578,7 +1653,7 @@
                 app.render();
             },
 
-            // --- System Data Operations ---
+            // System Data Operations
             exportData() {
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db.data));
                 const dlAnchorElem = document.createElement('a');
@@ -1616,7 +1691,33 @@
                 location.reload();
             },
 
-            // --- Report Downloader Suite ---
+            // Report Downloader Suite
+            downloadCSV() {
+                const orders = db.get('orders');
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Date,Customer,Product,Quantity,Unit Price,Total Value,Status\n";
+                orders.forEach(o => {
+                    const row = [
+                        new Date(o.date).toLocaleDateString(),
+                        `"${o.customerName}"`,
+                        `"${o.productName}"`,
+                        o.quantity,
+                        o.sellingPrice,
+                        o.totalValue,
+                        o.paymentStatus
+                    ].join(",");
+                    csvContent += row + "\n";
+                });
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `Luku_Orders_${new Date().getTime()}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                ui.toast('CSV Exported Successfully!');
+            },
+
             downloadPDF() {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
@@ -1633,10 +1734,10 @@
                 });
                 const profit = rev - cogs;
 
-                // Simple text layout spacing
+                // Headers
                 doc.setFont("Helvetica", "bold");
                 doc.setFontSize(22);
-                doc.setTextColor(30, 58, 138); // Navy Blue Primary
+                doc.setTextColor(30, 58, 138);
                 doc.text("LUKU DESIGNS SYSTEM STATEMENT", 20, 24);
 
                 doc.setFont("Helvetica", "normal");
@@ -1645,11 +1746,10 @@
                 doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 32);
                 doc.text(`Total Accounts: ${customers.length} | Catalog SKU Items: ${products.length}`, 20, 38);
 
-                // Divider line
                 doc.setDrawColor(226, 232, 240);
                 doc.line(20, 44, 190, 44);
 
-                // Financial Overview Header
+                // Financial Overview
                 doc.setFont("Helvetica", "bold");
                 doc.setFontSize(14);
                 doc.setTextColor(15, 23, 42);
@@ -1661,7 +1761,7 @@
                 doc.text(`B. Cost of Goods Sold:       KES ${cogs.toLocaleString()}`, 25, 72);
                 
                 doc.setFont("Helvetica", "bold");
-                doc.setTextColor(16, 185, 129); // Emerald profit green
+                doc.setTextColor(16, 185, 129);
                 doc.text(`C. Calculated Net Profit:    KES ${profit.toLocaleString()}`, 25, 80);
 
                 doc.setFont("Helvetica", "normal");
@@ -1690,154 +1790,24 @@
                 doc.setFont("Helvetica", "normal");
                 doc.setTextColor(15, 23, 42);
                 
+                // Fixed Code Block for PDF generation continuation
                 products.forEach(p => {
                     if (yCoord < 270) {
                         doc.text(p.name.substring(0, 26), 22, yCoord);
                         doc.text(p.category, 75, yCoord);
                         doc.text(`${p.stock} units`, 115, yCoord);
-                        doc.text(`KES ${p.buyingPrice}`, 135, yCoord);
-                        doc.text(`KES ${(p.buyingPrice * p.stock).toLocaleString()}`, 165, yCoord);
+                        doc.text(ui.formatMoney(p.buyingPrice), 135, yCoord);
+                        doc.text(ui.formatMoney(p.buyingPrice * p.stock), 165, yCoord);
                         yCoord += 8;
                     }
                 });
-
-                doc.setFont("Helvetica", "bold");
-                doc.setFontSize(10);
-                doc.text("Thank you for using Luku Designs Business ERP Suite.", 20, 280);
-
-                doc.save(`Luku_Designs_Executive_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-                ui.toast('PDF Business Statement downloaded successfully!');
-            },
-
-            downloadCSV() {
-                const orders = db.get('orders');
-                let csvContent = "data:text/csv;charset=utf-8,";
                 
-                // Add Headers
-                csvContent += "Transaction Date,Customer Name,Customer Phone,Product Name,Quantity,Unit Selling Price,Total Transaction,Amount Paid,Balance,Payment Status,Delivery Status\n";
-                
-                // Add rows
-                orders.forEach(o => {
-                    const row = [
-                        new Date(o.date).toLocaleDateString(),
-                        `"${o.customerName.replace(/"/g, '""')}"`,
-                        `"${o.customerPhone}"`,
-                        `"${o.productName.replace(/"/g, '""')}"`,
-                        o.quantity,
-                        o.sellingPrice,
-                        o.totalValue,
-                        o.paid,
-                        o.balance,
-                        o.paymentStatus,
-                        o.deliveryStatus
-                    ].join(",");
-                    csvContent += row + "\n";
-                });
-
-                const encodedUri = encodeURI(csvContent);
-                const dlAnchorElem = document.createElement('a');
-                dlAnchorElem.setAttribute("href", encodedUri);
-                dlAnchorElem.setAttribute("download", `Luku_Designs_Transactions_${new Date().toISOString().split('T')[0]}.csv`);
-                dlAnchorElem.click();
-                
-                ui.toast('CSV Spreadsheet spreadsheet successfully generated!');
+                doc.save(`Luku_Designs_Report_${new Date().getTime()}.pdf`);
+                ui.toast('PDF Downloaded successfully!');
             }
         };
 
-        // --- 6. Main App Initialization ---
-        const app = {
-            currentUser: null,
-            init() {
-                db.init();
-                
-                // Construct standard manifest for local device caching installer
-                const manifest = {
-                    name: "Luku Designs ERP Client",
-                    short_name: "Luku ERP",
-                    description: "Business dashboard for Luku Designs",
-                    start_url: ".",
-                    display: "standalone",
-                    background_color: "#ffffff",
-                    theme_color: "#1e3a8a",
-                    icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231e3a8a'%3E%3Cpath d='M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z'/%3E%3C/svg%3E", sizes: "192x192", type: "image/svg+xml" }]
-                };
-                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-                document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
-
-                // Force Theme states
-                if (db.data.settings.darkMode) {
-                    document.documentElement.classList.add('dark');
-                    document.documentElement.classList.remove('light');
-                } else {
-                    document.documentElement.classList.add('light');
-                    document.documentElement.classList.remove('dark');
-                }
-                
-                // Responsive desktop theme toggling triggers
-                const handleThemeToggle = () => {
-                    const isDark = document.documentElement.classList.toggle('dark');
-                    document.documentElement.classList.toggle('light', !isDark);
-                    db.data.settings.darkMode = isDark;
-                    db.save();
-                    this.render(); // Redraw UI immediately to preserve matching palettes
-                };
-
-                document.getElementById('theme-toggle').addEventListener('click', handleThemeToggle);
-                document.getElementById('mobile-theme-toggle').addEventListener('click', handleThemeToggle);
-
-                // Connect Auth Action Listeners
-                document.getElementById('login-form').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const u = document.getElementById('username').value.toLowerCase().trim();
-                    const p = document.getElementById('password').value.toLowerCase().trim();
-                    
-                    if ((u === 'admin' && p === 'admin') || (u === 'staff' && p === 'staff')) {
-                        this.currentUser = { username: u, role: u };
-                        document.getElementById('auth-screen').classList.add('hidden');
-                        document.getElementById('app-screen').classList.remove('hidden');
-                        document.getElementById('user-role-display').textContent = `${u} Account`;
-                        this.navigate('dashboard');
-                    } else {
-                        ui.toast('Invalid security combination. Try: admin/admin or staff/staff', 'error');
-                    }
-                });
-            },
-            
-            navigate(viewId) {
-                if(navItems.find(i => i.id === viewId).adminOnly && this.currentUser.role !== 'admin') {
-                    return ui.toast('Administrative clearance required to view this tab.', 'error');
-                }
-                ui.currentView = viewId;
-                this.render();
-            },
-            
-            render() {
-                renderNav();
-                const container = document.getElementById('view-container');
-                if (views[ui.currentView]) {
-                    container.innerHTML = views[ui.currentView]();
-                    lucide.createIcons({ root: container });
-                    
-                    // Trigger the Custom SVG line chart if the Dashboard has successfully rendered
-                    if (ui.currentView === 'dashboard') {
-                        setTimeout(() => renderSVGRevenueGraph('dashboardGraphContainer'), 50);
-                    }
-                }
-            },
-
-            logout() {
-                this.currentUser = null;
-                document.getElementById('app-screen').classList.add('hidden');
-                document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('login-form').reset();
-                ui.toast('Logged out successfully.');
-            }
-        };
-
-        // Initialize Core System Boot up on load
-        document.addEventListener('DOMContentLoaded', () => {
-            app.init();
-        });
+        window.onload = () => app.init();
     </script>
 </body>
 </html>
