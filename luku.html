@@ -145,7 +145,7 @@
 
         <!-- Bottom Navigation (Mobile) -->
         <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 pb-safe z-20 shadow-lg">
-            <div class="flex justify-around items-center h-16 px-2" id="mobile-nav">
+            <div class="flex justify-between items-center h-16 px-1 overflow-x-auto hide-scrollbar" id="mobile-nav">
                 <!-- Mobile nav injected here -->
             </div>
         </nav>
@@ -399,7 +399,7 @@
                     </a>
                 `;
                 
-                if (['dashboard', 'orders', 'deliveries', 'customers', 'reports'].includes(item.id)) {
+                if (['dashboard', 'orders', 'deliveries', 'customers', 'inventory', 'reports', 'settings'].includes(item.id)) {
                     mHtml += `
                         <a href="#" onclick="app.navigate('${item.id}'); return false;" class="flex flex-col items-center justify-center w-full py-1 transition-all ${activeClassesMobile}">
                             <i data-lucide="${item.icon}" class="w-5.5 h-5.5 mb-0.5"></i>
@@ -931,7 +931,20 @@
                                 </div>
                             </div>
                         </div>
-                        
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-primary-100 dark:border-primary-900/30 p-5">
+                            <h3 class="font-bold text-lg text-primary-600 dark:text-primary-400 mb-4 flex items-center gap-2">
+                                <i data-lucide="map"></i>
+                                New Delivery Destinations Achieved
+                            </h3>
+
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                ${[...new Set(orders.map(o => o.destination))].map(dest => `
+                                    <div class="p-3 rounded-xl bg-primary-50 dark:bg-primary-950/20 border border-primary-100 dark:border-primary-900/30">
+                                        <p class="font-bold text-sm">${dest}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
                         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
                             <div class="flex justify-between items-center mb-4">
                                 <div>
