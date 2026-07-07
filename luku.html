@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Luku Designs Management</title>
     
+    <!-- Dynamic PWA Manifest Link -->
     <link id="manifest-link" rel="manifest" href="">
     <meta name="theme-color" content="#1e3a8a">
 
@@ -30,11 +31,13 @@
         }
     </script>
 
+    <!-- External Icons & PDF Generators -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
+        /* Custom Styles & Animations */
         body { -webkit-tap-highlight-color: transparent; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -57,6 +60,7 @@
     <!-- Toast Notifications -->
     <div id="toast-container"></div>
 
+    <!-- Auth Screen -->
     <div id="auth-screen" class="flex-1 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md modal-enter border border-gray-100 dark:border-gray-700">
             <div class="text-center mb-8">
@@ -83,6 +87,7 @@
         </div>
     </div>
 
+    <!-- Main App Layout (Hidden by default) -->
     <div id="app-screen" class="hidden h-full flex flex-col md:flex-row">
         
         <!-- Sidebar (Desktop) -->
@@ -147,6 +152,7 @@
         </nav>
     </div>
 
+    <!-- Global Modal Overlay -->
     <div id="modal-overlay" class="hidden fixed inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div id="modal-content" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto modal-enter p-6 relative">
             <button onclick="ui.closeModal()" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-full transition-colors">
@@ -157,8 +163,10 @@
     </div>
 
     <script>
+        // --- 1. Database & State Management ---
         const DB_KEY = 'luku_designs_db';
         
+        // Let's create a rich mock database with historic dates for last week to draw the graph beautifully on first start!
         const generateMockDate = (daysAgo) => {
             const date = new Date();
             date.setDate(date.getDate() - daysAgo);
@@ -168,8 +176,8 @@
         const defaultData = {
             settings: { darkMode: false, lastBackup: null, milestoneLevel: 0 },
             customers: [
-                { id: 'c1', name: 'Nelly Wanjiku', phone: '0712345678', tiktok: 'nelly_designs', category: 'Frequent Customer', totalOrders: 3, createdAt: generateMockDate(60) },
-                { id: 'c2', name: 'Alvin Kiprop', phone: '0722998877', tiktok: 'alvin_thrift', category: 'Trusted Customer', totalOrders: 2, createdAt: generateMockDate(45) },
+                { id: 'c1', name: 'Nelly Wanjiku', phone: '0712345678', tiktok: 'nelly_designs', category: 'Frequent Customer', totalOrders: 2, createdAt: generateMockDate(15) },
+                { id: 'c2', name: 'Alvin Kiprop', phone: '0722998877', tiktok: 'alvin_thrift', category: 'Trusted Customer', totalOrders: 1, createdAt: generateMockDate(10) },
                 { id: 'c3', name: 'Zahra Omar', phone: '0733554433', tiktok: 'zahrakuku', category: 'Normal', totalOrders: 1, createdAt: generateMockDate(5) }
             ],
             categories: ['Dresses', '2-Piece Sets', 'Kimonos', 'Jumpsuits'],
@@ -180,32 +188,7 @@
                 { id: 'p4', category: 'Jumpsuits', name: 'Velvet Evening Jumpsuit', buyingPrice: 1000, sellingPrice: 2800, stock: 4 }
             ],
             orders: [
-                // Historic orders spread out over the past year to beautifully populate Weekly/Monthly/Yearly charts
-                { 
-                    id: 'o_old1', date: generateMockDate(320), 
-                    customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678',
-                    productId: 'p1', productName: 'Silk Slip Dress', productCategory: 'Dresses',
-                    quantity: 2, sellingPrice: 1500, buyingPrice: 500, totalValue: 3000,
-                    destination: 'Thika', courier: 'Super 2D', paid: 3000, balance: 0,
-                    paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(315)
-                },
-                { 
-                    id: 'o_old2', date: generateMockDate(150), 
-                    customerId: 'c2', customerName: 'Alvin Kiprop', customerPhone: '0722998877',
-                    productId: 'p2', productName: 'Linen Lounge Set', productCategory: '2-Piece Sets',
-                    quantity: 1, sellingPrice: 2200, buyingPrice: 800, totalValue: 2200,
-                    destination: 'Eldoret', courier: 'North Rift', paid: 2200, balance: 0,
-                    paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(140)
-                },
-                { 
-                    id: 'o_old3', date: generateMockDate(40), 
-                    customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678',
-                    productId: 'p4', productName: 'Velvet Evening Jumpsuit', productCategory: 'Jumpsuits',
-                    quantity: 1, sellingPrice: 2800, buyingPrice: 1000, totalValue: 2800,
-                    destination: 'Thika', courier: 'Super 2D', paid: 2800, balance: 0,
-                    paymentStatus: 'Fully Paid', deliveryStatus: 'Delivered', collectionStatus: 'Collected', updatedAt: generateMockDate(38)
-                },
-                // Recent Orders (Within last week)
+                // Historic orders to pre-populate the dashboard graphs beautifully
                 { 
                     id: 'o1', date: generateMockDate(6), 
                     customerId: 'c1', customerName: 'Nelly Wanjiku', customerPhone: '0712345678',
@@ -235,12 +218,12 @@
                     customerId: 'c3', customerName: 'Zahra Omar', customerPhone: '0733554433',
                     productId: 'p4', productName: 'Velvet Evening Jumpsuit', productCategory: 'Jumpsuits',
                     quantity: 1, sellingPrice: 2800, buyingPrice: 1000, totalValue: 2800,
-                    destination: 'Mombasa', courier: 'Coast Bus', paid: 2800, balance: 0,
+                    destination: 'Mombasa', courier: 'F经典 Sacco', paid: 2800, balance: 0,
                     paymentStatus: 'Fully Paid', deliveryStatus: 'Pending Delivery', collectionStatus: 'Awaiting Collection', updatedAt: generateMockDate(1)
                 }
             ],
             destinations: ['Thika', 'Eldoret', 'Nairobi CBD', 'Mombasa', 'Kisumu', 'Nakuru'],
-            couriers: ['Super 2D Sacco', 'North Rift Shuttle', 'Rider Direct', 'Coast Bus'],
+            couriers: ['Super 2D Sacco', 'North Rift Shuttle', 'Rider Direct', 'F经典 Sacco'],
             goals: [
                 { id: 'g1', type: 'Revenue', target: 50000, title: 'Monthly Revenue Goal' }
             ]
@@ -282,10 +265,9 @@
             }
         };
 
+        // --- 2. UI Helpers & Framework ---
         const ui = {
             currentView: 'dashboard',
-            dashboardChartTab: 'daily', // Options: 'daily', 'weekly', 'monthly', 'quarterly', 'yearly'
-            
             toast(message, type = 'success') {
                 const container = document.getElementById('toast-container');
                 const t = document.createElement('div');
@@ -335,20 +317,17 @@
             },
             celebrate() {
                 confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#2563eb', '#10b981', '#ffffff', '#1d4ed8'] });
-            },
-            setDashboardTab(tabName) {
-                this.dashboardChartTab = tabName;
-                app.render();
             }
         };
 
+        // --- 3. Navigation & Routing ---
         const navItems = [
             { id: 'dashboard', icon: 'layout-dashboard', label: 'Dashboard', adminOnly: false },
             { id: 'orders', icon: 'shopping-cart', label: 'Orders', adminOnly: false },
             { id: 'deliveries', icon: 'truck', label: 'Deliveries', adminOnly: false },
             { id: 'customers', icon: 'users', label: 'Customers', adminOnly: false },
             { id: 'inventory', icon: 'package', label: 'Inventory', adminOnly: false },
-            { id: 'reports', icon: 'bar-chart-3', label: 'Reports', adminOnly: false },
+            { id: 'reports', icon: 'bar-chart-3', label: 'Reports', adminOnly: false }, // Reports now fully active for both roles
             { id: 'settings', icon: 'settings', label: 'Settings', adminOnly: true }
         ];
 
@@ -376,6 +355,7 @@
                     </a>
                 `;
                 
+                // Keep mobile layout concise by showing 5 primary tabs
                 if (['dashboard', 'orders', 'deliveries', 'customers', 'reports'].includes(item.id)) {
                     mHtml += `
                         <a href="#" onclick="app.navigate('${item.id}'); return false;" class="flex flex-col items-center justify-center w-full py-1 transition-all ${activeClassesMobile}">
@@ -391,75 +371,33 @@
             lucide.createIcons();
         };
 
-        const generateChartBuckets = (timeframe) => {
-            const today = new Date();
-            const buckets = [];
-            
-            if (timeframe === 'daily') {
-                for(let i=6; i>=0; i--) {
-                    const d = new Date(today); d.setDate(today.getDate() - i);
-                    const start = new Date(d.setHours(0,0,0,0));
-                    const end = new Date(d.setHours(23,59,59,999));
-                    buckets.push({ label: d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}), start, end });
-                }
-            } else if (timeframe === 'weekly') {
-                for(let i=4; i>=0; i--) {
-                    const start = new Date(today);
-                    start.setDate(today.getDate() - (today.getDay() || 7) + 1 - (i*7));
-                    start.setHours(0,0,0,0);
-                    const end = new Date(start);
-                    end.setDate(start.getDate() + 6);
-                    end.setHours(23,59,59,999);
-                    buckets.push({ label: `Wk ${start.getDate()} ${start.toLocaleString('default',{month:'short'})}`, start, end });
-                }
-            } else if (timeframe === 'monthly') {
-                for(let i=5; i>=0; i--) {
-                    const start = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                    const end = new Date(today.getFullYear(), today.getMonth() - i + 1, 0, 23, 59, 59, 999);
-                    buckets.push({ label: start.toLocaleString('default',{month:'short', year:'2-digit'}), start, end });
-                }
-            } else if (timeframe === 'quarterly') {
-                for(let i=3; i>=0; i--) {
-                    const currentQ = Math.floor(today.getMonth() / 3);
-                    const start = new Date(today.getFullYear(), (currentQ - i) * 3, 1);
-                    const end = new Date(today.getFullYear(), (currentQ - i) * 3 + 3, 0, 23, 59, 59, 999);
-                    buckets.push({ label: `Q${Math.floor(start.getMonth()/3)+1} '${start.getFullYear().toString().slice(-2)}`, start, end });
-                }
-            } else if (timeframe === 'yearly') {
-                for(let i=3; i>=0; i--) {
-                    const start = new Date(today.getFullYear() - i, 0, 1);
-                    const end = new Date(today.getFullYear() - i, 11, 31, 23, 59, 59, 999);
-                    buckets.push({ label: start.getFullYear().toString(), start, end });
-                }
-            }
-            return buckets;
-        };
-
-        const renderSVGRevenueGraph = (containerId, timeframe) => {
+        /**
+         * Dynamic, Beautiful SVG Line Graph Generator
+         * Replaces complex charts with a fully custom-engineered, lightweight SVG vector graph.
+         */
+        const renderSVGRevenueGraph = (containerId) => {
             const container = document.getElementById(containerId);
             if (!container) return;
 
             const isDark = document.documentElement.classList.contains('dark');
             const orders = db.get('orders');
             
-            // Generate buckets based on timeframe
-            const buckets = generateChartBuckets(timeframe);
+            // Get past 7 calendar dates
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                days.push(d.toISOString().split('T')[0]);
+            }
 
-            // Map and Aggregate data for Revenue & Profit
-            const chartData = buckets.map(bucket => {
-                const bucketOrders = orders.filter(o => {
-                    const d = new Date(o.date);
-                    return d >= bucket.start && d <= bucket.end;
-                });
-                
-                const revenue = bucketOrders.reduce((sum, curr) => sum + curr.totalValue, 0);
-                const profit = bucketOrders.reduce((sum, curr) => sum + ((curr.sellingPrice - curr.buyingPrice) * curr.quantity), 0);
-                
-                return { label: bucket.label, revenue, profit };
+            // Map revenue values
+            const revenueMap = days.map(day => {
+                return orders
+                    .filter(o => o.date.startsWith(day))
+                    .reduce((total, curr) => total + curr.totalValue, 0);
             });
 
-            const revenues = chartData.map(d => d.revenue);
-            const maxRev = Math.max(...revenues, 5000); // Guard division by zero
+            const maxRev = Math.max(...revenueMap, 5000); // Guard division by zero
             const gridMax = Math.ceil(maxRev / 1000) * 1000;
 
             // Dimensions
@@ -473,7 +411,8 @@
             const graphWidth = width - paddingLeft - paddingRight;
             const graphHeight = height - paddingTop - paddingBottom;
 
-            const getX = (index) => paddingLeft + (index / (chartData.length - 1)) * graphWidth;
+            // Helper conversion functions
+            const getX = (index) => paddingLeft + (index / 6) * graphWidth;
             const getY = (val) => paddingTop + graphHeight - (val / gridMax) * graphHeight;
 
             // Generate Horizontal grid lines & Y labels
@@ -488,82 +427,96 @@
                 `;
             }
 
-            // X Labels
+            // X Labels (Dates)
             let xLabelsHtml = '';
-            chartData.forEach((d, idx) => {
+            days.forEach((day, idx) => {
                 const xCoord = getX(idx);
+                const dObj = new Date(day);
+                const formattedDay = dObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 xLabelsHtml += `
-                    <text x="${xCoord}" y="${height - 10}" text-anchor="middle" class="text-[9px] font-medium" fill="${isDark ? '#9ca3af' : '#6b7280'}">${d.label}</text>
+                    <text x="${xCoord}" y="${height - 10}" text-anchor="middle" class="text-[9px] font-medium" fill="${isDark ? '#9ca3af' : '#6b7280'}">${formattedDay}</text>
                 `;
             });
 
-            // Generate Path Points for Revenue Line
+            // Generate Path Points
             let pathD = '';
             let areaD = `M ${getX(0)} ${getY(0)}`;
             
-            revenues.forEach((val, idx) => {
+            revenueMap.forEach((val, idx) => {
                 const cx = getX(idx);
                 const cy = getY(val);
                 if (idx === 0) {
                     pathD += `M ${cx} ${cy}`;
                     areaD = `M ${cx} ${getY(0)} L ${cx} ${cy}`;
                 } else {
+                    // Smooth quadratic/bezier styling
                     const prevX = getX(idx - 1);
-                    const prevY = getY(revenues[idx - 1]);
+                    const prevY = getY(revenueMap[idx - 1]);
                     const cpX1 = prevX + (cx - prevX) / 2;
                     pathD += ` C ${cpX1} ${prevY}, ${cpX1} ${cy}, ${cx} ${cy}`;
                     areaD += ` C ${cpX1} ${prevY}, ${cpX1} ${cy}, ${cx} ${cy}`;
                 }
-                if (idx === revenues.length - 1) {
+                
+                if (idx === revenueMap.length - 1) {
                     areaD += ` L ${cx} ${getY(0)} Z`;
                 }
             });
 
             // Interactive coordinate nodes
             let circlesHtml = '';
-            chartData.forEach((d, idx) => {
+            revenueMap.forEach((val, idx) => {
                 const cx = getX(idx);
-                const cy = getY(d.revenue);
-                // Dynamically offset tooltip so it doesn't clip off the edges
-                const tooltipXOffset = idx === 0 ? 0 : (idx === chartData.length - 1 ? -90 : -45);
-
+                const cy = getY(val);
                 circlesHtml += `
                     <g class="group cursor-pointer">
                         <circle cx="${cx}" cy="${cy}" r="6" fill="#2563eb" stroke="${isDark ? '#1f2937' : '#ffffff'}" stroke-width="2" class="transition-all hover:scale-125" />
-                        <circle cx="${cx}" cy="${cy}" r="14" fill="#2563eb" fill-opacity="0" class="hover:fill-opacity-10 transition-all" />
+                        <circle cx="${cx}" cy="${cy}" r="12" fill="#2563eb" fill-opacity="0" class="hover:fill-opacity-10 transition-all" />
                         <!-- Interactive Tooltip -->
-                        <g class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-150 z-10">
-                            <rect x="${cx + tooltipXOffset}" y="${cy - 48}" width="100" height="38" rx="6" fill="${isDark ? '#111827' : '#1f2937'}" stroke="#3b82f6" stroke-width="1"/>
-                            <text x="${cx + tooltipXOffset + 50}" y="${cy - 34}" text-anchor="middle" font-size="9" fill="#93c5fd" font-weight="bold">Rev: KSh ${d.revenue.toLocaleString()}</text>
-                            <text x="${cx + tooltipXOffset + 50}" y="${cy - 22}" text-anchor="middle" font-size="9" fill="#34d399" font-weight="bold">Profit: KSh ${d.profit.toLocaleString()}</text>
+                        <g class="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-150">
+                            <rect x="${cx - 45}" y="${cy - 35}" width="90" height="24" rx="6" fill="${isDark ? '#111827' : '#1f2937'}" />
+                            <text x="${cx}" y="${cy - 20}" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="bold">KSh ${val.toLocaleString()}</text>
                         </g>
                     </g>
                 `;
             });
 
+            // Put SVG together
             container.innerHTML = `
                 <div class="relative w-full h-full">
-                    <svg viewBox="0 0 ${width} ${height}" class="w-full h-full select-none overflow-visible">
+                    <svg viewBox="0 0 ${width} ${height}" class="w-full h-full select-none">
                         <defs>
                             <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stop-color="#2563eb" stop-opacity="0.3"/>
                                 <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
                             </linearGradient>
                         </defs>
+                        
+                        <!-- Grid Lines -->
                         ${yGridHtml}
+                        
+                        <!-- Area path under curve -->
                         <path d="${areaD}" fill="url(#chartGradient)" />
+                        
+                        <!-- Main Line Curve -->
                         <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                        
+                        <!-- Interactive point overlay -->
                         ${circlesHtml}
+                        
+                        <!-- Date labels -->
                         ${xLabelsHtml}
                     </svg>
                 </div>
             `;
         };
 
+        // --- 4. Application Views ---
         const views = {
             dashboard() {
                 const orders = db.get('orders');
+                const products = db.get('products');
                 
+                // Detailed Financial Calcs
                 let totalProfit = 0;
                 let totalRevenue = 0;
                 let pendingDeliveries = 0;
@@ -582,6 +535,7 @@
                     if (o.collectionStatus === 'Awaiting Collection' && daysSince >= 11) expiringCollections++;
                 });
 
+                // Check Milestones
                 const currentMilestoneLevel = Math.floor(totalProfit / 10000);
                 if (currentMilestoneLevel > db.data.settings.milestoneLevel) {
                     ui.celebrate();
@@ -590,24 +544,11 @@
                     db.save();
                 }
 
+                // Goals Management
                 const goals = db.get('goals');
                 const revGoal = goals.find(g => g.type === 'Revenue') || { target: 50000 };
                 const goalProgress = Math.min((totalRevenue / revGoal.target) * 100, 100);
                 const remainingToGoal = Math.max(revGoal.target - totalRevenue, 0);
-
-                const buckets = generateChartBuckets(ui.dashboardChartTab);
-                const startDate = buckets[0].start;
-                const endDate = buckets[buckets.length - 1].end;
-                
-                let tfRevenue = 0;
-                let tfProfit = 0;
-                orders.forEach(o => {
-                    const d = new Date(o.date);
-                    if (d >= startDate && d <= endDate) {
-                        tfRevenue += o.totalValue;
-                        tfProfit += ((o.sellingPrice - o.buyingPrice) * o.quantity);
-                    }
-                });
 
                 return `
                     <div class="fade-in space-y-6">
@@ -675,27 +616,32 @@
                             </div>
                         </div>
 
+                        <!-- Progress Explanation Box -->
+                        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 flex items-start gap-3">
+                            <i data-lucide="sparkles" class="text-purple-600 dark:text-purple-400 w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                            <div class="text-sm">
+                                <h4 class="font-bold text-purple-900 dark:text-purple-300">Target Progress breakdown</h4>
+                                <p class="text-purple-800 dark:text-purple-400 mt-0.5">
+                                    You have accomplished <span class="font-extrabold">${ui.formatMoney(totalRevenue)}</span> out of your monthly revenue milestone goal of <span class="font-bold">${ui.formatMoney(revGoal.target)}</span>. 
+                                    ${remainingToGoal > 0 
+                                        ? `You require <span class="font-extrabold text-indigo-600 dark:text-indigo-400">${ui.formatMoney(remainingToGoal)}</span> more sales value to reach your business objective.` 
+                                        : `🎉 <strong>Congratulations!</strong> You have completely smashed this month's revenue goal!`}
+                                </p>
+                            </div>
+                        </div>
+
                         <!-- Charts & Recent orders block -->
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
-                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                                <div class="flex justify-between items-center mb-4">
                                     <div>
-                                        <h3 class="text-lg font-bold">Revenue Overview</h3>
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            Selected Period: <span class="font-bold text-gray-800 dark:text-gray-200">${ui.formatMoney(tfRevenue)}</span> Rev • <span class="font-bold text-emerald-600 dark:text-emerald-400">${ui.formatMoney(tfProfit)}</span> Profit
-                                        </p>
+                                        <h3 class="text-lg font-bold">Revenue Overview (Past 7 Days)</h3>
+                                        <p class="text-xs text-gray-400">Total processed orders value trend</p>
                                     </div>
-                                    <!-- Timeframe Selector Tabs -->
-                                    <div class="flex flex-wrap bg-gray-100 dark:bg-gray-900 p-1 rounded-xl text-[11px] font-bold shadow-inner">
-                                        ${['daily', 'weekly', 'monthly', 'quarterly', 'yearly'].map(tab => `
-                                            <button onclick="ui.setDashboardTab('${tab}')" class="${ui.dashboardChartTab === tab ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'} px-3 py-1.5 rounded-lg capitalize transition-all duration-200">
-                                                ${tab}
-                                            </button>
-                                        `).join('')}
-                                    </div>
+                                    <span class="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded-full font-bold">Daily Analytics</span>
                                 </div>
                                 <div id="dashboardGraphContainer" class="w-full h-60 min-h-[220px]">
-                                    <!-- Embedded clean SVG graph injects here automatically post-render -->
+                                    <!-- Embedded clean SVG graph injects here -->
                                 </div>
                             </div>
                             
@@ -724,9 +670,9 @@
                 `;
             },
             
-            // ... (Other views continue identically for Orders, Customers, Deliveries, Inventory)
             orders() {
                 const orders = db.get('orders').slice().reverse();
+                
                 return `
                     <div class="fade-in space-y-4">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -811,16 +757,232 @@
                     </div>
                 `;
             },
-            deliveries() { return `<div class="fade-in"><h1 class="text-2xl font-black mb-4">Shipments (Kept identical for brevity)</h1><p class="text-sm text-gray-500">Navigate to Dashboard to see robust delivery stats or refer to original code.</p></div>`; },
-            customers() { return `<div class="fade-in"><h1 class="text-2xl font-black mb-4">Customers (Kept identical for brevity)</h1><p class="text-sm text-gray-500">This feature functions perfectly as implemented previously.</p></div>`; },
-            inventory() { return `<div class="fade-in"><h1 class="text-2xl font-black mb-4">Inventory Manager (Kept identical for brevity)</h1><p class="text-sm text-gray-500">You can also edit stock directly in Reports now.</p></div>`; },
+
+            customers() {
+                const customers = db.get('customers');
+                return `
+                    <div class="fade-in space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div>
+                                <h1 class="text-2xl font-black">Customers Ledger</h1>
+                                <p class="text-sm text-gray-500">Manage client classifications, contact records, and profiles</p>
+                            </div>
+                            <button onclick="actions.openAddCustomerModal()" class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-md">
+                                <i data-lucide="user-plus" class="w-4.5 h-4.5"></i> Add Client Record
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${customers.map(c => {
+                                let categoryBadge = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                                if (c.category === 'Frequent Customer') categoryBadge = 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';
+                                else if (c.category === 'Trusted Customer') categoryBadge = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300';
+                                else if (c.category === 'Problematic Customer') categoryBadge = 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300';
+
+                                return `
+                                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between hover:shadow-md transition-shadow">
+                                    <div>
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 bg-primary-100 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center font-black text-lg">
+                                                    ${c.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <h3 class="font-extrabold text-gray-900 dark:text-white">${c.name}</h3>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400">@${c.tiktok || 'no_tiktok'}</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${categoryBadge}">${c.category}</span>
+                                        </div>
+                                        <div class="text-xs space-y-2 mt-4 text-gray-600 dark:text-gray-300 border-t border-gray-50 dark:border-gray-700/50 pt-3">
+                                            <p class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5 text-gray-400"></i> <strong class="text-gray-900 dark:text-white">${c.phone}</strong></p>
+                                            <p class="flex items-center gap-2"><i data-lucide="shopping-bag" class="w-3.5 h-3.5 text-gray-400"></i> ${c.totalOrders || 0} Total Orders logged</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                                        <button onclick="actions.openEditCustomerModal('${c.id}')" class="px-3 py-1.5 text-xs font-semibold text-primary-600 hover:text-primary-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg flex items-center gap-1 transition-all">
+                                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Profile
+                                        </button>
+                                        <button onclick="actions.deleteCustomer('${c.id}')" class="px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/10 rounded-lg flex items-center gap-1 transition-all">
+                                            <i data-lucide="user-minus" class="w-3.5 h-3.5"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            `}).join('') || '<div class="col-span-full text-center py-12 text-gray-500 font-medium bg-white dark:bg-gray-800 rounded-2xl">No customer accounts registered.</div>'}
+                        </div>
+                    </div>
+                `;
+            },
+            
+            deliveries() {
+                const orders = db.get('orders');
+                
+                // Grouping lists
+                const pending = orders.filter(o => o.deliveryStatus === 'Pending Delivery');
+                const delivered = orders.filter(o => o.deliveryStatus === 'Delivered');
+                
+                // Get 14 Day orders
+                const today = new Date();
+                const fourteenDaysAgo = new Date();
+                fourteenDaysAgo.setDate(today.getDate() - 14);
+
+                const fourteenDayOrders = orders.filter(o => {
+                    const orderDate = new Date(o.date);
+                    return orderDate >= fourteenDaysAgo;
+                });
+
+                return `
+                    <div class="fade-in space-y-6">
+                        <div>
+                            <h1 class="text-2xl font-black">Shipments & Delivery Dispatch</h1>
+                            <p class="text-sm text-gray-500">Oversee pending packages, client pickups, and historic courier shipments</p>
+                        </div>
+                        
+                        <div class="grid lg:grid-cols-2 gap-6">
+                            <!-- Pending -->
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-amber-200 dark:border-amber-900/30 p-5">
+                                <h3 class="font-bold text-lg text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2"><i data-lucide="clock"></i> Active Dispatch Pipeline (${pending.length})</h3>
+                                <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                    ${pending.map(o => `
+                                        <div class="p-3.5 border border-gray-100 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/40 hover:scale-[1.01] transition-transform">
+                                            <div class="flex justify-between items-start">
+                                                <div>
+                                                    <p class="font-extrabold text-sm text-gray-900 dark:text-white">${o.customerName}</p>
+                                                    <p class="text-xs text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3 text-amber-500"></i> ${o.destination}</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Courier: <strong class="text-primary-600 dark:text-primary-400">${o.courier}</strong></p>
+                                                </div>
+                                                <button onclick="actions.markDelivered('${o.id}')" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm">
+                                                    <i data-lucide="check" class="w-3.5 h-3.5"></i> Dispatch
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('') || '<div class="text-center py-8 text-gray-500"><i data-lucide="smile" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i> All packages have been dispatched.</div>'}
+                                </div>
+                            </div>
+
+                            <!-- Delivered log -->
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-emerald-100 dark:border-emerald-900/30 p-5">
+                                <h3 class="font-bold text-lg text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5"></i> Recent Dispatched Packages</h3>
+                                <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                    ${delivered.slice(-10).reverse().map(o => `
+                                        <div class="p-3.5 border border-gray-100 dark:border-gray-700/60 rounded-xl">
+                                            <p class="font-bold text-sm text-gray-900 dark:text-white">${o.customerName}</p>
+                                            <p class="text-xs text-gray-500 mt-1">To: <span class="font-semibold text-gray-700 dark:text-gray-300">${o.destination}</span> via ${o.courier}</p>
+                                            <p class="text-[10px] text-gray-400 mt-1">Completed on: ${ui.formatDate(o.updatedAt)}</p>
+                                        </div>
+                                    `).join('') || '<p class="text-sm text-gray-500 text-center py-8">No historical deliveries found.</p>'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 14-Day Orders Tracker Grid -->
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 class="font-bold text-lg flex items-center gap-2">
+                                        <i data-lucide="calendar" class="text-primary-600"></i> 14-Day Delivery & Collection Tracker
+                                    </h3>
+                                    <p class="text-xs text-gray-500">Every single order logged in the past fortnight with delivery states</p>
+                                </div>
+                                <span class="text-xs font-bold px-2.5 py-1 bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300 rounded-full">${fourteenDayOrders.length} Recent Orders</span>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left whitespace-nowrap">
+                                    <thead class="bg-gray-50 dark:bg-gray-900/30 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                                        <tr>
+                                            <th class="px-4 py-3">Order Date</th>
+                                            <th class="px-4 py-3">Customer</th>
+                                            <th class="px-4 py-3">Destination</th>
+                                            <th class="px-4 py-3">Courier Company</th>
+                                            <th class="px-4 py-3">Transit Status</th>
+                                            <th class="px-4 py-3">Release State</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
+                                        ${fourteenDayOrders.map(o => `
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20 text-xs">
+                                                <td class="px-4 py-3.5 font-medium">${ui.formatDate(o.date)}</td>
+                                                <td class="px-4 py-3.5 font-bold">${o.customerName}</td>
+                                                <td class="px-4 py-3.5">${o.destination}</td>
+                                                <td class="px-4 py-3.5 font-medium text-primary-600 dark:text-primary-400">${o.courier}</td>
+                                                <td class="px-4 py-3.5">
+                                                    <span class="px-2 py-0.5 rounded-full font-bold uppercase tracking-wide text-[9px] ${o.deliveryStatus === 'Delivered' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'}">${o.deliveryStatus}</span>
+                                                </td>
+                                                <td class="px-4 py-3.5">
+                                                    <span class="px-2 py-0.5 rounded-full font-bold uppercase tracking-wide text-[9px] ${o.collectionStatus === 'Collected' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'}">${o.collectionStatus}</span>
+                                                </td>
+                                            </tr>
+                                        `).join('') || '<tr><td colspan="6" class="text-center py-6 text-gray-400">No transactions placed in the last 14 days.</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            inventory() {
+                const products = db.get('products');
+                return `
+                    <div class="fade-in space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div>
+                                <h1 class="text-2xl font-black">Stock & Catalog Inventory</h1>
+                                <p class="text-sm text-gray-500">Edit unit values, tracking prices, and check immediate stock status levels</p>
+                            </div>
+                            <button onclick="actions.openAddProductModal()" class="w-full sm:w-auto bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-md">
+                                <i data-lucide="plus" class="w-4.5 h-4.5"></i> Register Product
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left whitespace-nowrap">
+                                    <thead class="bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-400 font-bold border-b border-gray-100 dark:border-gray-700 text-xs uppercase tracking-wider">
+                                        <tr>
+                                            <th class="px-5 py-4">Product Name</th>
+                                            <th class="px-5 py-4">Item Classification</th>
+                                            <th class="px-5 py-4">Buying Unit Price</th>
+                                            <th class="px-5 py-4">Selling Unit Price</th>
+                                            <th class="px-5 py-4">Stock Remaining</th>
+                                            <th class="px-5 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/70">
+                                        ${products.map(p => `
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                                                <td class="px-5 py-4 font-extrabold text-gray-900 dark:text-white">${p.name}</td>
+                                                <td class="px-5 py-4">
+                                                    <span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold">${p.category}</span>
+                                                </td>
+                                                <td class="px-5 py-4 text-gray-600 dark:text-gray-300">${ui.formatMoney(p.buyingPrice)}</td>
+                                                <td class="px-5 py-4 font-extrabold text-primary-600 dark:text-primary-400">${ui.formatMoney(p.sellingPrice)}</td>
+                                                <td class="px-5 py-4">
+                                                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${p.stock <= 4 ? 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400 animate-pulse' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'}">${p.stock} units</span>
+                                                </td>
+                                                <td class="px-5 py-4 text-right">
+                                                    <button onclick="actions.openEditProductModal('${p.id}')" class="p-1.5 bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300 hover:bg-primary-100 rounded-lg transition-colors" title="Edit Catalog Product">
+                                                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
 
             reports() {
                 const orders = db.get('orders');
                 const products = db.get('products');
                 
+                // Detailed aggregates
                 let totalRevenue = 0;
-                let totalCOGS = 0; 
+                let totalCOGS = 0; // Total Cost of Goods Sold
                 let totalItemsSold = 0;
 
                 orders.forEach(o => {
@@ -832,6 +994,7 @@
                 const grossProfit = totalRevenue - totalCOGS;
                 const netMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
                 
+                // Total Valuation of Current Inventory
                 const totalAssetValue = products.reduce((sum, p) => sum + (p.buyingPrice * p.stock), 0);
                 const potentialAssetRev = products.reduce((sum, p) => sum + (p.sellingPrice * p.stock), 0);
 
@@ -840,9 +1003,12 @@
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <div>
                                 <h1 class="text-2xl font-black">Financial Reports Hub</h1>
-                                <p class="text-sm text-gray-500">Review business metrics, edit inventory stocks directly, and download reports</p>
+                                <p class="text-sm text-gray-500">Review business metrics, inventory valuations, and download reports</p>
                             </div>
                             <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="actions.downloadCSV()" class="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all border border-gray-200 dark:border-gray-600">
+                                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export CSV
+                                </button>
                                 <button onclick="actions.downloadPDF()" class="flex-1 sm:flex-none bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all shadow-md">
                                     <i data-lucide="file-down" class="w-4 h-4"></i> Download PDF
                                 </button>
@@ -854,10 +1020,12 @@
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
                                 <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gross Sales Revenue</p>
                                 <h3 class="text-2xl font-black text-primary-600 dark:text-primary-400 mt-1">${ui.formatMoney(totalRevenue)}</h3>
+                                <p class="text-[10px] text-gray-400 mt-2">All time processed orders value</p>
                             </div>
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
                                 <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost of Sales (COGS)</p>
                                 <h3 class="text-2xl font-black text-rose-500 mt-1">${ui.formatMoney(totalCOGS)}</h3>
+                                <p class="text-[10px] text-gray-400 mt-2">Acquisition cost of items sold</p>
                             </div>
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
                                 <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Gross Margin</p>
@@ -871,17 +1039,9 @@
                             </div>
                         </div>
 
-                        <!-- Table Sales Report breakdown & Manual Stock Editing -->
+                        <!-- Table Sales Report breakdown -->
                         <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
-                            <div class="flex justify-between items-center mb-4">
-                                <div>
-                                    <h3 class="text-base font-extrabold">Stock Valuation & Performance</h3>
-                                    <p class="text-xs text-primary-600 dark:text-primary-400 font-semibold mt-0.5">
-                                        <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1"></i>
-                                        System dynamically deducts stock from daily inputs. Use 'Edit Stock' below for manual physical inventory adjustments.
-                                    </p>
-                                </div>
-                            </div>
+                            <h3 class="text-base font-extrabold mb-4">Stock Valuation & Performance</h3>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-sm text-left whitespace-nowrap">
                                     <thead class="bg-gray-50 dark:bg-gray-900/40 text-xs font-bold text-gray-500 uppercase border-b border-gray-100 dark:border-gray-700">
@@ -892,27 +1052,19 @@
                                             <th class="px-4 py-3">Retail Price</th>
                                             <th class="px-4 py-3">Active Stock</th>
                                             <th class="px-4 py-3">Est. Valuation</th>
-                                            <th class="px-4 py-3 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
                                         ${products.map(p => {
                                             const valuation = p.buyingPrice * p.stock;
                                             return `
-                                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20 text-xs transition-colors">
+                                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20 text-xs">
                                                     <td class="px-4 py-3.5 font-bold text-gray-900 dark:text-white">${p.name}</td>
                                                     <td class="px-4 py-3.5">${p.category}</td>
                                                     <td class="px-4 py-3.5">${ui.formatMoney(p.buyingPrice)}</td>
                                                     <td class="px-4 py-3.5 font-semibold text-primary-600 dark:text-primary-400">${ui.formatMoney(p.sellingPrice)}</td>
-                                                    <td class="px-4 py-3.5">
-                                                        <span class="px-2.5 py-1 rounded-lg font-bold ${p.stock <= 4 ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'}">${p.stock} units</span>
-                                                    </td>
+                                                    <td class="px-4 py-3.5">${p.stock} units</td>
                                                     <td class="px-4 py-3.5 font-bold">${ui.formatMoney(valuation)}</td>
-                                                    <td class="px-4 py-3.5 text-right">
-                                                        <button onclick="actions.openAdjustStockModal('${p.id}')" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1 inline-flex">
-                                                            <i data-lucide="edit-2" class="w-3 h-3"></i> Edit Stock
-                                                        </button>
-                                                    </td>
                                                 </tr>
                                             `;
                                         }).join('')}
@@ -923,6 +1075,7 @@
                     </div>
                 `;
             },
+
             settings() {
                 return `
                     <div class="fade-in space-y-6 max-w-2xl mx-auto">
@@ -933,6 +1086,8 @@
                         
                         <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                             <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="database" class="text-primary-600"></i> Backup & Persistence</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Export all client ledger logs, item stocks, and billing invoices to a JSON archive file.</p>
+                            
                             <div class="flex flex-wrap gap-4">
                                 <button onclick="actions.exportData()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold transition-colors">
                                     <i data-lucide="download" class="w-4 h-4"></i> Export Archive JSON
@@ -943,49 +1098,280 @@
                                 </label>
                             </div>
                         </div>
+
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-rose-100 dark:border-rose-950/40">
+                            <h3 class="text-lg font-bold mb-2 flex items-center gap-2 text-rose-600"><i data-lucide="alert-triangle"></i> Clear System Storage</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">This deletes all local customer configurations, order listings, and stocks. This action is permanent and cannot be reversed.</p>
+                            <button onclick="actions.wipeSystemStorage()" class="bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold transition-all border border-rose-200 dark:border-rose-900/30">
+                                <i data-lucide="trash" class="w-4 h-4"></i> Wipe All System Data
+                            </button>
+                        </div>
                     </div>
                 `;
             }
         };
 
+        // --- 5. Business Logic Actions ---
         const actions = {
-            // ... Custom stock editing modal directly from Reports
-            openAdjustStockModal(id) {
-                const product = db.get('products').find(p => p.id === id);
-                if (!product) return;
-                
+            // --- Customer Actions ---
+            openAddCustomerModal() {
                 ui.openModal(`
-                    <div class="text-center mb-6">
-                        <div class="w-14 h-14 bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <i data-lucide="package" class="w-7 h-7"></i>
-                        </div>
-                        <h3 class="text-lg font-extrabold text-gray-900 dark:text-white">Adjust Physical Stock</h3>
-                        <p class="text-xs text-gray-500 mt-1">Item: <strong class="text-gray-800 dark:text-gray-200">${product.name}</strong></p>
-                    </div>
-                    
-                    <form id="adjust-stock-form" class="space-y-4">
+                    <h3 class="text-lg font-extrabold mb-4">Create Customer Record</h3>
+                    <form id="add-customer-form" class="space-y-4">
                         <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Correct Current Quantity</label>
-                            <input type="number" name="newStock" value="${product.stock}" min="0" required class="w-full text-center text-xl font-bold mt-1.5 p-4 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
-                            <p class="text-[10px] text-gray-400 mt-2 text-center">Note: Orders automatically deduct this value. Only adjust if conducting physical inventory checks.</p>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Customer Full Name</label>
+                            <input type="text" name="name" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
-                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-xl font-bold mt-4 shadow-md transition-colors flex items-center justify-center gap-2">
-                            <i data-lucide="check" class="w-4 h-4"></i> Save Stock Update
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Phone Number (M-Pesa registered preferred)</label>
+                            <input type="tel" name="phone" placeholder="e.g. 0712345678" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">TikTok Handle</label>
+                            <div class="relative mt-1.5">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">@</span>
+                                <input type="text" name="tiktok" class="w-full pl-8 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Client Category</label>
+                            <select name="category" class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                                <option value="Normal">Normal Client</option>
+                                <option value="Frequent Customer">Frequent Customer</option>
+                                <option value="Trusted Customer">Trusted Customer (Eligible for credit)</option>
+                                <option value="Problematic Customer">Problematic Customer</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white p-3.5 rounded-xl font-bold mt-4 shadow-md transition-colors">
+                            Save Client Profile
                         </button>
                     </form>
                 `);
-
-                document.getElementById('adjust-stock-form').onsubmit = (e) => {
+                document.getElementById('add-customer-form').onsubmit = (e) => {
                     e.preventDefault();
-                    const newStock = Number(new FormData(e.target).get('newStock'));
+                    const fd = new FormData(e.target);
+                    const phone = fd.get('phone').trim();
                     
-                    db.update('products', id, { stock: newStock });
+                    if(db.get('customers').some(c => c.phone === phone)) {
+                        return ui.toast('Customer with this phone already exists!', 'error');
+                    }
+
+                    db.add('customers', {
+                        name: fd.get('name').trim(),
+                        phone,
+                        tiktok: fd.get('tiktok').trim(),
+                        category: fd.get('category'),
+                        totalOrders: 0
+                    });
                     ui.closeModal();
-                    ui.toast(`Stock for ${product.name} updated to ${newStock} units.`);
+                    ui.toast('New customer created successfully!');
                     app.render();
                 };
             },
 
+            openEditCustomerModal(id) {
+                const customer = db.get('customers').find(c => c.id === id);
+                if (!customer) return;
+
+                ui.openModal(`
+                    <h3 class="text-lg font-extrabold mb-4">Edit Customer Details</h3>
+                    <form id="edit-customer-form" class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Customer Full Name</label>
+                            <input type="text" name="name" value="${customer.name}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Phone Number</label>
+                            <input type="tel" name="phone" value="${customer.phone}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">TikTok Handle</label>
+                            <div class="relative mt-1.5">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">@</span>
+                                <input type="text" name="tiktok" value="${customer.tiktok || ''}" class="w-full pl-8 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Client Category</label>
+                            <select name="category" class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                                <option value="Normal" ${customer.category === 'Normal' ? 'selected' : ''}>Normal Client</option>
+                                <option value="Frequent Customer" ${customer.category === 'Frequent Customer' ? 'selected' : ''}>Frequent Customer</option>
+                                <option value="Trusted Customer" ${customer.category === 'Trusted Customer' ? 'selected' : ''}>Trusted Customer (Eligible for credit)</option>
+                                <option value="Problematic Customer" ${customer.category === 'Problematic Customer' ? 'selected' : ''}>Problematic Customer</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white p-3.5 rounded-xl font-bold mt-4 shadow-md transition-colors">
+                            Save Changes
+                        </button>
+                    </form>
+                `);
+
+                document.getElementById('edit-customer-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.target);
+                    const name = fd.get('name').trim();
+                    const phone = fd.get('phone').trim();
+
+                    // Check duplication with others
+                    if(db.get('customers').some(c => c.phone === phone && c.id !== id)) {
+                        return ui.toast('Another customer with this phone number exists!', 'error');
+                    }
+
+                    // Update customer details
+                    db.update('customers', id, {
+                        name,
+                        phone,
+                        tiktok: fd.get('tiktok').trim(),
+                        category: fd.get('category')
+                    });
+
+                    // Reactively update customer references inside historical orders too!
+                    const orders = db.get('orders');
+                    orders.forEach(o => {
+                        if (o.customerId === id) {
+                            o.customerName = name;
+                            o.customerPhone = phone;
+                        }
+                    });
+                    db.save();
+
+                    ui.closeModal();
+                    ui.toast('Customer profile updated successfully!');
+                    app.render();
+                };
+            },
+
+            deleteCustomer(id) {
+                // Ensure there is confirmation modal instead of plain prompt
+                ui.openModal(`
+                    <div class="text-center p-4">
+                        <div class="w-14 h-14 bg-rose-100 dark:bg-rose-950/40 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="user-minus" class="w-7 h-7"></i>
+                        </div>
+                        <h3 class="text-lg font-extrabold text-gray-900 dark:text-white mb-2">Delete Customer Record?</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to completely delete this profile? Historical records referencing this user's stats will be preserved, but client profile will be cleared.</p>
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="ui.closeModal()" class="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 font-bold rounded-xl text-xs transition-colors">Cancel</button>
+                            <button onclick="actions.confirmDeleteCustomer('${id}')" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md">Yes, Delete Record</button>
+                        </div>
+                    </div>
+                `);
+            },
+
+            confirmDeleteCustomer(id) {
+                db.delete('customers', id);
+                ui.closeModal();
+                ui.toast('Customer profile removed.');
+                app.render();
+            },
+
+            // --- Product Actions ---
+            openAddProductModal() {
+                const cats = db.get('categories').map(c => `<option value="${c}">${c}</option>`).join('');
+                ui.openModal(`
+                    <h3 class="text-lg font-extrabold mb-4">Add Product to Catalog</h3>
+                    <form id="add-product-form" class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Product Title</label>
+                            <input type="text" name="name" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Category</label>
+                            <select name="category" class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">${cats}</select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Buying Price (Cost)</label>
+                                <input type="number" name="buyingPrice" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Selling Price (Retail)</label>
+                                <input type="number" name="sellingPrice" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Initial Stock Units</label>
+                            <input type="number" name="stock" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white p-3.5 rounded-xl font-bold mt-4 shadow-md transition-colors">
+                            Add Catalog Product
+                        </button>
+                    </form>
+                `);
+                document.getElementById('add-product-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.target);
+                    db.add('products', {
+                        name: fd.get('name').trim(), 
+                        category: fd.get('category'),
+                        buyingPrice: Number(fd.get('buyingPrice')), 
+                        sellingPrice: Number(fd.get('sellingPrice')), 
+                        stock: Number(fd.get('stock'))
+                    });
+                    ui.closeModal();
+                    ui.toast('Catalog product added.');
+                    app.render();
+                };
+            },
+
+            openEditProductModal(id) {
+                const product = db.get('products').find(p => p.id === id);
+                if (!product) return;
+
+                const cats = db.get('categories').map(c => `
+                    <option value="${c}" ${product.category === c ? 'selected' : ''}>${c}</option>
+                `).join('');
+
+                ui.openModal(`
+                    <h3 class="text-lg font-extrabold mb-4">Edit Product Inventory</h3>
+                    <form id="edit-product-form" class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Product Name</label>
+                            <input type="text" name="name" value="${product.name}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Classification Category</label>
+                            <select name="category" class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">${cats}</select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Cost Price (KES)</label>
+                                <input type="number" name="buyingPrice" value="${product.buyingPrice}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Selling Price (KES)</label>
+                                <input type="number" name="sellingPrice" value="${product.sellingPrice}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Current Stock Quantity</label>
+                            <input type="number" name="stock" value="${product.stock}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white p-3.5 rounded-xl font-bold mt-4 shadow-md transition-colors">
+                            Update Product Catalog
+                        </button>
+                    </form>
+                `);
+
+                document.getElementById('edit-product-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.target);
+                    
+                    db.update('products', id, {
+                        name: fd.get('name').trim(),
+                        category: fd.get('category'),
+                        buyingPrice: Number(fd.get('buyingPrice')),
+                        sellingPrice: Number(fd.get('sellingPrice')),
+                        stock: Number(fd.get('stock'))
+                    });
+
+                    ui.closeModal();
+                    ui.toast('Inventory product catalog successfully updated!');
+                    app.render();
+                };
+            },
+
+            // --- Order Actions ---
             openAddOrderModal() {
                 const customers = db.get('customers');
                 const products = db.get('products').filter(p => p.stock > 0);
@@ -995,9 +1381,6 @@
 
                 ui.openModal(`
                     <h3 class="text-lg font-extrabold mb-4">Create New Client Order</h3>
-                    <p class="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 p-2 rounded-lg mb-4 border border-emerald-100 dark:border-emerald-800 font-medium">
-                        <i data-lucide="info" class="w-3.5 h-3.5 inline"></i> Creating an order will dynamically deduct the item quantity from your active store inventory.
-                    </p>
                     <form id="add-order-form" class="space-y-4">
                         <div>
                             <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Customer Link</label>
@@ -1070,13 +1453,19 @@
                     const balance = totalValue - paid;
                     const paymentStatus = balance <= 0 ? 'Fully Paid' : (paid > 0 ? 'Partially Paid' : 'Unpaid');
                     
+                    // Destination unlock checker
                     const dest = fd.get('destination').trim();
                     let destList = db.get('destinations');
                     if(!destList.includes(dest)) {
                         destList.push(dest);
                         db.save();
+                        setTimeout(() => {
+                            ui.celebrate();
+                            ui.toast(`🎉 New Destination Unlocked: ${dest}!`, 'success');
+                        }, 400);
                     }
 
+                    // Process order additions
                     db.add('orders', {
                         date: new Date().toISOString(),
                         customerId: cust.id, 
@@ -1098,12 +1487,49 @@
                         collectionStatus: 'Awaiting Collection'
                     });
 
-                    // THIS AUTOMATICALLY DEDUCTS THE STOCK!
+                    // Auto decrement product stock level
                     db.update('products', prod.id, { stock: prod.stock - qty });
+                    
+                    // Auto increment total client transaction volume count
                     db.update('customers', cust.id, { totalOrders: (cust.totalOrders || 0) + 1 });
 
                     ui.closeModal();
-                    ui.toast('Client transaction logged and stock updated successfully!');
+                    ui.toast('Client transaction logged successfully!');
+                    app.render();
+                };
+            },
+
+            openPaymentModal(orderId) {
+                const order = db.get('orders').find(o => o.id === orderId);
+                if(order.balance <= 0) return ui.toast('This invoice balance is already fully cleared.', 'info');
+                
+                ui.openModal(`
+                    <h3 class="text-lg font-extrabold mb-2">Process Installment Payment</h3>
+                    <p class="text-xs text-gray-500 mb-4">Customer Account: <span class="font-bold text-gray-800 dark:text-gray-100">${order.customerName}</span> | Unpaid Invoice Balance: <strong class="text-rose-500">${ui.formatMoney(order.balance)}</strong></p>
+                    
+                    <form id="payment-form">
+                        <div>
+                            <label class="text-xs font-bold uppercase tracking-wider text-gray-500">Receipt Amount Now (KES)</label>
+                            <input type="number" name="amount" max="${order.balance}" required class="w-full mt-1.5 p-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-xl font-bold mt-4 shadow-md transition-colors">
+                            Complete Installment Payment
+                        </button>
+                    </form>
+                `);
+
+                document.getElementById('payment-form').onsubmit = (e) => {
+                    e.preventDefault();
+                    const amt = Number(new FormData(e.target).get('amount'));
+                    
+                    const newPaid = order.paid + amt;
+                    const newBalance = order.totalValue - newPaid;
+                    const status = newBalance <= 0 ? 'Fully Paid' : 'Partially Paid';
+                    
+                    db.update('orders', orderId, { paid: newPaid, balance: newBalance, paymentStatus: status });
+                    
+                    ui.closeModal();
+                    ui.toast('Billing statement balance successfully adjusted!');
                     app.render();
                 };
             },
@@ -1127,10 +1553,18 @@
             confirmDeleteOrder(orderId) {
                 const order = db.get('orders').find(o => o.id === orderId);
                 if (order) {
+                    // Automatically restore product stock level count back
                     const product = db.get('products').find(p => p.id === order.productId);
                     if (product) {
                         db.update('products', product.id, { stock: product.stock + order.quantity });
                     }
+                    
+                    // Decrease customer total order counts
+                    const customer = db.get('customers').find(c => c.id === order.customerId);
+                    if (customer) {
+                        db.update('customers', customer.id, { totalOrders: Math.max((customer.totalOrders || 1) - 1, 0) });
+                    }
+
                     db.delete('orders', orderId);
                     ui.toast('Order deleted and stock has been restored.');
                 }
@@ -1138,6 +1572,51 @@
                 app.render();
             },
 
+            markDelivered(orderId) {
+                db.update('orders', orderId, { deliveryStatus: 'Delivered', collectionStatus: 'Collected' });
+                ui.toast('Delivery transit has been verified and released!');
+                app.render();
+            },
+
+            // --- System Data Operations ---
+            exportData() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db.data));
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.setAttribute("href", dataStr);
+                dlAnchorElem.setAttribute("download", `Luku_Designs_Backup_${new Date().toISOString().split('T')[0]}.json`);
+                dlAnchorElem.click();
+                ui.toast('System database exported!');
+            },
+            
+            importData(e) {
+                const file = e.target.files[0];
+                if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.target.result);
+                        if(parsed && parsed.orders && parsed.products) {
+                            localStorage.setItem(DB_KEY, JSON.stringify(parsed));
+                            db.init();
+                            ui.toast('All records successfully restored!');
+                            app.render();
+                        } else {
+                            throw new Error('Invalid system metadata');
+                        }
+                    } catch(err) {
+                        ui.toast('Unsupported file format structure.', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            },
+
+            wipeSystemStorage() {
+                localStorage.removeItem(DB_KEY);
+                ui.toast('Storage cleared successfully.');
+                location.reload();
+            },
+
+            // --- Report Downloader Suite ---
             downloadPDF() {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
@@ -1146,13 +1625,18 @@
                 const products = db.get('products');
                 const customers = db.get('customers');
 
-                let rev = 0, cogs = 0;
-                orders.forEach(o => { rev += o.totalValue; cogs += (o.buyingPrice * o.quantity); });
+                let rev = 0;
+                let cogs = 0;
+                orders.forEach(o => {
+                    rev += o.totalValue;
+                    cogs += (o.buyingPrice * o.quantity);
+                });
                 const profit = rev - cogs;
 
+                // Simple text layout spacing
                 doc.setFont("Helvetica", "bold");
                 doc.setFontSize(22);
-                doc.setTextColor(30, 58, 138); 
+                doc.setTextColor(30, 58, 138); // Navy Blue Primary
                 doc.text("LUKU DESIGNS SYSTEM STATEMENT", 20, 24);
 
                 doc.setFont("Helvetica", "normal");
@@ -1161,9 +1645,11 @@
                 doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 32);
                 doc.text(`Total Accounts: ${customers.length} | Catalog SKU Items: ${products.length}`, 20, 38);
 
+                // Divider line
                 doc.setDrawColor(226, 232, 240);
                 doc.line(20, 44, 190, 44);
 
+                // Financial Overview Header
                 doc.setFont("Helvetica", "bold");
                 doc.setFontSize(14);
                 doc.setTextColor(15, 23, 42);
@@ -1175,7 +1661,7 @@
                 doc.text(`B. Cost of Goods Sold:       KES ${cogs.toLocaleString()}`, 25, 72);
                 
                 doc.setFont("Helvetica", "bold");
-                doc.setTextColor(16, 185, 129); 
+                doc.setTextColor(16, 185, 129); // Emerald profit green
                 doc.text(`C. Calculated Net Profit:    KES ${profit.toLocaleString()}`, 25, 80);
 
                 doc.setFont("Helvetica", "normal");
@@ -1185,6 +1671,7 @@
                 doc.setDrawColor(226, 232, 240);
                 doc.line(20, 96, 190, 96);
 
+                // Inventory Valuation Summary
                 doc.setFont("Helvetica", "bold");
                 doc.text("2. Product Catalog Breakdown", 20, 106);
 
@@ -1204,94 +1691,153 @@
                 doc.setTextColor(15, 23, 42);
                 
                 products.forEach(p => {
-                    if (yCoord < 280) {
+                    if (yCoord < 270) {
                         doc.text(p.name.substring(0, 26), 22, yCoord);
                         doc.text(p.category, 75, yCoord);
                         doc.text(`${p.stock} units`, 115, yCoord);
-                        doc.text(ui.formatMoney(p.buyingPrice), 135, yCoord);
-                        doc.text(ui.formatMoney(p.buyingPrice * p.stock), 165, yCoord);
+                        doc.text(`KES ${p.buyingPrice}`, 135, yCoord);
+                        doc.text(`KES ${(p.buyingPrice * p.stock).toLocaleString()}`, 165, yCoord);
                         yCoord += 8;
                     }
                 });
+
+                doc.setFont("Helvetica", "bold");
+                doc.setFontSize(10);
+                doc.text("Thank you for using Luku Designs Business ERP Suite.", 20, 280);
+
+                doc.save(`Luku_Designs_Executive_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+                ui.toast('PDF Business Statement downloaded successfully!');
+            },
+
+            downloadCSV() {
+                const orders = db.get('orders');
+                let csvContent = "data:text/csv;charset=utf-8,";
                 
-                doc.save(`Luku_Designs_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-                ui.toast("PDF Report Downloaded Successfully!", "success");
+                // Add Headers
+                csvContent += "Transaction Date,Customer Name,Customer Phone,Product Name,Quantity,Unit Selling Price,Total Transaction,Amount Paid,Balance,Payment Status,Delivery Status\n";
+                
+                // Add rows
+                orders.forEach(o => {
+                    const row = [
+                        new Date(o.date).toLocaleDateString(),
+                        `"${o.customerName.replace(/"/g, '""')}"`,
+                        `"${o.customerPhone}"`,
+                        `"${o.productName.replace(/"/g, '""')}"`,
+                        o.quantity,
+                        o.sellingPrice,
+                        o.totalValue,
+                        o.paid,
+                        o.balance,
+                        o.paymentStatus,
+                        o.deliveryStatus
+                    ].join(",");
+                    csvContent += row + "\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.setAttribute("href", encodedUri);
+                dlAnchorElem.setAttribute("download", `Luku_Designs_Transactions_${new Date().toISOString().split('T')[0]}.csv`);
+                dlAnchorElem.click();
+                
+                ui.toast('CSV Spreadsheet spreadsheet successfully generated!');
             }
         };
 
+        // --- 6. Main App Initialization ---
         const app = {
             currentUser: null,
             init() {
                 db.init();
-                this.setupTheme();
-                this.setupAuth();
-            },
-            setupTheme() {
-                const isDark = db.data.settings.darkMode;
-                if(isDark) document.documentElement.classList.add('dark');
                 
-                const toggle = () => {
-                    document.documentElement.classList.toggle('dark');
-                    db.data.settings.darkMode = document.documentElement.classList.contains('dark');
-                    db.save();
-                    this.render(); // Re-render graphs for color scheme change
+                // Construct standard manifest for local device caching installer
+                const manifest = {
+                    name: "Luku Designs ERP Client",
+                    short_name: "Luku ERP",
+                    description: "Business dashboard for Luku Designs",
+                    start_url: ".",
+                    display: "standalone",
+                    background_color: "#ffffff",
+                    theme_color: "#1e3a8a",
+                    icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231e3a8a'%3E%3Cpath d='M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z'/%3E%3C/svg%3E", sizes: "192x192", type: "image/svg+xml" }]
                 };
-                
-                document.getElementById('theme-toggle').onclick = toggle;
-                document.getElementById('mobile-theme-toggle').onclick = toggle;
-            },
-            setupAuth() {
-                const storedAuth = sessionStorage.getItem('luku_auth');
-                if (storedAuth) {
-                    this.currentUser = JSON.parse(storedAuth);
-                    this.showApp();
-                }
+                const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+                document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
 
-                document.getElementById('login-form').onsubmit = (e) => {
-                    e.preventDefault();
-                    const user = document.getElementById('username').value.trim().toLowerCase();
-                    const pass = document.getElementById('password').value;
-                    
-                    if ((user === 'admin' && pass === 'admin') || (user === 'staff' && pass === 'staff')) {
-                        this.currentUser = { username: user, role: user };
-                        sessionStorage.setItem('luku_auth', JSON.stringify(this.currentUser));
-                        this.showApp();
-                        ui.toast(`Welcome back, ${user}!`);
-                    } else {
-                        ui.toast('Invalid credentials. Use admin/admin or staff/staff.', 'error');
-                    }
+                // Force Theme states
+                if (db.data.settings.darkMode) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                } else {
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                }
+                
+                // Responsive desktop theme toggling triggers
+                const handleThemeToggle = () => {
+                    const isDark = document.documentElement.classList.toggle('dark');
+                    document.documentElement.classList.toggle('light', !isDark);
+                    db.data.settings.darkMode = isDark;
+                    db.save();
+                    this.render(); // Redraw UI immediately to preserve matching palettes
                 };
+
+                document.getElementById('theme-toggle').addEventListener('click', handleThemeToggle);
+                document.getElementById('mobile-theme-toggle').addEventListener('click', handleThemeToggle);
+
+                // Connect Auth Action Listeners
+                document.getElementById('login-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const u = document.getElementById('username').value.toLowerCase().trim();
+                    const p = document.getElementById('password').value.toLowerCase().trim();
+                    
+                    if ((u === 'admin' && p === 'admin') || (u === 'staff' && p === 'staff')) {
+                        this.currentUser = { username: u, role: u };
+                        document.getElementById('auth-screen').classList.add('hidden');
+                        document.getElementById('app-screen').classList.remove('hidden');
+                        document.getElementById('user-role-display').textContent = `${u} Account`;
+                        this.navigate('dashboard');
+                    } else {
+                        ui.toast('Invalid security combination. Try: admin/admin or staff/staff', 'error');
+                    }
+                });
             },
-            showApp() {
-                document.getElementById('auth-screen').classList.add('hidden');
-                document.getElementById('app-screen').classList.remove('hidden');
-                document.getElementById('user-role-display').innerText = `${this.currentUser.role} Account`;
+            
+            navigate(viewId) {
+                if(navItems.find(i => i.id === viewId).adminOnly && this.currentUser.role !== 'admin') {
+                    return ui.toast('Administrative clearance required to view this tab.', 'error');
+                }
+                ui.currentView = viewId;
                 this.render();
             },
+            
+            render() {
+                renderNav();
+                const container = document.getElementById('view-container');
+                if (views[ui.currentView]) {
+                    container.innerHTML = views[ui.currentView]();
+                    lucide.createIcons({ root: container });
+                    
+                    // Trigger the Custom SVG line chart if the Dashboard has successfully rendered
+                    if (ui.currentView === 'dashboard') {
+                        setTimeout(() => renderSVGRevenueGraph('dashboardGraphContainer'), 50);
+                    }
+                }
+            },
+
             logout() {
-                sessionStorage.removeItem('luku_auth');
                 this.currentUser = null;
                 document.getElementById('app-screen').classList.add('hidden');
                 document.getElementById('auth-screen').classList.remove('hidden');
-                document.getElementById('auth-screen').classList.add('flex');
-            },
-            navigate(view) {
-                ui.currentView = view;
-                this.render();
-            },
-            render() {
-                renderNav();
-                document.getElementById('view-container').innerHTML = views[ui.currentView]();
-                
-                // If rendering dashboard, initialize the SVG graph with the active timeframe tab
-                if(ui.currentView === 'dashboard') {
-                    renderSVGRevenueGraph('dashboardGraphContainer', ui.dashboardChartTab);
-                }
-                lucide.createIcons();
+                document.getElementById('login-form').reset();
+                ui.toast('Logged out successfully.');
             }
         };
 
-        window.onload = () => app.init();
+        // Initialize Core System Boot up on load
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
     </script>
 </body>
 </html>
