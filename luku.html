@@ -595,6 +595,20 @@
                 const goalProgress = Math.min((totalRevenue / revGoal.target) * 100, 100);
                 const remainingToGoal = Math.max(revGoal.target - totalRevenue, 0);
 
+                const buckets = generateChartBuckets(ui.dashboardChartTab);
+                const startDate = buckets[0].start;
+                const endDate = buckets[buckets.length - 1].end;
+                
+                let tfRevenue = 0;
+                let tfProfit = 0;
+                orders.forEach(o => {
+                    const d = new Date(o.date);
+                    if (d >= startDate && d <= endDate) {
+                        tfRevenue += o.totalValue;
+                        tfProfit += ((o.sellingPrice - o.buyingPrice) * o.quantity);
+                    }
+                });
+
                 return `
                     <div class="fade-in space-y-6">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
@@ -667,7 +681,9 @@
                                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                                     <div>
                                         <h3 class="text-lg font-bold">Revenue Overview</h3>
-                                        <p class="text-xs text-gray-400">Total processed orders value trend</p>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Selected Period: <span class="font-bold text-gray-800 dark:text-gray-200">${ui.formatMoney(tfRevenue)}</span> Rev • <span class="font-bold text-emerald-600 dark:text-emerald-400">${ui.formatMoney(tfProfit)}</span> Profit
+                                        </p>
                                     </div>
                                     <!-- Timeframe Selector Tabs -->
                                     <div class="flex flex-wrap bg-gray-100 dark:bg-gray-900 p-1 rounded-xl text-[11px] font-bold shadow-inner">
@@ -860,7 +876,10 @@
                             <div class="flex justify-between items-center mb-4">
                                 <div>
                                     <h3 class="text-base font-extrabold">Stock Valuation & Performance</h3>
-                                    <p class="text-xs text-primary-600 dark:text-primary-400 font-semibold mt-0.5">Note: Order placement automatically deducts stock. Use 'Edit' below for manual physical inventory adjustments.</p>
+                                    <p class="text-xs text-primary-600 dark:text-primary-400 font-semibold mt-0.5">
+                                        <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1"></i>
+                                        System dynamically deducts stock from daily inputs. Use 'Edit Stock' below for manual physical inventory adjustments.
+                                    </p>
                                 </div>
                             </div>
                             <div class="overflow-x-auto">
