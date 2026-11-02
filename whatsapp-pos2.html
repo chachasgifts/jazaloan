@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luku Designs POS & Inventory System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode JS Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- jsQR Library for scanning incoming screenshots -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-600 text-white p-2 rounded-xl">
+                    <i class="fa-brands fa-whatsapp text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-base leading-tight">Jaza Social POS</h1>
+                    <p class="text-xs text-slate-500">Facebook & WhatsApp Commerce Verification</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="exportData()" class="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> Export Data
+                </button>
+                <label class="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-upload"></i> Restore
+                    <input type="file" id="importInput" accept=".json" class="hidden" onchange="importData(event)">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-200 gap-4">
+            <button id="tab1Btn" onclick="switchTab('upload')" class="pb-3 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-600 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle"></i> 1. Upload & Stamp Item
+            </button>
+            <button id="tab2Btn" onclick="switchTab('verify')" class="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-qrcode"></i> 2. Verify Client Screenshot
+            </button>
+            <button id="tab3Btn" onclick="switchTab('inventory')" class="pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-boxes-stacked"></i> 3. Inventory Database (<span id="totalItemsBadge">0</span>)
+            </button>
+        </div>
+
+        <!-- ================= TAB 1: UPLOAD & STAMP ITEM ================= -->
+        <section id="uploadTab" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Register New Item</h2>
+                    <p class="text-xs text-slate-500">Upload item image to stamp with customized title text & scannable QR code.</p>
+                </div>
+
+                <form id="itemForm" onsubmit="event.preventDefault(); processImageUpload();" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Color / Variant</label>
+                        <input type="text" id="itemColor" required placeholder="e.g. Black or Red" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Dress Title / Description</label>
+                        <input type="text" id="itemTitle" required placeholder="e.g. Red Dinner Black Cotton Dress" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 text-sm">
+                        <p class="text-[11px] text-slate-400 mt-1">E.g., "Red Dinner Black Cotton Dress" will stamp "<span class="font-semibold text-slate-600">Color ID</span>" on top & "<span class="font-semibold text-slate-600">Dinner Dress</span>" below.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Price (KSh)</label>
+                        <input type="number" id="itemPrice" required placeholder="2500" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Upload Photo</label>
+                        <input type="file" id="itemPhoto" accept="image/*" required onchange="previewSourcePhoto(event)" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Stamp QR & Register Item
+                    </button>
+                </form>
+            </div>
+
+            <!-- Preview Canvas & Download -->
+            <div class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+                <div id="canvasPlaceholder" class="py-20 text-slate-400">
+                    <i class="fa-solid fa-image text-4xl mb-2"></i>
+                    <p class="text-sm">Stamped image preview will appear here</p>
+                </div>
+
+                <div class="w-full max-w-md space-y-4">
+                    <canvas id="outputCanvas" class="max-h-[500px] w-auto mx-auto rounded-lg shadow-sm border border-slate-200 hidden"></canvas>
+                    
+                    <a id="downloadBtn" download="ready-for-facebook.png" class="hidden w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition shadow-sm items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> Download Facebook-Ready Photo
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: VERIFY CUSTOMER SCREENSHOT ================= -->
+        <section id="verifyTab" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Verify WhatsApp Screenshot</h2>
+                    <p class="text-xs text-slate-500">Check availability first or directly register a new client sale.</p>
+                </div>
+
+                <form onsubmit="event.preventDefault();" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">1. Client Screenshot (Required)</label>
+                        <input type="file" id="clientScreenshotInput" accept="image/*" required onchange="previewScreenshot(event)" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">2. Customer Name (Optional for checking, Required to assign)</label>
+                        <input type="text" id="clientNameInput" placeholder="e.g. Amina Otieno (0712...)" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <button type="button" onclick="verifyClientScreenshot(false)" class="w-full py-3 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass"></i> Check Status Only
+                        </button>
+                        <button type="button" onclick="verifyClientScreenshot(true)" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-user-check"></i> Assign Sale to Client
+                        </button>
+                    </div>
+                </form>
+
+                <div class="border-t pt-4">
+                    <img id="screenshotPreview" class="max-h-60 rounded-lg mx-auto hidden shadow-sm border border-slate-200" alt="Customer Screenshot Preview">
+                </div>
+            </div>
+
+            <!-- Verification Results Display -->
+            <div class="lg:col-span-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="text-base font-bold text-slate-900 mb-4">Verification Result</h3>
+                
+                <div id="scanIdleState" class="py-20 text-center text-slate-400">
+                    <i class="fa-solid fa-qrcode text-5xl mb-3 text-slate-300"></i>
+                    <p class="text-sm">Upload a client screenshot to inspect or assign status.</p>
+                </div>
+
+                <div id="scanResultCard" class="hidden p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div id="scanStatusBadge" class="p-3 rounded-full text-xl flex items-center justify-center"></div>
+                        <div>
+                            <h4 id="scanStatusTitle" class="font-bold text-base">---</h4>
+                            <p id="scanStatusSubtitle" class="text-xs">---</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/80 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+                        <div class="flex justify-between border-b pb-1">
+                            <span class="text-slate-500">Item Title:</span>
+                            <span id="resItemTitle" class="font-semibold text-slate-900">--</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-1">
+                            <span class="text-slate-500">Item Code (SKU):</span>
+                            <span id="resItemSku" class="font-mono font-semibold text-slate-900">--</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-1">
+                            <span class="text-slate-500">Price:</span>
+                            <span id="resItemPrice" class="font-semibold text-slate-900">--</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-1">
+                            <span class="text-slate-500">Assigned Customer:</span>
+                            <span id="resClientName" class="font-bold text-indigo-700">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Sale Date:</span>
+                            <span id="resSaleDate" class="font-semibold text-slate-700">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: INVENTORY DATABASE ================= -->
+        <section id="inventoryTab" class="hidden space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="relative w-full sm:w-72">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="renderInventoryTable()" placeholder="Search code, title, customer..." class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200">
+                </div>
+                <div class="text-xs text-slate-500">
+                    Total Revenue: <span id="totalRevenueBadge" class="font-bold text-emerald-600">KSh 0</span>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
+                                <th class="p-3.5">Item Details</th>
+                                <th class="p-3.5">SKU / Code</th>
+                                <th class="p-3.5">Price</th>
+                                <th class="p-3.5">Status</th>
+                                <th class="p-3.5">Customer Name</th>
+                                <th class="p-3.5">Date Sold</th>
+                                <th class="p-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody" class="divide-y divide-slate-100">
+                            <!-- Items rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Hidden Temporary Container for QR Generator -->
+    <div id="hiddenQrContainer" class="hidden"></div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300">
+        <div id="toastContent" class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg text-xs flex items-center gap-3">
+            <span id="toastIcon"></span>
+            <span id="toastText"></span>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // State Array for Inventory Database stored in localStorage
+        let inventory = JSON.parse(localStorage.getItem('jaza_inventory')) || [];
+        let currentRawPhoto = null;
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderInventoryTable();
+        });
+
+        // Tab Switcher
+        function switchTab(tabName) {
+            ['upload', 'verify', 'inventory'].forEach(tab => {
+                const sec = document.getElementById(`${tab}Tab`);
+                const btn = document.getElementById(`${tab}TabBtn`) || document.getElementById(`tab${tab === 'upload' ? '1' : tab === 'verify' ? '2' : '3'}Btn`);
+                
+                if (tab === tabName) {
+                    sec.classList.remove('hidden');
+                    btn.className = "pb-3 text-sm font-semibold border-b-2 border-emerald-600 text-emerald-600 flex items-center gap-2";
+                } else {
+                    sec.classList.add('hidden');
+                    btn.className = "pb-3 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 flex items-center gap-2";
+                }
+            });
+        }
+
+        // Generate Numeric SKU ID: e.g. 1834
+        function generateSkuNumber() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        // Extract sub-title from Title Description (e.g. "Red Dinner Black Cotton Dress" -> "Dinner Dress")
+        function extractSubTitle(titleStr, colorStr) {
+            if (!titleStr) return "Verified Item";
+            
+            // Exclude common color & material words to isolate key dress descriptor
+            const excludeWords = [
+                colorStr.toLowerCase(),
+                'red', 'black', 'blue', 'green', 'yellow', 'white', 'pink', 'purple', 'grey', 'gray', 'orange', 'brown',
+                'cotton', 'silk', 'polyester', 'wool', 'linen', 'satin', 'velvet', 'chiffon'
+            ];
+
+            const words = titleStr.split(/\s+/);
+            const keyWords = words.filter(w => !excludeWords.includes(w.toLowerCase().trim()));
+
+            if (keyWords.length >= 2) {
+                return keyWords.slice(0, 2).join(' ');
+            } else if (keyWords.length === 1) {
+                return keyWords[0] + " Dress";
+            }
+            return "Verified Item";
+        }
+
+        // Preview Raw Photo
+        function previewSourcePhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentRawPhoto = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Process Upload and Overlay Discreet QR Banner Canvas
+        function processImageUpload() {
+            const color = document.getElementById('itemColor').value.trim();
+            const title = document.getElementById('itemTitle').value.trim();
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            
+            if (!currentRawPhoto || !color || !title || isNaN(price)) {
+                showToast('Missing Fields', 'Please complete all required fields.', 'error');
+                return;
+            }
+
+            const numericId = generateSkuNumber();
+            const primaryCodeLabel = `${color} ${numericId}`; // e.g. Black 1834
+            const subTitleLabel = extractSubTitle(title, color); // e.g. Dinner Dress
+
+            const img = new Image();
+            img.src = currentRawPhoto;
+
+            img.onload = function() {
+                const canvas = document.getElementById('outputCanvas');
+                const ctx = canvas.getContext('2d');
+
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Draw Original Photo
+                ctx.drawImage(img, 0, 0);
+
+                // Generate QR Code HTML in hidden container (Encodes code label for scanning verification)
+                const tempDiv = document.getElementById('hiddenQrContainer');
+                tempDiv.innerHTML = '';
+                new QRCode(tempDiv, {
+                    text: primaryCodeLabel,
+                    width: 150,
+                    height: 150,
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Wait briefly for QR Canvas to render inside lib
+                setTimeout(() => {
+                    const qrCanvasElement = tempDiv.querySelector('canvas');
+                    if (!qrCanvasElement) return;
+
+                    // Banner positioning & scaling calculations
+                    const bannerHeight = Math.max(70, Math.round(canvas.height * 0.065));
+                    const qrSize = Math.round(bannerHeight * 0.82);
+                    const padding = Math.round((bannerHeight - qrSize) / 2);
+
+                    const badgeWidth = Math.max(220, Math.round(canvas.width * 0.35));
+                    const startX = canvas.width - badgeWidth;
+                    const startY = canvas.height - bannerHeight;
+
+                    // Draw Dark semi-transparent background at bottom right
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                    ctx.fillRect(startX, startY, badgeWidth, bannerHeight);
+
+                    // Draw White Border Box for QR Code
+                    ctx.fillStyle = '#FFFFFF';
+                    const qrX = canvas.width - qrSize - padding;
+                    const qrY = canvas.height - bannerHeight + padding;
+                    ctx.fillRect(qrX, qrY, qrSize, qrSize);
+
+                    // Stamp QR Code onto Canvas
+                    ctx.drawImage(qrCanvasElement, qrX + 2, qrY + 2, qrSize - 4, qrSize - 4);
+
+                    // Draw Top Text: e.g. "Black 1834"
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = `bold ${Math.round(bannerHeight * 0.35)}px Inter, sans-serif`;
+                    ctx.fillText(primaryCodeLabel, startX + padding * 2, canvas.height - (bannerHeight * 0.45));
+
+                    // Draw Bottom Text: e.g. "Dinner Dress"
+                    ctx.fillStyle = '#F59E0B'; // Amber Color
+                    ctx.font = `500 ${Math.round(bannerHeight * 0.25)}px Inter, sans-serif`;
+                    ctx.fillText(subTitleLabel, startX + padding * 2, canvas.height - (bannerHeight * 0.18));
+
+                    // Reveal Download Button
+                    const downloadBtn = document.getElementById('downloadBtn');
+                    downloadBtn.href = canvas.toDataURL('image/png', 1.0);
+                    downloadBtn.download = `${primaryCodeLabel.replace(/\s+/g, '_')}-facebook-ready.png`;
+                    downloadBtn.classList.remove('hidden');
+                    downloadBtn.classList.add('flex');
+
+                    // Save to Inventory Database
+                    const newItem = {
+                        sku: primaryCodeLabel,
+                        color: color,
+                        title: title,
+                        subTitle: subTitleLabel,
+                        price: price,
+                        status: 'Available',
+                        customerName: '',
+                        soldDate: '',
+                        createdDate: new Date().toLocaleDateString('en-GB')
+                    };
+
+                    inventory.unshift(newItem);
+                    localStorage.setItem('jaza_inventory', JSON.stringify(inventory));
+                    renderInventoryTable();
+
+                    showToast('Item Stamped!', `Registered item with code ${primaryCodeLabel}`, 'success');
+                }, 100);
+            };
+
+            document.getElementById('canvasPlaceholder').classList.add('hidden');
+            document.getElementById('outputCanvas').classList.remove('hidden');
+        }
+
+        // Preview Client Screenshot
+        function previewScreenshot(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = document.getElementById('screenshotPreview');
+                    img.src = event.target.result;
+                    img.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Verify Customer Screenshot via jsQR Scanner
+        function verifyClientScreenshot(shouldAssign = false) {
+            const fileInput = document.getElementById('clientScreenshotInput');
+            const clientName = document.getElementById('clientNameInput').value.trim();
+
+            if (!fileInput.files[0]) {
+                showToast('Upload Required', 'Please select a screenshot sent by the customer.', 'error');
+                return;
+            }
+
+            if (shouldAssign && !clientName) {
+                showToast('Client Name Required', 'Please enter the customer name to assign this item.', 'error');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+
+                    if (code && code.data) {
+                        const scannedSku = code.data.trim();
+                        processVerificationMatch(scannedSku, clientName, shouldAssign);
+                    } else {
+                        showScanFailure("Could not read a valid QR code from this screenshot. Please ensure the QR code overlay at the bottom right is clear.");
+                    }
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Process Scan Match Results & Update Inventory
+        function processVerificationMatch(sku, clientName, shouldAssign) {
+            const itemIndex = inventory.findIndex(item => item.sku.toLowerCase() === sku.toLowerCase());
+
+            const idleCard = document.getElementById('scanIdleState');
+            const resultCard = document.getElementById('scanResultCard');
+            const badge = document.getElementById('scanStatusBadge');
+            const title = document.getElementById('scanStatusTitle');
+            const subtitle = document.getElementById('scanStatusSubtitle');
+
+            idleCard.classList.add('hidden');
+            resultCard.classList.remove('hidden');
+
+            if (itemIndex === -1) {
+                resultCard.className = "p-6 rounded-2xl space-y-4 bg-amber-50 border border-amber-200 text-amber-900";
+                badge.className = "p-3 rounded-full text-xl flex items-center justify-center bg-amber-200 text-amber-800";
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i>`;
+                title.innerText = "Unknown Item Code";
+                subtitle.innerText = `Scanned Code (${sku}) does not exist in your database.`;
+
+                document.getElementById('resItemTitle').innerText = "N/A";
+                document.getElementById('resItemSku').innerText = sku;
+                document.getElementById('resItemPrice').innerText = "N/A";
+                document.getElementById('resClientName').innerText = "N/A";
+                document.getElementById('resSaleDate').innerText = "N/A";
+                return;
+            }
+
+            const item = inventory[itemIndex];
+
+            // SCENARIO 1: ITEM IS ALREADY SOLD OUT / ASSIGNED
+            if (item.status === 'Sold Out') {
+                resultCard.className = "p-6 rounded-2xl space-y-4 bg-rose-50 border border-rose-200 text-rose-900";
+                badge.className = "p-3 rounded-full text-xl flex items-center justify-center bg-rose-200 text-rose-800";
+                badge.innerHTML = `<i class="fa-solid fa-ban"></i>`;
+                title.innerText = "⚠️ ALREADY ASSIGNED / SOLD OUT!";
+                subtitle.innerText = shouldAssign 
+                    ? `CANNOT ASSIGN! This dress was already assigned to ${item.customerName}.` 
+                    : `This dress is currently marked as SOLD OUT to ${item.customerName}.`;
+
+                document.getElementById('resItemTitle').innerText = item.title;
+                document.getElementById('resItemSku').innerText = item.sku;
+                document.getElementById('resItemPrice').innerText = `KSh ${item.price.toLocaleString()}`;
+                document.getElementById('resClientName').innerText = item.customerName;
+                document.getElementById('resSaleDate').innerText = item.soldDate;
+
+                showToast('Already Sold Out!', `Blocked double assignment. Owned by ${item.customerName}.`, 'error');
+                return;
+            }
+
+            // SCENARIO 2: ITEM IS AVAILABLE - CHECK ONLY MODE
+            if (!shouldAssign) {
+                resultCard.className = "p-6 rounded-2xl space-y-4 bg-blue-50 border border-blue-200 text-blue-900";
+                badge.className = "p-3 rounded-full text-xl flex items-center justify-center bg-blue-200 text-blue-800";
+                badge.innerHTML = `<i class="fa-solid fa-circle-info"></i>`;
+                title.innerText = "✅ AVAILABLE FOR SALE!";
+                subtitle.innerText = "This dress is in stock. Enter a client name and click 'Assign Sale to Client' to assign it.";
+
+                document.getElementById('resItemTitle').innerText = item.title;
+                document.getElementById('resItemSku').innerText = item.sku;
+                document.getElementById('resItemPrice').innerText = `KSh ${item.price.toLocaleString()}`;
+                document.getElementById('resClientName').innerText = "None (Available)";
+                document.getElementById('resSaleDate').innerText = "Not sold yet";
+
+                showToast('Available!', 'Item is in stock and ready to be assigned.', 'info');
+                return;
+            }
+
+            // SCENARIO 3: ITEM IS AVAILABLE - ASSIGNING TO CLIENT NOW
+            item.status = 'Sold Out';
+            item.customerName = clientName;
+            item.soldDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+
+            inventory[itemIndex] = item;
+            localStorage.setItem('jaza_inventory', JSON.stringify(inventory));
+
+            resultCard.className = "p-6 rounded-2xl space-y-4 bg-emerald-50 border border-emerald-200 text-emerald-900";
+            badge.className = "p-3 rounded-full text-xl flex items-center justify-center bg-emerald-200 text-emerald-800";
+            badge.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+            title.innerText = "🎉 ASSIGNED SUCCESSFULLY!";
+            subtitle.innerText = `Item successfully marked as SOLD to ${clientName}.`;
+
+            document.getElementById('resItemTitle').innerText = item.title;
+            document.getElementById('resItemSku').innerText = item.sku;
+            document.getElementById('resItemPrice').innerText = `KSh ${item.price.toLocaleString()}`;
+            document.getElementById('resClientName').innerText = clientName;
+            document.getElementById('resSaleDate').innerText = item.soldDate;
+
+            showToast('Sale Confirmed!', `Assigned ${item.title} to ${clientName}.`, 'success');
+            renderInventoryTable();
+        }
+
+        // Show Scan Failure Notification
+        function showScanFailure(message) {
+            const idleCard = document.getElementById('scanIdleState');
+            const resultCard = document.getElementById('scanResultCard');
+            const badge = document.getElementById('scanStatusBadge');
+            const title = document.getElementById('scanStatusTitle');
+            const subtitle = document.getElementById('scanStatusSubtitle');
+
+            idleCard.classList.add('hidden');
+            resultCard.classList.remove('hidden');
+
+            resultCard.className = "p-6 rounded-2xl space-y-4 bg-slate-100 border border-slate-300 text-slate-800";
+            badge.className = "p-3 rounded-full text-xl flex items-center justify-center bg-slate-200 text-slate-700";
+            badge.innerHTML = `<i class="fa-solid fa-eye-slash"></i>`;
+            title.innerText = "QR Code Unreadable";
+            subtitle.innerText = message;
+
+            document.getElementById('resItemTitle').innerText = "--";
+            document.getElementById('resItemSku').innerText = "--";
+            document.getElementById('resItemPrice').innerText = "--";
+            document.getElementById('resClientName').innerText = "--";
+            document.getElementById('resSaleDate').innerText = "--";
+        }
+
+        // Render Database Table
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const query = document.getElementById('searchInput')?.value.toLowerCase() || '';
+            tbody.innerHTML = '';
+
+            let totalRev = 0;
+            const filtered = inventory.filter(item => 
+                item.title.toLowerCase().includes(query) ||
+                item.sku.toLowerCase().includes(query) ||
+                (item.customerName && item.customerName.toLowerCase().includes(query))
+            );
+
+            document.getElementById('totalItemsBadge').innerText = inventory.length;
+
+            filtered.forEach((item, index) => {
+                if (item.status === 'Sold Out') totalRev += item.price;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3.5 font-semibold text-slate-900">${item.title}</td>
+                    <td class="p-3.5 font-mono text-xs text-indigo-600 font-semibold">${item.sku}</td>
+                    <td class="p-3.5 font-medium">KSh ${item.price.toLocaleString()}</td>
+                    <td class="p-3.5">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${item.status === 'Sold Out' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="p-3.5 font-medium ${item.customerName ? 'text-slate-900' : 'text-slate-400 italic'}">
+                        ${item.customerName || 'None'}
+                    </td>
+                    <td class="p-3.5 text-slate-500">${item.soldDate || '--'}</td>
+                    <td class="p-3.5 text-right">
+                        <button onclick="deleteItem('${item.sku}')" class="text-slate-400 hover:text-rose-600 p-1.5 transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('totalRevenueBadge').innerText = `KSh ${totalRev.toLocaleString()}`;
+        }
+
+        // Delete Single Item
+        function deleteItem(sku) {
+            inventory = inventory.filter(i => i.sku !== sku);
+            localStorage.setItem('jaza_inventory', JSON.stringify(inventory));
+            renderInventoryTable();
+            showToast('Deleted', `Item ${sku} removed from database.`, 'info');
+        }
+
+        // Export Database Backup to JSON File
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(inventory, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `jaza_inventory_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        // Import Database Backup
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        inventory = data;
+                        localStorage.setItem('jaza_inventory', JSON.stringify(inventory));
+                        renderInventoryTable();
+                        showToast('Restored!', 'Database successfully restored from JSON file.', 'success');
+                    }
+                } catch (err) {
+                    showToast('Import Error', 'Invalid backup JSON file.', 'error');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Helper Toast Notification
+        function showToast(title, msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const text = document.getElementById('toastText');
+
+            const bgMap = {
+                success: 'bg-emerald-600',
+                error: 'bg-rose-600',
+                info: 'bg-slate-900'
+            };
+
+            const iconMap = {
+                success: '<i class="fa-solid fa-circle-check text-base"></i>',
+                error: '<i class="fa-solid fa-circle-xmark text-base"></i>',
+                info: '<i class="fa-solid fa-circle-info text-base"></i>'
+            };
+
+            document.getElementById('toastContent').className = `${bgMap[type]} text-white px-4 py-3 rounded-xl shadow-lg text-xs flex items-center gap-3`;
+            icon.innerHTML = iconMap[type];
+            text.innerHTML = `<strong>${title}:</strong> ${msg}`;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
